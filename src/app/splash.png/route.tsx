@@ -9,38 +9,63 @@ export async function GET() {
         style={{
           width: 200,
           height: 200,
+          background: '#07020e',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#050c18',
-          borderRadius: 32,
-          overflow: 'hidden',
           position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage:
-              'linear-gradient(rgba(0,212,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-          }}
-        />
-        <div
-          style={{
-            fontSize: 36,
+        {/* Purple crown glow */}
+        <div style={{
+          position: 'absolute', top: -30,
+          width: 200, height: 130,
+          borderRadius: '0 0 50% 50%',
+          background: 'radial-gradient(ellipse, rgba(138,99,210,0.55) 0%, transparent 70%)',
+          display: 'flex',
+        }} />
+
+        {/* Roman arch */}
+        <div style={{
+          position: 'absolute', top: 20, left: '50%',
+          transform: 'translateX(-50%)',
+          width: 96, height: 56,
+          borderRadius: '0 0 48px 48px',
+          border: '1px solid rgba(201,168,76,0.3)',
+          borderTop: 'none',
+          display: 'flex',
+        }} />
+
+        {/* P monogram */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          position: 'relative',
+          marginTop: 10,
+        }}>
+          <div style={{
+            fontSize: 82,
             fontWeight: 900,
-            letterSpacing: '0.06em',
-            background: 'linear-gradient(135deg, #00d4ff, #b44fff)',
+            lineHeight: 0.88,
+            fontFamily: 'sans-serif',
+            background: 'linear-gradient(155deg, #C9A84C 0%, #e8d080 40%, #8a63d2 80%)',
             backgroundClip: 'text',
             color: 'transparent',
+          }}>
+            P
+          </div>
+          <div style={{
+            fontSize: 7,
+            fontWeight: 700,
+            letterSpacing: '0.45em',
+            color: 'rgba(138,99,210,0.5)',
             fontFamily: 'sans-serif',
-            textAlign: 'center',
-            lineHeight: 1,
-          }}
-        >
-          BF
+            marginTop: 3,
+          }}>
+            PROTOCOL
+          </div>
         </div>
       </div>
     ),

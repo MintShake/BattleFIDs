@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BattleFIDCard, OwnedCard } from '@/types/card';
 import { openPackRemote } from '@/lib/collection';
 import { PackTier, PACK_DEFS } from '@/lib/packTiers';
+import { estimateValue } from '@/lib/valuation';
 import BattleCard from './BattleCard';
 import PackSelect from './PackSelect';
 
@@ -12,9 +13,11 @@ type Phase = 'select' | 'opening' | 'revealing' | 'done';
 export default function PackOpener({
   onCollected,
   ownerFid,
+  isInMiniApp,
 }: {
   onCollected?: () => void;
   ownerFid?: number;
+  isInMiniApp?: boolean;
 }) {
   const [phase, setPhase] = useState<Phase>('select');
   const [chosenTier, setChosenTier] = useState<PackTier>('scroll');
@@ -52,9 +55,41 @@ export default function PackOpener({
     setRevealed(new Set(cards.map((_, i) => i)));
   }
 
-  function handleCollect() {
+  async function handleCollect() {
     setPhase('done');
     onCollected?.();
+
+    if (!isInMiniApp) return;
+
+    // Sort by estimated value, take top 3 handles for the cast
+    const top3 = [...owned]
+      .sort((a, b) => estimateValue(b.card, b.serialNumber) - estimateValue(a.card, a.serialNumber))
+      .slice(0, 3);
+
+    const handles = top3.map(o => `@${o.card.handle}`).join(', ');
+    const rest = owned.length - top3.length;
+    const rarityLabel = top3[0]
+      ? `${top3[0].card.rarity} · FID #${top3[0].card.fid}`
+      : '';
+
+    const castText = [
+      `Just opened a ${packDef.name} pack from The Protocol ⚔`,
+      ``,
+      `Got ${handles}${rest > 0 ? ` + ${rest} more` : ''}`,
+      rarityLabel ? `Top pull: ${rarityLabel}` : '',
+      ``,
+      `Farcaster identity cards · MMXXVI`,
+    ].filter(l => l !== undefined).join('\n').trim();
+
+    try {
+      const { sdk } = await import('@farcaster/miniapp-sdk');
+      await sdk.actions.composeCast({
+        text: castText,
+        embeds: ['https://battle-fids.vercel.app'],
+      });
+    } catch {
+      // user dismissed — that's fine
+    }
   }
 
   function handleAgain() {

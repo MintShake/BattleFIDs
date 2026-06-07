@@ -20,7 +20,7 @@ const caveat = Caveat({
 });
 
 const BASE_URL = "https://battle-fids.vercel.app";
-const SPLASH_COLOR = "#050c18";
+const SPLASH_COLOR = "#07020e";
 
 export const metadata: Metadata = {
   title: "The Protocol",

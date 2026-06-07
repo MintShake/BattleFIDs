@@ -246,7 +246,7 @@ export default function Home() {
           )
         )}
 
-        {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} />}
+        {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} isInMiniApp={isInMiniApp} />}
         {tab === 'collection' && <CollectionView owned={owned} />}
         </div>{/* end content */}
       </div>{/* end page-inner */}
