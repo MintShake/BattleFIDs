@@ -33,7 +33,7 @@ export default function MiniAppActions({
   const [addError, setAddError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   // Hold pre-loaded sdk so click handler is instant (no dynamic import delay)
-  const sdkRef = useRef<Awaited<ReturnType<typeof import('@farcaster/miniapp-sdk')>>['sdk'] | null>(null);
+  const sdkRef = useRef<Awaited<typeof import('@farcaster/miniapp-sdk')>['sdk'] | null>(null);
 
   useEffect(() => { setAdded(addedProp); }, [addedProp]);
 
