@@ -2,6 +2,8 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
+const BG = 'https://battle-fids.vercel.app/bg-roman.png';
+
 export async function GET() {
   return new ImageResponse(
     (
@@ -17,22 +19,44 @@ export async function GET() {
           overflow: 'hidden',
         }}
       >
+        {/* Photorealistic Roman backdrop */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={BG}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center top',
+            opacity: 0.5,
+            filter: 'sepia(0.5) hue-rotate(215deg) saturate(1.5) brightness(0.6)',
+          }}
+        />
+
+        {/* Dark vignette */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse 90% 90% at 50% 50%, transparent 20%, rgba(7,2,14,0.65) 100%)',
+          display: 'flex',
+        }} />
+
         {/* Purple crown glow */}
         <div style={{
           position: 'absolute', top: -80, left: '50%',
           transform: 'translateX(-50%)',
-          width: 480, height: 320,
+          width: 480, height: 300,
           borderRadius: '0 0 50% 50%',
-          background: 'radial-gradient(ellipse, rgba(138,99,210,0.6) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(138,99,210,0.5) 0%, transparent 70%)',
           display: 'flex',
         }} />
 
         {/* Gold base warmth */}
         <div style={{
           position: 'absolute', bottom: -80,
-          width: 480, height: 260,
+          width: 480, height: 240,
           borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(201,168,76,0.22) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse, rgba(201,168,76,0.2) 0%, transparent 65%)',
           display: 'flex',
         }} />
 
@@ -41,7 +65,7 @@ export async function GET() {
           position: 'absolute',
           width: 420, height: 420,
           borderRadius: '50%',
-          border: '1px solid rgba(201,168,76,0.2)',
+          border: '1px solid rgba(201,168,76,0.25)',
           display: 'flex',
         }} />
 
@@ -50,7 +74,7 @@ export async function GET() {
           position: 'absolute',
           width: 360, height: 360,
           borderRadius: '50%',
-          border: '1px solid rgba(138,99,210,0.18)',
+          border: '1px solid rgba(138,99,210,0.2)',
           display: 'flex',
         }} />
 
@@ -60,7 +84,7 @@ export async function GET() {
           transform: 'translateX(-50%)',
           width: 240, height: 140,
           borderRadius: '0 0 120px 120px',
-          border: '2px solid rgba(201,168,76,0.28)',
+          border: '2px solid rgba(201,168,76,0.35)',
           borderTop: 'none',
           display: 'flex',
         }} />
@@ -69,7 +93,7 @@ export async function GET() {
           transform: 'translateX(-50%)',
           width: 170, height: 100,
           borderRadius: '0 0 85px 85px',
-          border: '1px solid rgba(138,99,210,0.18)',
+          border: '1px solid rgba(138,99,210,0.22)',
           borderTop: 'none',
           display: 'flex',
         }} />
@@ -98,7 +122,7 @@ export async function GET() {
             fontSize: 17,
             fontWeight: 700,
             letterSpacing: '0.5em',
-            color: 'rgba(138,99,210,0.5)',
+            color: 'rgba(201,168,76,0.6)',
             textTransform: 'uppercase',
             fontFamily: 'sans-serif',
             marginTop: 6,
@@ -109,24 +133,12 @@ export async function GET() {
 
         {/* Corner ticks */}
         {([
-          [32, 32, true,  true,  false, false],
-          [32, -1, true,  false, false, 32  ],
-          [-1, 32, false, true,  32,    false],
-          [-1, -1, false, false, 32,    32  ],
-        ] as [number, number, boolean, boolean, number | false, number | false][]).map(([t, l, bt, bl, b, r], i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            width: 18, height: 18,
-            ...(t >= 0 ? { top: t } : {}),
-            ...(l >= 0 ? { left: l } : {}),
-            ...(b !== false ? { bottom: b } : {}),
-            ...(r !== false ? { right: r } : {}),
-            borderTop:    bt ? '2px solid rgba(201,168,76,0.35)' : 'none',
-            borderLeft:   bl ? '2px solid rgba(201,168,76,0.35)' : 'none',
-            borderBottom: b !== false ? '2px solid rgba(201,168,76,0.35)' : 'none',
-            borderRight:  r !== false ? '2px solid rgba(201,168,76,0.35)' : 'none',
-            display: 'flex',
-          }} />
+          { top: 32, left: 32, borderTop: '2px solid rgba(201,168,76,0.4)', borderLeft: '2px solid rgba(201,168,76,0.4)' },
+          { top: 32, right: 32, borderTop: '2px solid rgba(201,168,76,0.4)', borderRight: '2px solid rgba(201,168,76,0.4)' },
+          { bottom: 32, left: 32, borderBottom: '2px solid rgba(201,168,76,0.4)', borderLeft: '2px solid rgba(201,168,76,0.4)' },
+          { bottom: 32, right: 32, borderBottom: '2px solid rgba(201,168,76,0.4)', borderRight: '2px solid rgba(201,168,76,0.4)' },
+        ]).map((style, i) => (
+          <div key={i} style={{ position: 'absolute', width: 20, height: 20, display: 'flex', ...style }} />
         ))}
       </div>
     ),
