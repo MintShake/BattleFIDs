@@ -38,28 +38,45 @@ export default function Home() {
       }}
     >
       {/* Header */}
-      <div style={{ textAlign: 'center', padding: '24px 16px 8px' }}>
-        <h1
-          style={{
-            fontSize: 'clamp(28px, 8vw, 42px)',
-            fontWeight: 900,
-            letterSpacing: '0.08em',
-            background: 'linear-gradient(90deg, #00d4ff, #b44fff, #FFD700)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            lineHeight: 1.1,
-            margin: 0,
-          }}
-        >
+      <div style={{ textAlign: 'center', padding: '20px 16px 6px', position: 'relative' }}>
+        {/* Arch decoration */}
+        <div style={{
+          position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+          width: 180, height: 28,
+          borderRadius: '0 0 90px 90px',
+          background: 'linear-gradient(180deg, rgba(138,99,210,0.08) 0%, transparent 100%)',
+          border: '1px solid rgba(138,99,210,0.12)',
+          borderTop: 'none',
+          pointerEvents: 'none',
+        }} />
+
+        <p style={{
+          fontSize: 8, fontWeight: 700, letterSpacing: '0.4em', color: '#5c4070',
+          textTransform: 'uppercase', margin: '0 0 4px',
+        }}>
+          ROME PLAYS · MMXXVI
+        </p>
+
+        <h1 style={{
+          fontSize: 'clamp(28px, 8vw, 44px)',
+          fontWeight: 900,
+          letterSpacing: '0.1em',
+          background: 'linear-gradient(90deg, #8a63d2, #C9A84C, #8a63d2)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          lineHeight: 1.05,
+          margin: 0,
+        }}>
           BATTLE FIDs
         </h1>
+
         {miniAppUser ? (
-          <p style={{ color: '#4b5563', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>
+          <p style={{ color: '#5c4d70', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 5 }}>
             FID {miniAppUser.fid} · {miniAppUser.username ?? miniAppUser.displayName}
           </p>
         ) : (
-          <p style={{ color: '#374151', fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 4 }}>
+          <p style={{ color: '#3d3050', fontSize: 9, letterSpacing: '0.3em', textTransform: 'uppercase', marginTop: 5 }}>
             Farcaster Identity Battle Cards
           </p>
         )}
@@ -122,9 +139,9 @@ export default function Home() {
           right: 0,
           height: 64 + safeAreaInsets.bottom,
           paddingBottom: safeAreaInsets.bottom,
-          background: 'rgba(5,12,24,0.92)',
-          backdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(0,212,255,0.12)',
+          background: 'rgba(9,4,15,0.94)',
+          backdropFilter: 'blur(16px)',
+          borderTop: '1px solid rgba(138,99,210,0.18)',
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-around',
@@ -147,7 +164,7 @@ export default function Home() {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: tab === t ? '#00d4ff' : '#4b5563',
+              color: tab === t ? '#8a63d2' : '#4a3d5c',
               transition: 'color 0.15s',
             }}
           >

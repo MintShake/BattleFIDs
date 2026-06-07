@@ -13,89 +13,98 @@ export async function GET() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#050c18',
+          background: '#08030f',
           fontFamily: 'sans-serif',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Grid lines */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage:
-              'linear-gradient(rgba(0,212,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.07) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
+        {/* Purple grid */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage:
+            'linear-gradient(rgba(138,99,210,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(138,99,210,0.07) 1px, transparent 1px)',
+          backgroundSize: '56px 56px',
+        }} />
 
-        {/* Glow */}
-        <div
-          style={{
-            position: 'absolute',
-            width: 600,
-            height: 600,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%)',
-          }}
-        />
+        {/* Gold radial glow */}
+        <div style={{
+          position: 'absolute',
+          width: 700, height: 700,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 65%)',
+        }} />
+
+        {/* Purple glow */}
+        <div style={{
+          position: 'absolute', top: -200, left: '50%',
+          transform: 'translateX(-50%)',
+          width: 900, height: 500,
+          borderRadius: '0 0 50% 50%',
+          background: 'radial-gradient(ellipse, rgba(138,99,210,0.12) 0%, transparent 70%)',
+        }} />
+
+        {/* Roman arch */}
+        <div style={{
+          position: 'absolute', top: 0, left: '50%',
+          transform: 'translateX(-50%)',
+          width: 400, height: 220,
+          borderRadius: '0 0 200px 200px',
+          border: '1px solid rgba(201,168,76,0.15)',
+          borderTop: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', top: 0, left: '50%',
+          transform: 'translateX(-50%)',
+          width: 280, height: 160,
+          borderRadius: '0 0 140px 140px',
+          border: '1px solid rgba(138,99,210,0.12)',
+          borderTop: 'none',
+        }} />
+
+        {/* Edition text */}
+        <div style={{
+          fontSize: 16, fontWeight: 700, letterSpacing: '0.45em',
+          color: '#5c4070', textTransform: 'uppercase', marginBottom: 16,
+        }}>
+          ROME PLAYS · MMXXVI
+        </div>
 
         {/* Title */}
-        <div
-          style={{
-            fontSize: 96,
-            fontWeight: 900,
-            letterSpacing: '0.08em',
-            background: 'linear-gradient(90deg, #00d4ff, #b44fff, #FFD700)',
-            backgroundClip: 'text',
-            color: 'transparent',
-            lineHeight: 1,
-            marginBottom: 20,
-          }}
-        >
+        <div style={{
+          fontSize: 110, fontWeight: 900, letterSpacing: '0.06em',
+          background: 'linear-gradient(90deg, #8a63d2, #C9A84C, #8a63d2)',
+          backgroundClip: 'text',
+          color: 'transparent',
+          lineHeight: 1,
+          marginBottom: 18,
+        }}>
           BATTLE FIDs
         </div>
 
         {/* Subtitle */}
-        <div
-          style={{
-            fontSize: 22,
-            color: 'rgba(255,255,255,0.4)',
-            letterSpacing: '0.3em',
-            textTransform: 'uppercase',
-          }}
-        >
+        <div style={{
+          fontSize: 20, color: 'rgba(138,99,210,0.5)',
+          letterSpacing: '0.3em', textTransform: 'uppercase',
+          marginBottom: 40,
+        }}>
           Farcaster Identity Battle Cards
         </div>
 
-        {/* Rarity tags */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            marginTop: 40,
-          }}
-        >
+        {/* Rarity tier pills */}
+        <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: 'ALPHA', color: '#FFD700' },
-            { label: 'LEGENDARY', color: '#b44fff' },
-            { label: 'ELITE', color: '#00d4ff' },
-            { label: 'RARE', color: '#00ff88' },
-            { label: 'COMMON', color: '#6b7280' },
+            { label: 'IMPERATOR', color: '#C9A84C' },
+            { label: 'SENATOR',   color: '#8a63d2' },
+            { label: 'CENTURION', color: '#cd7f32' },
+            { label: 'LEGIONARY', color: '#a78bfa' },
+            { label: 'CITIZEN',   color: '#8a7550' },
           ].map(({ label, color }) => (
-            <div
-              key={label}
-              style={{
-                padding: '6px 16px',
-                borderRadius: 99,
-                border: `1px solid ${color}44`,
-                color,
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: '0.2em',
-              }}
-            >
+            <div key={label} style={{
+              padding: '6px 16px', borderRadius: 99,
+              border: `1px solid ${color}44`,
+              color, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+            }}>
               {label}
             </div>
           ))}

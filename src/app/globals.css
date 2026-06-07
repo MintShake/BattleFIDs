@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050c18;
-  --foreground: #e5e7eb;
+  --background: #08030f;
+  --foreground: #e8e0f0;
+  --purple:  #8a63d2;
+  --gold:    #c9a84c;
+  --crimson: #9b1c3a;
 }
 
 @theme inline {
@@ -17,9 +20,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Roman tile grid — subtle purple arches */
 .bg-grid {
+  background-color: #08030f;
   background-image:
-    linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px);
-  background-size: 40px 40px;
+    /* column lines */
+    linear-gradient(rgba(138, 99, 210, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 99, 210, 0.06) 1px, transparent 1px),
+    /* arch highlights at intersections */
+    radial-gradient(ellipse 30px 18px at 50% 0%, rgba(201, 168, 76, 0.04) 0%, transparent 100%);
+  background-size: 56px 56px, 56px 56px, 56px 56px;
 }
