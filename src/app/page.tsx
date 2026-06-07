@@ -135,7 +135,7 @@ export default function Home() {
               `,
               letterSpacing: '0.02em',
             }}>
-              2026
+              2026 edition
             </span>
           </div>
           {miniAppUser ? (
