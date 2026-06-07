@@ -1,4 +1,4 @@
-import { BattleFIDCard, CardStats, rarityFromFid } from '@/types/card';
+import { BattleFIDCard, CardStats, CardType, rarityFromFid } from '@/types/card';
 import { FidTimeline } from '@/types/faces';
 import { NeynarUser, CastEngagement } from '@/types/neynar';
 
@@ -49,6 +49,32 @@ function computeBattleScore(stats: CardStats): number {
   );
 }
 
+// ── type classifier ──────────────────────────────────────────────────────────
+// Assigns one of 5 league slot types based on the user's Neynar profile.
+// Priority order — first match wins.
+//   BROADCASTER: big reach, high Neynar score → likely to go viral
+//   PUBLISHER:   power badge + wallet verified → builder/creator energy
+//   NETWORKER:   high reply activity → lives in others' conversations
+//   AGITATOR:    established voice, generates discussion
+//   CAPTAIN:     never assigned here — any rarity card can captain
+// All cards are eligible for the CAPTAIN slot regardless of assigned type.
+
+export function classifyType(user: NeynarUser | undefined, engagement: CastEngagement | undefined): CardType {
+  if (!user) return 'NETWORKER';
+
+  const followers = user.follower_count ?? 0;
+  const score     = user.score ?? 0;
+  const replies   = engagement?.replyCount ?? 0;
+  const verifs    = user.verifications?.length ?? 0;
+  const badge     = user.power_badge ?? score >= 0.5;
+
+  if (score >= 0.6 && followers >= 8000)           return 'BROADCASTER';
+  if (badge && verifs >= 1 && followers >= 500)     return 'PUBLISHER';
+  if (replies >= 15)                                return 'NETWORKER';
+  if (score >= 0.3 && followers >= 300)             return 'AGITATOR';
+  return 'NETWORKER';
+}
+
 // ── builder ───────────────────────────────────────────────────────────────────
 
 export function buildCard(
@@ -93,6 +119,9 @@ export function buildCard(
     rarity:        rarityFromFid(timeline.fid),
     stats,
     battleScore:   computeBattleScore(stats),
+    cardType:      classifyType(neynarUser, engagement),
+    wins:          0,
+    losses:        0,
     storedAt:      image.storedAt,
     likeCount:     image.likeCount ?? 0,
     hasBadge:      neynarUser ? (neynarUser.power_badge ?? (neynarUser.score >= 0.5)) : false,

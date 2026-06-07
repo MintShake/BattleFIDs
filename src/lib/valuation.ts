@@ -25,13 +25,25 @@ export function estimateValue(card: BattleFIDCard, serialNumber?: number): numbe
   return base * scoreMult * badgeMult * serialMult;
 }
 
-// Format ETH value for display, e.g. "Ξ 0.0042" or "Ξ 1.24"
+const ETH_USD = 3000; // approximate — display only, not used for pricing
+
 export function formatEth(eth: number): string {
-  if (eth >= 1)    return `Ξ ${eth.toFixed(2)}`;
-  if (eth >= 0.01) return `Ξ ${eth.toFixed(3)}`;
-  return `Ξ ${eth.toFixed(4)}`;
+  if (eth >= 1)    return `Ξ${eth.toFixed(2)}`;
+  if (eth >= 0.01) return `Ξ${eth.toFixed(3)}`;
+  return `Ξ${eth.toFixed(4)}`;
+}
+
+export function formatUsdc(eth: number): string {
+  const usd = eth * ETH_USD;
+  if (usd >= 100) return `$${Math.round(usd).toLocaleString()}`;
+  if (usd >= 1)   return `$${usd.toFixed(2)}`;
+  return `$${usd.toFixed(3)}`;
 }
 
 export function cardValue(card: BattleFIDCard, serialNumber?: number): string {
   return formatEth(estimateValue(card, serialNumber));
+}
+
+export function cardValueUsdc(card: BattleFIDCard, serialNumber?: number): string {
+  return formatUsdc(estimateValue(card, serialNumber));
 }

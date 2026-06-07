@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey } from '@/types/card';
+import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey, CARD_TYPE_LABELS } from '@/types/card';
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
 import { cardValue } from '@/lib/valuation';
@@ -84,6 +84,7 @@ interface Props {
   onClick?: () => void;
   serialNumber?: number;
   ownerHandle?: string;
+  showFollow?: boolean; // renders follow + W/L — omit for NFT image-only contexts
 }
 
 export default function BattleCard({
@@ -94,6 +95,7 @@ export default function BattleCard({
   onClick,
   serialNumber,
   ownerHandle,
+  showFollow = true,
 }: Props) {
   const cfg = RARITY_CONFIG[card.rarity];
   const edition = editionLabel(card.variantIndex, card.totalVariants);
@@ -289,6 +291,28 @@ export default function BattleCard({
 
         {/* Battle score + est. value footer */}
         <div style={{ padding: '0 10px 10px' }}>
+
+          {/* Owner chip — shown on browse view */}
+          {ownerHandle && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              marginBottom: 6, padding: '4px 8px', borderRadius: 8,
+              background: 'rgba(138,99,210,0.07)',
+              border: '1px solid rgba(138,99,210,0.18)',
+            }}>
+              <span style={{ fontSize: 8, color: '#4a3d5c', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>
+                Owned by
+              </span>
+              <span style={{
+                fontSize: 9, fontWeight: 700,
+                color: ownerHandle === 'anon' ? '#3d2a50' : '#8a63d2',
+                fontStyle: ownerHandle === 'anon' ? 'italic' : 'normal',
+              }}>
+                {ownerHandle === 'anon' ? 'anon' : `@${ownerHandle}`}
+              </span>
+            </div>
+          )}
+
           <div style={{
             borderRadius: 10, padding: '7px 10px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -302,7 +326,6 @@ export default function BattleCard({
               {serialNumber !== undefined && (
                 <div style={{ fontSize: 8, color: '#3d3050', marginTop: 1 }}>
                   #{serialNumber} / {card.fid.toLocaleString()}
-                  {ownerHandle && <span style={{ color: '#5c4070', marginLeft: 4 }}>· @{ownerHandle}</span>}
                 </div>
               )}
             </div>
@@ -325,6 +348,50 @@ export default function BattleCard({
               {cardValue(card, serialNumber)}
             </div>
           </div>
+
+          {/* Type badge + W/L + Follow — shown in app, not in NFT metadata */}
+          {showFollow && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
+              {/* Card type */}
+              <div style={{
+                fontSize: 7, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase',
+                padding: '2px 7px', borderRadius: 99,
+                background: `${cfg.accent}15`, border: `1px solid ${cfg.accent}30`, color: cfg.accent,
+              }}>
+                {CARD_TYPE_LABELS[card.cardType]}
+              </div>
+
+              {/* W/L record */}
+              {(card.wins > 0 || card.losses > 0) && (
+                <div style={{
+                  fontSize: 7, fontWeight: 700, letterSpacing: '0.1em',
+                  padding: '2px 7px', borderRadius: 99,
+                  background: 'rgba(138,99,210,0.08)', border: '1px solid rgba(138,99,210,0.2)',
+                  color: '#7c6a96',
+                }}>
+                  {card.wins}W {card.losses}L
+                </div>
+              )}
+
+              {/* Follow button — links to Warpcast profile */}
+              <a
+                href={`https://warpcast.com/${card.handle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: 7, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase',
+                  padding: '3px 8px', borderRadius: 99,
+                  background: 'rgba(138,99,210,0.12)', border: '1px solid rgba(138,99,210,0.3)',
+                  color: '#8a63d2', textDecoration: 'none', display: 'inline-block',
+                }}
+              >
+                Follow ↗
+              </a>
+            </div>
+          )}
+
         </div>
 
       </div>

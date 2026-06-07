@@ -8,9 +8,13 @@ import CardModal from '@/components/CardModal';
 import PackOpener from '@/components/PackOpener';
 import CollectionView from '@/components/CollectionView';
 import MiniAppActions from '@/components/MiniAppActions';
+import TeamBuilder from '@/components/TeamBuilder';
+import WeekProgress from '@/components/WeekProgress';
+import Leaderboard from '@/components/Leaderboard';
 import { useMiniApp } from '@/hooks/useMiniApp';
 
-type Tab = 'browse' | 'pack' | 'collection';
+type Tab = 'browse' | 'pack' | 'collection' | 'league';
+type LeagueView = 'team' | 'progress' | 'leaderboard';
 type BrowseSort = 'recent' | 'score' | 'fid' | 'name';
 
 // Global browse — all cards opened by anyone
@@ -24,7 +28,11 @@ async function fetchGlobalCards(): Promise<GlobalCard[]> {
 
 export default function Home() {
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
-  const [tab, setTab] = useState<Tab>('browse');
+  const [tab, setTab]             = useState<Tab>('browse');
+  const [leagueView, setLeagueView] = useState<LeagueView>('progress');
+  const deviceId = typeof window !== 'undefined'
+    ? (localStorage.getItem('deviceId') ?? (() => { const id = crypto.randomUUID(); localStorage.setItem('deviceId', id); return id; })())
+    : '';
   const [owned, setOwned] = useState<OwnedCard[]>([]);
   const [globalCards, setGlobalCards] = useState<GlobalCard[]>([]);
   const [browseLoading, setBrowseLoading] = useState(true);
@@ -70,8 +78,8 @@ export default function Home() {
     return list;
   }, [globalCards, browseSearch, browseSort]);
 
-  const TAB_ICONS: Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔' };
-  const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards' };
+  const TAB_ICONS: Record<Tab, string>  = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆' };
+  const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League' };
 
   return (
     <main className="bg-grid min-h-screen" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -117,14 +125,14 @@ export default function Home() {
             <span style={{
               position: 'absolute',
               right: '-0.15em',
-              bottom: '-0.55em',
+              bottom: '-0.85em',
               fontFamily: 'var(--font-caveat)',
               fontSize: 'clamp(22px, 4.5vw, 42px)',
               fontWeight: 700,
               color: '#e63946',
               transform: 'rotate(-8deg)',
               transformOrigin: 'left center',
-              lineHeight: 0.95,
+              lineHeight: 0.82,
               pointerEvents: 'none',
               textShadow: `
                 1px 0px 0 rgba(230,57,70,0.4),
@@ -251,6 +259,50 @@ export default function Home() {
 
         {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} isInMiniApp={isInMiniApp} />}
         {tab === 'collection' && <CollectionView owned={owned} />}
+
+        {tab === 'league' && (
+          <div>
+            {/* League sub-nav */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, justifyContent: 'center' }}>
+              {(['progress', 'team', 'leaderboard'] as LeagueView[]).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setLeagueView(v)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 99,
+                    border: leagueView === v ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)',
+                    background: leagueView === v ? 'rgba(138,99,210,0.18)' : 'transparent',
+                    color: leagueView === v ? '#c4a4ff' : '#5c4070',
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer',
+                  }}
+                >
+                  {v === 'progress' ? 'My Week' : v === 'team' ? 'My Team' : 'Leaderboard'}
+                </button>
+              ))}
+            </div>
+
+            {leagueView === 'progress' && (
+              <WeekProgress
+                ownerFid={miniAppUser?.fid}
+                ownerDevice={deviceId}
+                onGoToTeam={() => setLeagueView('team')}
+              />
+            )}
+            {leagueView === 'team' && (
+              <TeamBuilder
+                owned={owned}
+                ownerFid={miniAppUser?.fid}
+                ownerDevice={deviceId}
+              />
+            )}
+            {leagueView === 'leaderboard' && (
+              <Leaderboard
+                ownerFid={miniAppUser?.fid}
+                totalWageredUsdc={0}
+              />
+            )}
+          </div>
+        )}
         </div>{/* end content */}
       </div>{/* end page-inner */}
 
@@ -280,7 +332,7 @@ export default function Home() {
             display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
           }}
         >
-          {(['browse', 'pack', 'collection'] as Tab[]).map((t) => (
+          {(['browse', 'pack', 'collection', 'league'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}

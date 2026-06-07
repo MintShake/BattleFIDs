@@ -5,7 +5,9 @@ import Image from 'next/image';
 import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey } from '@/types/card';
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
-import { cardValue } from '@/lib/valuation';
+import { cardValue, cardValueUsdc } from '@/lib/valuation';
+import { isContractDeployed, ROYALTY_PCT } from '@/lib/contract';
+import WalletConnect from './WalletConnect';
 
 const STAT_INFO: Record<StatKey, string> = {
   supplyRarity:  'Based on FID number. Lower FID = lower max supply = rarer card. FID 1 = only 1 can ever exist.',
@@ -53,7 +55,9 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [activeInfo, setActiveInfo] = useState<StatKey | null>(null);
   const [offerOpen, setOfferOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [offerSent, setOfferSent]   = useState(false);
+  const [copied, setCopied]         = useState(false);
 
   const badges = computeBadges(card);
 
@@ -89,7 +93,15 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
     }
   }, [card]);
 
-  const mockFloor = cardValue(card, serialNumber);
+  const mockFloor     = cardValue(card, serialNumber);
+  const mockFloorUsdc = cardValueUsdc(card, serialNumber);
+  const contractLive  = isContractDeployed();
+
+  function handleSendOffer() {
+    // TODO: call contract offer function once deployed
+    setOfferSent(true);
+    setTimeout(() => { setOfferOpen(false); setOfferSent(false); setOfferAmount(''); }, 2000);
+  }
 
   return (
     <div
@@ -176,13 +188,20 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
           }}>
             <ProfileBack
               card={card}
+              serialNumber={serialNumber}
               profile={profile}
               badges={badges}
               activeInfo={activeInfo}
               setActiveInfo={setActiveInfo}
               mockFloor={mockFloor}
+              mockFloorUsdc={mockFloorUsdc}
+              contractLive={contractLive}
               offerOpen={offerOpen}
               setOfferOpen={setOfferOpen}
+              offerAmount={offerAmount}
+              setOfferAmount={setOfferAmount}
+              offerSent={offerSent}
+              onSendOffer={handleSendOffer}
               copied={copied}
               onShare={handleShare}
             />
@@ -303,17 +322,26 @@ function CardFace({ card, serialNumber, ownerHandle, badges }: {
 // ── Profile back ───────────────────────────────────────────────────────────
 
 function ProfileBack({
-  card, profile, badges, activeInfo, setActiveInfo,
-  mockFloor, offerOpen, setOfferOpen, copied, onShare,
+  card, serialNumber, profile, badges, activeInfo, setActiveInfo,
+  mockFloor, mockFloorUsdc, contractLive,
+  offerOpen, setOfferOpen, offerAmount, setOfferAmount, offerSent, onSendOffer,
+  copied, onShare,
 }: {
   card: BattleFIDCard;
+  serialNumber?: number;
   profile: ProfileData | null;
   badges: ReturnType<typeof computeBadges>;
   activeInfo: StatKey | null;
   setActiveInfo: (k: StatKey | null) => void;
   mockFloor: string;
+  mockFloorUsdc: string;
+  contractLive: boolean;
   offerOpen: boolean;
   setOfferOpen: (v: boolean) => void;
+  offerAmount: string;
+  setOfferAmount: (v: string) => void;
+  offerSent: boolean;
+  onSendOffer: () => void;
   copied: boolean;
   onShare: () => void;
 }) {
@@ -542,45 +570,94 @@ function ProfileBack({
         })}
       </div>
 
-      {/* NFT placeholder */}
+      {/* NFT market section */}
       <div style={{ marginBottom: 16 }}>
-        {section('NFT Value')}
-        <div style={{
-          padding: '10px 12px', borderRadius: 12,
-          background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.2)',
-          marginBottom: 10,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        {section('NFT · Market')}
+
+        {/* Value + serial row */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          {[
+            { label: 'Est. Floor',  value: mockFloor,     color: '#C9A84C' },
+            { label: '≈ USD',       value: mockFloorUsdc, color: '#a78bfa' },
+            { label: 'Last Sale',   value: '—',           color: '#5c4070' },
+            { label: 'Supply',      value: card.maxSupply.toLocaleString(), color: '#f0eaf8' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{
+              flex: 1, padding: '8px 4px', borderRadius: 10, textAlign: 'center',
+              background: 'rgba(138,99,210,0.04)',
+              border: '1px solid rgba(138,99,210,0.1)',
+            }}>
+              <div style={{ fontSize: 6, color: '#3d2a50', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color }}>{value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Serial number */}
+        {serialNumber !== undefined && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px', borderRadius: 10, marginBottom: 10,
+            background: `${accent}08`, border: `1px solid ${accent}20`,
+          }}>
             <div>
-              <div style={{ fontSize: 8, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>Est. Floor</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#C9A84C' }}>{mockFloor}</div>
+              <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>Serial No.</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: accent }}>
+                #{serialNumber}
+                <span style={{ fontSize: 10, color: '#5c4070', fontWeight: 400, marginLeft: 4 }}>
+                  of {card.maxSupply.toLocaleString()}
+                </span>
+              </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 8, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>Last Sale</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#5c4070' }}>—</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 8, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 2 }}>Supply</div>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#f0eaf8' }}>{card.maxSupply.toLocaleString()}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+              {serialNumber <= Math.max(1, Math.floor(card.maxSupply * 0.1)) && (
+                <div style={{
+                  fontSize: 7, padding: '3px 8px', borderRadius: 99, fontWeight: 900,
+                  background: `${accent}18`, border: `1px solid ${accent}40`, color: accent,
+                  letterSpacing: '0.1em',
+                }}>LOW SERIAL ★</div>
+              )}
+              <div style={{
+                fontSize: 7, padding: '3px 8px', borderRadius: 99, fontWeight: 700,
+                background: contractLive ? 'rgba(34,197,94,0.12)' : 'rgba(138,99,210,0.1)',
+                border: contractLive ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(138,99,210,0.2)',
+                color: contractLive ? '#22c55e' : '#8a63d2',
+              }}>
+                {contractLive ? '⬡ On-chain NFT' : '⬡ NFT on deploy'}
+              </div>
             </div>
           </div>
-          <div style={{ fontSize: 8, color: '#3d2a50', fontStyle: 'italic' }}>
-            * Estimated based on rarity tier. NFT contract coming soon.
+        )}
+
+        {/* Royalty info */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 12px', borderRadius: 10, marginBottom: 12,
+          background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.15)',
+        }}>
+          <span style={{ fontSize: 13 }}>⚖</span>
+          <div style={{ fontSize: 9, color: '#8a7550', lineHeight: 1.4 }}>
+            <strong style={{ color: '#C9A84C' }}>{ROYALTY_PCT}% creator royalty</strong> on every
+            secondary sale · ERC-2981 on Base · Minted automatically on pack open
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        {/* Make offer / action buttons */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: offerOpen ? 12 : 0 }}>
           <button
-            onClick={() => setOfferOpen(true)}
+            onClick={() => setOfferOpen(!offerOpen)}
             style={{
-              flex: 1, padding: '11px 0', borderRadius: 10, border: 'none',
-              background: 'linear-gradient(90deg, #8a63d2, #6d28d9)',
-              color: '#fff', fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
-              textTransform: 'uppercase',
+              flex: 1, padding: '11px 0', borderRadius: 10,
+              background: contractLive
+                ? 'linear-gradient(90deg, #8a63d2, #6d28d9)'
+                : 'rgba(138,99,210,0.15)',
+              color: contractLive ? '#fff' : '#8a63d2',
+              fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
+              textTransform: 'uppercase', cursor: 'pointer',
+              border: contractLive ? 'none' : '1px solid rgba(138,99,210,0.3)',
             }}
           >
-            Make Offer
+            {offerOpen ? 'Cancel' : 'Make Offer'}
           </button>
           <button
             onClick={onShare}
@@ -589,48 +666,39 @@ function ProfileBack({
               border: '1px solid rgba(138,99,210,0.3)',
               background: 'transparent',
               color: '#8a63d2', fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
-              textTransform: 'uppercase',
+              textTransform: 'uppercase', cursor: 'pointer',
             }}
           >
             {copied ? '✓ Copied' : 'Share'}
           </button>
         </div>
-      </div>
 
-      {/* Offer sheet */}
-      {offerOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(5,1,12,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          padding: '0 16px 16px',
-        }} onClick={() => setOfferOpen(false)}>
+        {/* Offer form */}
+        {offerOpen && (
           <div style={{
-            width: '100%', maxWidth: 460,
-            background: '#0e0520', borderRadius: 20,
-            border: '1px solid rgba(138,99,210,0.3)',
-            padding: '20px 18px',
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8', marginBottom: 4 }}>
-              Make Offer — {card.displayName}
-            </div>
-            <div style={{ fontSize: 10, color: '#5c4070', marginBottom: 16 }}>
-              NFT smart contract is coming soon. Submit your interest and you'll be first to know.
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            padding: '14px', borderRadius: 12,
+            background: '#0a0318', border: '1px solid rgba(138,99,210,0.25)',
+          }}>
+            {!contractLive && (
+              <div style={{
+                fontSize: 8, color: '#5c4070', fontStyle: 'italic',
+                marginBottom: 10, lineHeight: 1.4,
+              }}>
+                Contract coming soon — submit interest below and the owner will be notified when trading is live.
+              </div>
+            )}
+
+            {contractLive && (
+              <div style={{ marginBottom: 10 }}>
+                <WalletConnect />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
               <input
-                placeholder="Your wallet address (0x…)"
-                style={{
-                  flex: 1, padding: '10px 12px', borderRadius: 8,
-                  border: '1px solid rgba(138,99,210,0.3)',
-                  background: 'rgba(138,99,210,0.06)',
-                  color: '#c4b5d8', fontSize: 11, outline: 'none',
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                placeholder={`Offer amount (floor: ${mockFloor})`}
+                value={offerAmount}
+                onChange={e => setOfferAmount(e.target.value)}
+                placeholder={`Offer in USDC (floor: ${mockFloorUsdc})`}
                 style={{
                   flex: 1, padding: '10px 12px', borderRadius: 8,
                   border: '1px solid rgba(138,99,210,0.3)',
@@ -639,22 +707,31 @@ function ProfileBack({
                 }}
               />
               <button
-                onClick={() => setOfferOpen(false)}
+                onClick={onSendOffer}
+                disabled={!offerAmount || offerSent}
                 style={{
                   padding: '10px 18px', borderRadius: 8, border: 'none',
-                  background: 'linear-gradient(90deg, #C9A84C, #a07830)',
-                  color: '#000', fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
+                  background: offerSent
+                    ? 'rgba(34,197,94,0.2)'
+                    : 'linear-gradient(90deg, #C9A84C, #a07830)',
+                  color: offerSent ? '#22c55e' : '#000',
+                  fontSize: 11, fontWeight: 900, letterSpacing: '0.08em',
+                  cursor: offerAmount && !offerSent ? 'pointer' : 'default',
+                  opacity: !offerAmount ? 0.5 : 1,
                 }}
               >
-                Register
+                {offerSent ? '✓ Sent' : 'Send'}
               </button>
             </div>
-            <div style={{ fontSize: 8, color: '#3d2a50', marginTop: 10, fontStyle: 'italic' }}>
-              This registers your interest only — no funds are taken. Smart contract minting coming in a future update.
+
+            <div style={{ fontSize: 8, color: '#2d1f40', lineHeight: 1.4, fontStyle: 'italic' }}>
+              {contractLive
+                ? 'Your offer will be submitted on-chain. The owner can accept and the NFT will transfer automatically.'
+                : 'Interest registered. No funds taken until the contract is live.'}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

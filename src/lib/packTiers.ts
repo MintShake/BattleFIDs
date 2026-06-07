@@ -7,8 +7,7 @@ export interface PackDef {
   name: string;
   subtitle: string;
   flavour: string;
-  priceEth: number;
-  priceUsdApprox: number;
+  priceUsdc: number;         // primary price — paid in USDC on Base
   accentColor: string;
   dimColor: string;
   borderGradient: string;
@@ -16,6 +15,8 @@ export interface PackDef {
   weights: Record<RarityTier, number>;
   guaranteeRarity?: RarityTier;
   guaranteeCount?: number;
+  /** Top N% of each rarity pool by engagement score. 100 = full pool. */
+  scorePercentile: number;
   odds: { label: string; pct: string; pctNum: number; color: string }[];
 }
 
@@ -27,8 +28,8 @@ export const PACK_DEFS: PackDef[] = [
     name: 'SCROLL',
     subtitle: 'Citizen Pack',
     flavour: 'The gates are open to all. Ten cards from the great registry.',
-    priceEth: 0.002,
-    priceUsdApprox: 6,
+    priceUsdc: 3,
+    scorePercentile: 100,
     accentColor: '#8a7550',
     dimColor: '#3d3020',
     borderGradient: 'linear-gradient(145deg, #6b5c3e 0%, #3a3020 50%, #8a7550 100%)',
@@ -47,8 +48,8 @@ export const PACK_DEFS: PackDef[] = [
     name: 'TABLET',
     subtitle: 'Legionary Pack',
     flavour: 'Soldiers of the Republic. One Elite or better — guaranteed.',
-    priceEth: 0.005,
-    priceUsdApprox: 15,
+    priceUsdc: 8,
+    scorePercentile: 50,
     accentColor: '#a78bfa',
     dimColor: '#2d1a50',
     borderGradient: 'linear-gradient(145deg, #7c3aed 0%, #4c1d95 50%, #a78bfa 100%)',
@@ -69,8 +70,8 @@ export const PACK_DEFS: PackDef[] = [
     name: 'CODEX',
     subtitle: 'Senator Pack',
     flavour: 'The inner sanctum. Legendary guaranteed. Real shiney chance.',
-    priceEth: 0.015,
-    priceUsdApprox: 45,
+    priceUsdc: 25,
+    scorePercentile: 25,
     accentColor: '#C9A84C',
     dimColor: '#3d2500',
     borderGradient: 'linear-gradient(145deg, #C9A84C 0%, #8a1c3a 50%, #C9A84C 100%)',

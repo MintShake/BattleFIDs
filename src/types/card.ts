@@ -1,5 +1,26 @@
 export type RarityTier = 'Alpha' | 'Legendary' | 'Elite' | 'Rare' | 'Common';
 
+// Weekly league slot types
+// CAPTAIN: multiplies team score by rarity — not scored individually
+// The other four are scored on their specific weekly Farcaster activity
+export type CardType = 'CAPTAIN' | 'BROADCASTER' | 'PUBLISHER' | 'AGITATOR' | 'NETWORKER';
+
+export const CARD_TYPE_LABELS: Record<CardType, string> = {
+  CAPTAIN:     'Captain',
+  BROADCASTER: 'Broadcaster',
+  PUBLISHER:   'Publisher',
+  AGITATOR:    'Agitator',
+  NETWORKER:   'Networker',
+};
+
+export const CARD_TYPE_DESC: Record<CardType, string> = {
+  CAPTAIN:     'Multiplies team score by rarity',
+  BROADCASTER: 'Scored on recasts received this week',
+  PUBLISHER:   'Scored on likes received this week',
+  AGITATOR:    'Scored on replies received this week',
+  NETWORKER:   'Scored on replies sent this week',
+};
+
 export function rarityFromFid(fid: number): RarityTier {
   if (fid <= 10) return 'Alpha';
   if (fid <= 100) return 'Legendary';
@@ -63,6 +84,13 @@ export interface BattleFIDCard {
   // Stats & score
   stats: CardStats;
   battleScore: number;
+
+  // League type — determines which weekly slot this card fills
+  cardType: CardType;
+
+  // Career record — updated at end of each week
+  wins:   number;
+  losses: number;
 
   // Metadata
   storedAt: string;    // ISO date the PFP was captured

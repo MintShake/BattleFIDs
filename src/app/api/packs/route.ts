@@ -3,7 +3,7 @@ import { sql } from '@/lib/db';
 import { fetchFaces } from '@/lib/faces';
 import { fetchNeynarUsersDirect, fetchCastEngagements } from '@/lib/neynar';
 import { buildAllVariants } from '@/lib/cardBuilder';
-import { BattleFIDCard, OwnedCard, rarityFromFid, RarityTier } from '@/types/card';
+import { BattleFIDCard, CardType, OwnedCard, rarityFromFid, RarityTier } from '@/types/card';
 import { FidTimeline } from '@/types/faces';
 import {
   PACK_DEFS, PackTier, RARITY_ORDER,
@@ -21,6 +21,7 @@ function randInt(min: number, max: number): number {
 // POST /api/packs
 // Body: { ownerFid?, ownerDeviceId?, tier? }
 export async function POST(req: NextRequest) {
+  try {
   const body = await req.json().catch(() => ({}));
   const ownerFid: number | null = body.ownerFid ?? null;
   const ownerDeviceId: string | null = body.ownerDeviceId ?? null;
@@ -63,8 +64,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Shuffle each pool
+  // Sort each pool by likeCount desc (proxy for battle score) then apply
+  // the tier's scorePercentile: CODEX gets top 25%, TABLET top 50%, SCROLL full.
   for (const r of RARITY_ORDER) {
+    const totalLikes = (slot: Slot) =>
+      slot.timeline.images.reduce((s, img) => s + img.likeCount, 0);
+    pools[r].sort((a, b) => totalLikes(b) - totalLikes(a));
+    const keep = Math.max(1, Math.ceil(pools[r].length * (packDef.scorePercentile / 100)));
+    pools[r] = pools[r].slice(0, keep);
+    // Shuffle within the filtered slice so pulls feel random
     pools[r].sort(() => Math.random() - 0.5);
   }
 
@@ -119,13 +127,13 @@ export async function POST(req: NextRequest) {
     await sql`
       INSERT INTO cards (image_id, fid, pfp_url, thumb_url, handle, display_name,
         max_supply, variant_index, total_variants, rarity, stats, battle_score,
-        like_count, has_badge, stored_at)
+        like_count, has_badge, card_type, stored_at)
       VALUES (
         ${card.imageId}, ${card.fid}, ${card.pfpUrl}, ${card.thumbUrl},
         ${card.handle}, ${card.displayName}, ${card.maxSupply},
         ${card.variantIndex}, ${card.totalVariants}, ${card.rarity},
         ${JSON.stringify(card.stats)}, ${card.battleScore},
-        ${card.likeCount}, ${card.hasBadge}, ${card.storedAt}
+        ${card.likeCount}, ${card.hasBadge}, ${card.cardType}, ${card.storedAt}
       )
       ON CONFLICT (image_id) DO UPDATE SET
         handle       = EXCLUDED.handle,
@@ -133,7 +141,8 @@ export async function POST(req: NextRequest) {
         stats        = EXCLUDED.stats,
         battle_score = EXCLUDED.battle_score,
         like_count   = EXCLUDED.like_count,
-        has_badge    = EXCLUDED.has_badge
+        has_badge    = EXCLUDED.has_badge,
+        card_type    = EXCLUDED.card_type
     `;
   }
 
@@ -157,6 +166,11 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(owned);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[packs POST]', msg, err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 // GET /api/packs?ownerFid=123 or ?ownerDeviceId=abc
@@ -199,6 +213,9 @@ export async function GET(req: NextRequest) {
       variantIndex:  row.variant_index,
       totalVariants: row.total_variants,
       rarity:        row.rarity,
+      cardType:      (row.card_type ?? 'NETWORKER') as CardType,
+      wins:          row.wins ?? 0,
+      losses:        row.losses ?? 0,
       stats:         row.stats,
       battleScore:   row.battle_score,
       storedAt:      row.stored_at,
