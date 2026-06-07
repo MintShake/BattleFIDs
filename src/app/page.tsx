@@ -113,20 +113,19 @@ export default function Home() {
               THE PROTOCOL
             </h1>
 
-            {/* Red crayon "2026" scrawled over the title */}
+            {/* Red crayon stacked "2026 / edition" */}
             <span style={{
               position: 'absolute',
               right: '-0.15em',
-              bottom: '-0.35em',
+              bottom: '-0.55em',
               fontFamily: 'var(--font-caveat)',
               fontSize: 'clamp(22px, 4.5vw, 42px)',
               fontWeight: 700,
               color: '#e63946',
               transform: 'rotate(-8deg)',
               transformOrigin: 'left center',
-              lineHeight: 1,
+              lineHeight: 0.95,
               pointerEvents: 'none',
-              /* crayon texture via text-shadow stacking */
               textShadow: `
                 1px 0px 0 rgba(230,57,70,0.4),
                 -1px 1px 0 rgba(230,57,70,0.3),
@@ -134,8 +133,12 @@ export default function Home() {
                 0px 2px 0 rgba(200,30,50,0.2)
               `,
               letterSpacing: '0.02em',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
             }}>
-              2026 edition
+              <span>2026</span>
+              <span>edition</span>
             </span>
           </div>
           {miniAppUser ? (
