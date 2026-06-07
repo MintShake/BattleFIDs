@@ -1,65 +1,176 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { BattleFIDCard } from '@/types/card';
+import { OwnedCard } from '@/types/card';
+import { fetchFaces } from '@/lib/faces';
+import { fetchNeynarUsers } from '@/lib/neynar';
+import { buildCard } from '@/lib/cardBuilder';
+import { getCollection } from '@/lib/collection';
+import BattleCard from '@/components/BattleCard';
+import PackOpener from '@/components/PackOpener';
+import CollectionView from '@/components/CollectionView';
+import { FidTimeline } from '@/types/faces';
+
+type Tab = 'browse' | 'pack' | 'collection';
+
+// ── Browse state ──────────────────────────────────────────────────────────────
+
+interface BrowseState {
+  cards: BattleFIDCard[];
+  totalFids: number;
+  loading: boolean;
+  loadingMore: boolean;
+  offset: number;
+}
+
+const PAGE = 25;
+
+async function loadPage(offset: number, timelines: FidTimeline[] = []): Promise<{
+  cards: BattleFIDCard[];
+  timelines: FidTimeline[];
+  totalFids: number;
+}> {
+  const res = await fetchFaces({ limit: PAGE, offset, imagesPerFid: 1, sort: 'fid', order: 'asc' });
+  const allTimelines = [...timelines, ...res.data];
+  const fids = res.data.map((t) => t.fid);
+  const neynarMap = await fetchNeynarUsers(fids);
+  const cards = res.data.map((tl) => buildCard(tl, 0, neynarMap.get(tl.fid)));
+  return { cards, timelines: allTimelines, totalFids: res.totalFids };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const [tab, setTab] = useState<Tab>('browse');
+  const [browse, setBrowse] = useState<BrowseState>({
+    cards: [], totalFids: 0, loading: true, loadingMore: false, offset: 0,
+  });
+  const [owned, setOwned] = useState<OwnedCard[]>([]);
+
+  // Initial browse load
+  useEffect(() => {
+    loadPage(0).then(({ cards, totalFids }) => {
+      setBrowse({ cards, totalFids, loading: false, loadingMore: false, offset: PAGE });
+    }).catch(console.error);
+  }, []);
+
+  // Load collection from localStorage
+  useEffect(() => {
+    setOwned(getCollection());
+  }, []);
+
+  const loadMore = useCallback(async () => {
+    if (browse.loadingMore || browse.cards.length >= browse.totalFids) return;
+    setBrowse((s) => ({ ...s, loadingMore: true }));
+    try {
+      const { cards } = await loadPage(browse.offset);
+      setBrowse((s) => ({
+        ...s,
+        cards: [...s.cards, ...cards],
+        offset: s.offset + PAGE,
+        loadingMore: false,
+      }));
+    } catch {
+      setBrowse((s) => ({ ...s, loadingMore: false }));
+    }
+  }, [browse.offset, browse.loadingMore, browse.totalFids, browse.cards.length]);
+
+  function handleCollected() {
+    setOwned(getCollection());
+    setTab('collection');
+  }
+
+  const tabStyle = (t: Tab) => ({
+    padding: '10px 24px', borderRadius: 99, border: 'none',
+    cursor: 'pointer', fontSize: 11, fontWeight: 700, letterSpacing: '0.15em',
+    textTransform: 'uppercase' as const,
+    transition: 'all 0.2s',
+    background: tab === t
+      ? 'linear-gradient(90deg, #00d4ff22, #b44fff22)'
+      : 'transparent',
+    color: tab === t ? '#00d4ff' : '#374151',
+    borderBottom: tab === t ? '2px solid #00d4ff' : '2px solid transparent',
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="bg-grid min-h-screen px-4 py-8">
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <h1
+          style={{
+            fontSize: 42, fontWeight: 900, letterSpacing: '0.1em',
+            background: 'linear-gradient(90deg, #00d4ff, #b44fff, #FFD700)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text', lineHeight: 1.1,
+          }}
+        >
+          BATTLE FIDs
+        </h1>
+        <p style={{ color: '#374151', fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 6 }}>
+          Farcaster Identity Battle Cards
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 36 }}>
+        <button onClick={() => setTab('browse')} style={tabStyle('browse')}>Browse</button>
+        <button onClick={() => setTab('pack')} style={tabStyle('pack')}>Open Pack</button>
+        <button onClick={() => setTab('collection')} style={tabStyle('collection')}>
+          My Cards {owned.length > 0 && `(${owned.length})`}
+        </button>
+      </div>
+
+      {/* Browse */}
+      {tab === 'browse' && (
+        <div>
+          {browse.loading ? (
+            <div style={{ textAlign: 'center', paddingTop: 60, color: '#374151', letterSpacing: '0.2em', fontSize: 11 }}>
+              Loading cards…
+            </div>
+          ) : (
+            <>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <p style={{ fontSize: 10, color: '#374151', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                  {browse.cards.length.toLocaleString()} of {browse.totalFids.toLocaleString()} FIDs
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', maxWidth: 1400, margin: '0 auto' }}>
+                {browse.cards.map((card) => (
+                  <BattleCard key={card.imageId} card={card} />
+                ))}
+              </div>
+
+              {browse.cards.length < browse.totalFids && (
+                <div style={{ textAlign: 'center', marginTop: 36 }}>
+                  <button
+                    onClick={loadMore}
+                    disabled={browse.loadingMore}
+                    style={{
+                      padding: '12px 32px', borderRadius: 99,
+                      border: '1px solid rgba(0,212,255,0.25)',
+                      cursor: browse.loadingMore ? 'default' : 'pointer',
+                      background: 'transparent',
+                      color: browse.loadingMore ? '#374151' : '#00d4ff',
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                      opacity: browse.loadingMore ? 0.5 : 1,
+                    }}
+                  >
+                    {browse.loadingMore ? 'Loading…' : `Load More (${(browse.totalFids - browse.cards.length).toLocaleString()} remaining)`}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+
+      {/* Pack */}
+      {tab === 'pack' && <PackOpener onCollected={handleCollected} />}
+
+      {/* Collection */}
+      {tab === 'collection' && <CollectionView owned={owned} />}
+    </main>
   );
 }
