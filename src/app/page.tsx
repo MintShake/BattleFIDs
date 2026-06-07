@@ -36,7 +36,7 @@ async function loadPage(offset: number): Promise<{
 }
 
 export default function Home() {
-  const { user: miniAppUser, isInMiniApp } = useMiniApp();
+  const { user: miniAppUser, safeAreaInsets } = useMiniApp();
   const [tab, setTab] = useState<Tab>('browse');
   const [browse, setBrowse] = useState<BrowseState>({
     cards: [], totalFids: 0, loading: true, loadingMore: false, offset: 0,
@@ -83,8 +83,8 @@ export default function Home() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'calc(64px + env(safe-area-inset-bottom))',
+        paddingTop: safeAreaInsets.top,
+        paddingBottom: 64 + safeAreaInsets.bottom,
       }}
     >
       {/* Header */}
@@ -173,8 +173,8 @@ export default function Home() {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 'calc(64px + env(safe-area-inset-bottom))',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          height: 64 + safeAreaInsets.bottom,
+          paddingBottom: safeAreaInsets.bottom,
           background: 'rgba(5,12,24,0.92)',
           backdropFilter: 'blur(12px)',
           borderTop: '1px solid rgba(0,212,255,0.12)',
