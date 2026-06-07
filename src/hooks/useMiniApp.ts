@@ -35,22 +35,39 @@ export function useMiniApp(): MiniAppState {
     let active = true;
 
     async function init() {
+      let sdk: Awaited<typeof import('@farcaster/miniapp-sdk')>['sdk'] | null = null;
+
       try {
-        const { sdk } = await import('@farcaster/miniapp-sdk');
+        const mod = await import('@farcaster/miniapp-sdk');
+        sdk = mod.sdk;
+      } catch {
+        return; // SDK failed to load (not in a mini app environment)
+      }
 
-        // Fire ready() immediately — this dismisses the Farcaster splash screen.
-        // Must not be blocked on context fetching or isInMiniApp detection.
+      // Fire ready() FIRST — this dismisses the Farcaster splash screen.
+      // Wrap in its own try so a ready() failure never blocks the rest.
+      try {
         await sdk.actions.ready();
+      } catch { /* ignore */ }
 
+      if (!active) return;
+
+      try {
         const inApp = await sdk.isInMiniApp();
         if (!active) return;
         setIsInMiniApp(inApp);
+      } catch { /* ignore */ }
 
-        // sdk.context is a Comlink-proxied Promise — await it for the full context object
-        const ctx = await sdk.context;
-        if (!active) return;
+      // sdk.context is a Comlink-proxied Promise that can hang on Safari 16.1.
+      // Race it against a 3-second timeout so the UI always mounts.
+      try {
+        const ctx = await Promise.race([
+          sdk.context,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+        ]);
+        if (!active || !ctx) return;
 
-        if (ctx?.user) {
+        if (ctx.user) {
           setUser({
             fid: ctx.user.fid,
             username: ctx.user.username,
@@ -58,17 +75,9 @@ export function useMiniApp(): MiniAppState {
             pfpUrl: ctx.user.pfpUrl,
           });
         }
-
-        if (ctx?.client?.safeAreaInsets) {
-          setSafeAreaInsets(ctx.client.safeAreaInsets);
-        }
-
-        if (ctx?.client) {
-          setAdded(ctx.client.added ?? false);
-        }
-      } catch {
-        // Running in a regular browser — degrade gracefully
-      }
+        if (ctx.client?.safeAreaInsets) setSafeAreaInsets(ctx.client.safeAreaInsets);
+        if (ctx.client) setAdded(ctx.client.added ?? false);
+      } catch { /* context fetch failed — that's OK, ready() already fired */ }
     }
 
     init();

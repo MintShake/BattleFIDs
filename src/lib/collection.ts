@@ -14,7 +14,7 @@ export function getDeviceId(): string {
 }
 
 // Open a pack server-side — persists to Neon, returns 10 OwnedCards
-export async function openPackRemote(ownerFid?: number): Promise<OwnedCard[]> {
+export async function openPackRemote(ownerFid?: number, tier?: string): Promise<OwnedCard[]> {
   const deviceId = getDeviceId();
   const res = await fetch('/api/packs', {
     method: 'POST',
@@ -22,6 +22,7 @@ export async function openPackRemote(ownerFid?: number): Promise<OwnedCard[]> {
     body: JSON.stringify({
       ownerFid: ownerFid ?? null,
       ownerDeviceId: deviceId,
+      tier: tier ?? 'scroll',
     }),
   });
   if (!res.ok) throw new Error(`Pack open failed: ${res.status}`);

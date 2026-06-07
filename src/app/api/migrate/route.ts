@@ -32,9 +32,11 @@ export async function GET() {
       id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       owner_fid       INTEGER,
       owner_device_id TEXT,
+      tier            TEXT NOT NULL DEFAULT 'scroll',
       opened_at       TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE packs ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'scroll'`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS owned_cards (

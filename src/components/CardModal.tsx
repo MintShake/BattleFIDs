@@ -97,6 +97,7 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(5,1,12,0.88)',
         backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
       }}
@@ -600,7 +601,7 @@ function ProfileBack({
       {offerOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(5,1,12,0.85)', backdropFilter: 'blur(8px)',
+          background: 'rgba(5,1,12,0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           padding: '0 16px 16px',
         }} onClick={() => setOfferOpen(false)}>

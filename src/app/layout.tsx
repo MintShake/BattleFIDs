@@ -68,7 +68,6 @@ export default function RootLayout({
             src="/bg-roman.png"
             alt=""
             fill
-            priority
             unoptimized
             style={{ objectFit: 'cover', objectPosition: 'center top' }}
           />
