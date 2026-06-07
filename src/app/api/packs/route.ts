@@ -48,14 +48,22 @@ export async function POST(req: NextRequest) {
   for (const card of cards) {
     await sql`
       INSERT INTO cards (image_id, fid, pfp_url, thumb_url, handle, display_name,
-        max_supply, variant_index, total_variants, rarity, stats, battle_score, stored_at)
+        max_supply, variant_index, total_variants, rarity, stats, battle_score,
+        like_count, has_badge, stored_at)
       VALUES (
         ${card.imageId}, ${card.fid}, ${card.pfpUrl}, ${card.thumbUrl},
         ${card.handle}, ${card.displayName}, ${card.maxSupply},
         ${card.variantIndex}, ${card.totalVariants}, ${card.rarity},
-        ${JSON.stringify(card.stats)}, ${card.battleScore}, ${card.storedAt}
+        ${JSON.stringify(card.stats)}, ${card.battleScore},
+        ${card.likeCount}, ${card.hasBadge}, ${card.storedAt}
       )
-      ON CONFLICT (image_id) DO NOTHING
+      ON CONFLICT (image_id) DO UPDATE SET
+        handle       = EXCLUDED.handle,
+        display_name = EXCLUDED.display_name,
+        stats        = EXCLUDED.stats,
+        battle_score = EXCLUDED.battle_score,
+        like_count   = EXCLUDED.like_count,
+        has_badge    = EXCLUDED.has_badge
     `;
   }
 
@@ -127,6 +135,8 @@ export async function GET(req: NextRequest) {
       stats: row.stats,
       battleScore: row.battle_score,
       storedAt: row.stored_at,
+      likeCount: row.like_count ?? 0,
+      hasBadge: row.has_badge ?? false,
     },
   }));
 

@@ -17,10 +17,15 @@ export async function GET() {
       rarity          TEXT NOT NULL,
       stats           JSONB NOT NULL,
       battle_score    INTEGER NOT NULL,
+      like_count      INTEGER NOT NULL DEFAULT 0,
+      has_badge       BOOLEAN NOT NULL DEFAULT FALSE,
       stored_at       TIMESTAMPTZ NOT NULL,
       created_at      TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  // Add columns if migrating an existing table
+  await sql`ALTER TABLE cards ADD COLUMN IF NOT EXISTS like_count INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE cards ADD COLUMN IF NOT EXISTS has_badge BOOLEAN NOT NULL DEFAULT FALSE`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS packs (

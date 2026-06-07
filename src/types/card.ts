@@ -15,8 +15,8 @@ export interface CardStats {
   supplyRarity: number;  // FID-based: lower FID → higher score (fixed)
   followerPower: number; // Neynar follower_count normalized
   neynarForce: number;   // Neynar score × 100
-  castActivity: number;  // casts + replies (Neynar, pending endpoint → 0)
-  badgeScore: number;    // power_badge + verified addresses
+  castActivity: number;  // Faces likeCount normalized (was casts, pending Neynar endpoint)
+  badgeScore: number;    // power badge (score≥0.5) + verified addresses
   pfpFreshness: number;  // storedAt recency — variant differentiator
 }
 
@@ -26,9 +26,9 @@ export const STAT_LABELS: Record<StatKey, string> = {
   supplyRarity: 'SUPPLY',
   followerPower: 'FOLLOWERS',
   neynarForce: 'NEYNAR',
-  castActivity: 'CASTS',
+  castActivity: 'LIKES',
   badgeScore: 'BADGES',
-  pfpFreshness: 'PFP SCORE',
+  pfpFreshness: 'PFP FRESH',
 };
 
 export const STAT_ORDER: StatKey[] = [
@@ -62,7 +62,9 @@ export interface BattleFIDCard {
   battleScore: number;
 
   // Metadata
-  storedAt: string; // ISO date the PFP was captured
+  storedAt: string;    // ISO date the PFP was captured
+  likeCount: number;   // raw Faces like count for this image
+  hasBadge: boolean;   // Neynar score ≥ 0.5 (power badge tier)
 }
 
 export interface OwnedCard {

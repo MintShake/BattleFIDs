@@ -219,6 +219,30 @@ export default function BattleCard({
           })}
         </div>
 
+        {/* Meta row: badge · likes · PFP count */}
+        <div style={{ padding: '0 12px 6px', display: 'flex', gap: 6, alignItems: 'center' }}>
+          {card.hasBadge && (
+            <span
+              title="Power Badge"
+              style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                padding: '2px 6px', borderRadius: 99,
+                background: 'rgba(255,215,0,0.12)',
+                color: '#FFD700',
+                border: '1px solid rgba(255,215,0,0.25)',
+              }}
+            >
+              ⚡ BADGE
+            </span>
+          )}
+          <span style={{ fontSize: 9, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 3 }}>
+            ❤ {card.likeCount.toLocaleString()}
+          </span>
+          <span style={{ fontSize: 9, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 3 }}>
+            🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}
+          </span>
+        </div>
+
         {/* Battle score + serial */}
         <div style={{ padding: '0 12px 12px' }}>
           <div

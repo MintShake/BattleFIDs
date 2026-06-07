@@ -5,7 +5,7 @@ export interface NeynarUser {
   pfp_url: string;
   follower_count: number;
   following_count: number;
-  power_badge: boolean;
+  power_badge?: boolean;
   score: number; // 0–1
   verifications: string[];
   profile?: {
