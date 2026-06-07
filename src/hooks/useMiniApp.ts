@@ -38,11 +38,15 @@ export function useMiniApp(): MiniAppState {
       try {
         const { sdk } = await import('@farcaster/miniapp-sdk');
 
+        // Fire ready() immediately — this dismisses the Farcaster splash screen.
+        // Must not be blocked on context fetching or isInMiniApp detection.
+        await sdk.actions.ready();
+
         const inApp = await sdk.isInMiniApp();
         if (!active) return;
         setIsInMiniApp(inApp);
 
-        // context is always available once in mini app — await the Comlink proxy Promise
+        // sdk.context is a Comlink-proxied Promise — await it for the full context object
         const ctx = await sdk.context;
         if (!active) return;
 
@@ -62,9 +66,6 @@ export function useMiniApp(): MiniAppState {
         if (ctx?.client) {
           setAdded(ctx.client.added ?? false);
         }
-
-        // Dismisses the Farcaster splash screen
-        await sdk.actions.ready();
       } catch {
         // Running in a regular browser — degrade gracefully
       }
