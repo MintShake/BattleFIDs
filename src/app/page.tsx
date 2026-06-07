@@ -96,17 +96,46 @@ export default function Home() {
           }} />
 
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.4em', color: '#5c4070', textTransform: 'uppercase', margin: '0 0 3px' }}>
-            2026 EDITION
+            FARCASTER · MMXXVI
           </p>
-          <h1 style={{
-            fontSize: 'clamp(24px, 5vw, 48px)',
-            fontWeight: 900, letterSpacing: '0.1em',
-            background: 'linear-gradient(90deg, #8a63d2, #C9A84C, #8a63d2)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text', lineHeight: 1.05, margin: 0,
-          }}>
-            BATTLE FIDs
-          </h1>
+
+          {/* Title + crayon 2026 overlay */}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <h1 style={{
+              fontSize: 'clamp(24px, 5vw, 48px)',
+              fontWeight: 900, letterSpacing: '0.1em',
+              background: 'linear-gradient(90deg, #8a63d2, #C9A84C, #8a63d2)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text', lineHeight: 1.05, margin: 0,
+            }}>
+              BATTLE FIDs
+            </h1>
+
+            {/* Red crayon "2026" scrawled over the title */}
+            <span style={{
+              position: 'absolute',
+              right: '-0.15em',
+              bottom: '-0.35em',
+              fontFamily: 'var(--font-caveat)',
+              fontSize: 'clamp(22px, 4.5vw, 42px)',
+              fontWeight: 700,
+              color: '#e63946',
+              transform: 'rotate(-8deg)',
+              transformOrigin: 'left center',
+              lineHeight: 1,
+              pointerEvents: 'none',
+              /* crayon texture via text-shadow stacking */
+              textShadow: `
+                1px 0px 0 rgba(230,57,70,0.4),
+                -1px 1px 0 rgba(230,57,70,0.3),
+                2px -1px 0 rgba(230,57,70,0.25),
+                0px 2px 0 rgba(200,30,50,0.2)
+              `,
+              letterSpacing: '0.02em',
+            }}>
+              2026
+            </span>
+          </div>
           {miniAppUser ? (
             <p style={{ color: '#5c4d70', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
               FID {miniAppUser.fid} · @{miniAppUser.username ?? miniAppUser.displayName}
