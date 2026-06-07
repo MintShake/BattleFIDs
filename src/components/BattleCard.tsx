@@ -118,7 +118,7 @@ export default function BattleCard({
           style={{
             position: 'relative',
             width: '100%',
-            height: compact ? 130 : 180,
+            aspectRatio: compact ? '4/3' : '1/1',
             background: cfg.header,
             overflow: 'hidden',
           }}
@@ -128,7 +128,7 @@ export default function BattleCard({
             alt={card.displayName}
             fill
             style={{ objectFit: 'cover', opacity: 0.9 }}
-            sizes="(max-width: 600px) 50vw, 272px"
+            sizes="(max-width: 600px) 50vw, (max-width: 1024px) 33vw, 300px"
             unoptimized
           />
 

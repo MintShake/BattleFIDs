@@ -39,14 +39,25 @@ button {
   cursor: pointer;
 }
 
-/* Roman tile grid */
+/* Roman tile grid — deep purple/gold atmosphere */
 .bg-grid {
-  background-color: #08030f;
+  background-color: #07020e;
   background-image:
-    linear-gradient(rgba(138, 99, 210, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(138, 99, 210, 0.06) 1px, transparent 1px),
-    radial-gradient(ellipse 30px 18px at 50% 0%, rgba(201, 168, 76, 0.04) 0%, transparent 100%);
-  background-size: 56px 56px, 56px 56px, 56px 56px;
+    /* Ambient purple radial glow top-centre */
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(138, 99, 210, 0.18) 0%, transparent 70%),
+    /* Gold accent bottom-right warmth */
+    radial-gradient(ellipse 60% 35% at 100% 100%, rgba(201, 168, 76, 0.07) 0%, transparent 60%),
+    /* Subtle blue-purple bottom-left */
+    radial-gradient(ellipse 50% 30% at 0% 100%, rgba(90, 60, 180, 0.09) 0%, transparent 60%),
+    /* Grid lines */
+    linear-gradient(rgba(138, 99, 210, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 99, 210, 0.10) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    56px 56px,
+    56px 56px;
 }
 
 /* Responsive card grid */
@@ -55,8 +66,6 @@ button {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 @media (min-width: 600px) {
@@ -64,4 +73,18 @@ button {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
   }
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+}
+
+/* Centered page wrapper — constrains content to readable width on wide screens */
+.page-inner {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
