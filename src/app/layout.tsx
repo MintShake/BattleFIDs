@@ -59,7 +59,7 @@ export default function RootLayout({
         {/* Photorealistic Roman backdrop — drop bg-roman.jpg into /public/ */}
         <div className="roman-backdrop" aria-hidden>
           <Image
-            src="/bg-roman.jpg"
+            src="/bg-roman.png"
             alt=""
             fill
             priority
