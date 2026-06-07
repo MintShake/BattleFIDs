@@ -29,15 +29,22 @@ export async function GET() {
             height: '100%',
             objectFit: 'cover',
             objectPosition: 'center top',
-            opacity: 0.5,
-            filter: 'sepia(0.5) hue-rotate(215deg) saturate(1.5) brightness(0.6)',
+            opacity: 0.28,
+            filter: 'sepia(0.5) hue-rotate(215deg) saturate(1.4) brightness(0.5)',
           }}
         />
 
-        {/* Dark vignette */}
+        {/* Heavy dark base — text contrast */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse 90% 90% at 50% 50%, transparent 20%, rgba(7,2,14,0.65) 100%)',
+          background: 'rgba(7,2,14,0.75)',
+          display: 'flex',
+        }} />
+
+        {/* Radial vignette */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse 80% 80% at 50% 50%, transparent 15%, rgba(7,2,14,0.5) 100%)',
           display: 'flex',
         }} />
 

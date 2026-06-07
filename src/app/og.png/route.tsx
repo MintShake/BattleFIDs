@@ -29,17 +29,24 @@ export async function GET() {
             height: '100%',
             objectFit: 'cover',
             objectPosition: 'center top',
-            opacity: 0.55,
-            filter: 'sepia(0.5) hue-rotate(215deg) saturate(1.5) brightness(0.65)',
+            opacity: 0.3,
+            filter: 'sepia(0.5) hue-rotate(215deg) saturate(1.4) brightness(0.5)',
           }}
         />
 
-        {/* Dark vignette — edges + bottom */}
+        {/* Heavy dark overlay — keeps text legible */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(8,3,15,0.72)',
+          display: 'flex',
+        }} />
+
+        {/* Vignette — extra darkening at edges */}
         <div style={{
           position: 'absolute', inset: 0,
           background: [
-            'linear-gradient(180deg, rgba(8,3,15,0.55) 0%, transparent 30%, transparent 60%, rgba(8,3,15,0.75) 100%)',
-            'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 30%, rgba(8,3,15,0.4) 100%)',
+            'linear-gradient(180deg, rgba(8,3,15,0.4) 0%, transparent 35%, transparent 55%, rgba(8,3,15,0.6) 100%)',
+            'radial-gradient(ellipse 70% 55% at 50% 50%, transparent 20%, rgba(8,3,15,0.35) 100%)',
           ].join(', '),
           display: 'flex',
         }} />
