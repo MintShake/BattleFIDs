@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey } from '@/types/card';
+import { computeBadges } from '@/lib/badges';
+import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
 
 // ── Rarity configs — Roman · Farcaster theme ──────────────────────────────────
 
@@ -244,25 +246,36 @@ export default function BattleCard({
           })}
         </div>
 
-        {/* Meta: badge · likes · PFP count */}
-        <div style={{ padding: '2px 12px 8px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          {card.hasBadge && (
-            <span style={{
-              fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
-              padding: '2px 6px', borderRadius: 99,
-              background: 'rgba(201,168,76,0.12)',
-              color: '#C9A84C',
-              border: '1px solid rgba(201,168,76,0.3)',
-            }}>
-              ⚡ BADGE
-            </span>
-          )}
-          <span style={{ fontSize: 9, color: '#4a3d5c' }}>
-            ❤ {card.likeCount.toLocaleString()}
-          </span>
-          <span style={{ fontSize: 9, color: '#4a3d5c' }}>
-            🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}
-          </span>
+        {/* Badges + community meta */}
+        <div style={{ padding: '4px 12px 6px' }}>
+          {/* Badge chips */}
+          {(() => {
+            const badges = computeBadges(card);
+            return badges.length > 0 ? (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 5 }}>
+                {badges.slice(0, 3).map(b => (
+                  <span key={b.id} style={{
+                    fontSize: 8, padding: '2px 6px', borderRadius: 99, fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    background: BADGE_COLORS[b.rarity as BadgeRarity].bg,
+                    color: BADGE_COLORS[b.rarity as BadgeRarity].color,
+                    border: `1px solid ${BADGE_COLORS[b.rarity as BadgeRarity].border}`,
+                  }}>
+                    {b.emoji} {b.name}
+                  </span>
+                ))}
+                {badges.length > 3 && (
+                  <span style={{ fontSize: 8, color: '#4a3d5c', padding: '2px 4px' }}>+{badges.length - 3}</span>
+                )}
+              </div>
+            ) : null;
+          })()}
+          {/* Faces community row */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <span style={{ fontSize: 9, color: '#4a3d5c' }}>❤ {card.likeCount.toLocaleString()}</span>
+            <span style={{ fontSize: 9, color: '#4a3d5c' }}>🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 8, color: '#3d2a50', marginLeft: 'auto' }}>tap for profile</span>
+          </div>
         </div>
 
         {/* Battle score footer */}

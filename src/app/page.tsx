@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { OwnedCard } from '@/types/card';
+import { OwnedCard, BattleFIDCard } from '@/types/card';
 import { fetchCollection } from '@/lib/collection';
 import BattleCard from '@/components/BattleCard';
+import CardModal from '@/components/CardModal';
 import PackOpener from '@/components/PackOpener';
 import CollectionView from '@/components/CollectionView';
 import MiniAppActions from '@/components/MiniAppActions';
@@ -29,6 +30,7 @@ export default function Home() {
   const [browseLoading, setBrowseLoading] = useState(true);
   const [browseSearch, setBrowseSearch] = useState('');
   const [browseSort, setBrowseSort] = useState<BrowseSort>('recent');
+  const [modalCard, setModalCard] = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
 
   // Load user's own collection
   useEffect(() => {
@@ -150,8 +152,8 @@ export default function Home() {
         {/* Add + Share buttons */}
         <MiniAppActions isInMiniApp={isInMiniApp} added={added} />
 
-        {/* Content area */}
-        <div className="scroll-area" style={{ flex: 1, padding: '8px 16px 0' }}>
+        {/* Content area — plain div, body handles scrolling */}
+        <div style={{ flex: 1, padding: '8px 16px 0' }}>
 
         {/* Browse — all cards opened by anyone */}
         {tab === 'browse' && (
@@ -236,6 +238,7 @@ export default function Home() {
                     card={gc.ownedCard.card}
                     serialNumber={gc.ownedCard.serialNumber}
                     ownerHandle={gc.ownerHandle}
+                    onClick={() => setModalCard({ card: gc.ownedCard.card, serialNumber: gc.ownedCard.serialNumber, ownerHandle: gc.ownerHandle })}
                   />
                 ))}
               </div>
@@ -245,8 +248,18 @@ export default function Home() {
 
         {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} />}
         {tab === 'collection' && <CollectionView owned={owned} />}
-        </div>{/* end scroll-area */}
+        </div>{/* end content */}
       </div>{/* end page-inner */}
+
+      {/* Card detail modal */}
+      {modalCard && (
+        <CardModal
+          card={modalCard.card}
+          serialNumber={modalCard.serialNumber}
+          ownerHandle={modalCard.ownerHandle}
+          onClose={() => setModalCard(null)}
+        />
+      )}
 
       {/* Bottom nav — full-width backdrop, content centered at 1200px */}
       <nav style={{

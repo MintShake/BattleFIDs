@@ -78,7 +78,7 @@ export default function MiniAppActions({
             opacity: adding ? 0.6 : 1,
           }}
         >
-          ＋ Add to Warpcast
+          ＋ Add to Farcaster
         </button>
       )}
       <button
