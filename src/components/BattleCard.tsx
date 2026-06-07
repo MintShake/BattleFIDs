@@ -275,7 +275,15 @@ export default function BattleCard({
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <span style={{ fontSize: 9, color: '#4a3d5c' }}>❤ {card.likeCount.toLocaleString()}</span>
             <span style={{ fontSize: 9, color: '#4a3d5c' }}>🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}</span>
-            <span style={{ fontSize: 8, color: '#3d2a50', marginLeft: 'auto' }}>tap for profile</span>
+            <span style={{
+              fontSize: 7, color: '#8a63d2', marginLeft: 'auto',
+              fontWeight: 700, letterSpacing: '0.08em',
+              padding: '1px 5px', borderRadius: 4,
+              background: 'rgba(138,99,210,0.08)',
+              border: '1px solid rgba(138,99,210,0.2)',
+            }}>
+              via Faces
+            </span>
           </div>
         </div>
 

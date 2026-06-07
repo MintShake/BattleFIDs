@@ -392,7 +392,7 @@ function ProfileBack({
       {/* Badges */}
       {badges.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          {section('Badges')}
+          {section('Badges · Faces + Farcaster')}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {badges.map(b => {
               const c = BADGE_COLORS[b.rarity as BadgeRarity];
@@ -421,9 +421,28 @@ function ProfileBack({
         </div>
       )}
 
-      {/* Community */}
+      {/* Community — sourced from Faces mini app */}
       <div style={{ marginBottom: 16 }}>
-        {section('Community (Faces)')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <div style={{
+            fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase',
+            color: '#3d2a50', paddingBottom: 4, borderBottom: `1px solid ${accent}20`, flex: 1,
+          }}>Community</div>
+          <a
+            href="https://warpcast.com/~/mini-apps/launch?url=https%3A%2F%2Ffaces.sh"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
+              padding: '2px 8px', borderRadius: 6,
+              background: 'rgba(138,99,210,0.12)',
+              color: '#8a63d2', border: '1px solid rgba(138,99,210,0.3)',
+              textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            Powered by Faces ↗
+          </a>
+        </div>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#e86a6a' }}>❤</div>
@@ -433,10 +452,10 @@ function ProfileBack({
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#8a63d2' }}>🖼</div>
             <div style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>{card.totalVariants}</div>
-            <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase' }}>PFPs total</div>
+            <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase' }}>PFPs</div>
           </div>
-          <div style={{ flex: 1, fontSize: 9, color: '#4a3d5c', lineHeight: 1.4 }}>
-            Likes are tracked by the Faces API — a community curation layer for Farcaster PFPs.
+          <div style={{ flex: 1, fontSize: 9, color: '#4a3d5c', lineHeight: 1.5 }}>
+            Likes and PFP history are sourced from the <strong style={{ color: '#8a63d2' }}>Faces</strong> mini app — a community curation layer for Farcaster profiles.
           </div>
         </div>
       </div>
