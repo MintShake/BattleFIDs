@@ -107,7 +107,7 @@ export default function PackOpener({
   if (phase === 'done') {
     return (
       <div style={{ textAlign: 'center', paddingTop: 80 }}>
-        <div style={{ fontSize: 32, fontWeight: 900, color: '#00ff88', marginBottom: 12 }}>
+        <div style={{ fontSize: 32, fontWeight: 900, color: '#8a63d2', marginBottom: 12 }}>
           Added to Collection
         </div>
         <p style={{ color: '#4b5563', fontSize: 12, marginBottom: 32 }}>
@@ -158,8 +158,8 @@ export default function PackOpener({
               onClick={handleCollect}
               style={{
                 padding: '10px 28px', borderRadius: 99, border: 'none',
-                cursor: 'pointer', background: 'linear-gradient(90deg, #00ff88, #00a854)',
-                color: '#000', fontSize: 12, fontWeight: 900, letterSpacing: '0.1em',
+                cursor: 'pointer', background: 'linear-gradient(90deg, #8a63d2, #6d28d9)',
+                color: '#fff', fontSize: 12, fontWeight: 900, letterSpacing: '0.1em',
               }}
             >
               Add to Collection
@@ -168,12 +168,7 @@ export default function PackOpener({
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center',
-          maxWidth: 1400, margin: '0 auto',
-        }}
-      >
+      <div className="card-grid">
         {cards.map((card, i) => {
           const isRevealed = revealAll || revealed.has(i);
           return (
@@ -183,8 +178,6 @@ export default function PackOpener({
               style={{
                 perspective: 1000,
                 cursor: isRevealed ? 'default' : 'pointer',
-                width: 200,
-                flexShrink: 0,
               }}
             >
               <div
@@ -204,34 +197,32 @@ export default function PackOpener({
                 {/* Back (face-down) */}
                 <div
                   style={{
-                    position: 'absolute', top: 0, left: 0, right: 0,
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                     backfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
-                    width: 200, minHeight: 340, borderRadius: 14,
-                    background: 'linear-gradient(135deg, #0d1b2a, #1a0a30)',
-                    border: '2px solid rgba(0,212,255,0.2)',
+                    minHeight: 300, borderRadius: 16,
+                    background: 'linear-gradient(135deg, #0e0520, #1a0a38)',
+                    border: '2px solid rgba(138,99,210,0.25)',
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 0 20px rgba(0,212,255,0.1)',
+                    boxShadow: '0 0 20px rgba(138,99,210,0.15)',
                     gap: 8,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 60, height: 60, borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #00d4ff22, #b44fff22)',
-                      border: '2px solid rgba(0,212,255,0.3)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 24,
-                    }}
-                  >
+                  <div style={{
+                    width: 56, height: 56, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(138,99,210,0.2), rgba(201,168,76,0.2))',
+                    border: '2px solid rgba(138,99,210,0.35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 22,
+                  }}>
                     ⚔
                   </div>
-                  <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.3em', color: '#374151', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#5c4070', textTransform: 'uppercase' }}>
                     Battle FIDs
                   </div>
-                  <div style={{ fontSize: 8, color: '#1f2937', letterSpacing: '0.1em' }}>
-                    Click to reveal
+                  <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.1em' }}>
+                    Tap to reveal
                   </div>
                 </div>
               </div>

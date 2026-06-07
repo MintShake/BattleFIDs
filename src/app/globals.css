@@ -5,7 +5,6 @@
   --foreground: #e8e0f0;
   --purple:  #8a63d2;
   --gold:    #c9a84c;
-  --crimson: #9b1c3a;
 }
 
 @theme inline {
@@ -13,21 +12,56 @@
   --color-foreground: var(--foreground);
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
-/* Roman tile grid — subtle purple arches */
+/* Smooth momentum scrolling on iOS */
+.scroll-area {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* 44px minimum tap target (Apple HIG) */
+button {
+  min-height: 44px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Roman tile grid */
 .bg-grid {
   background-color: #08030f;
   background-image:
-    /* column lines */
     linear-gradient(rgba(138, 99, 210, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(138, 99, 210, 0.06) 1px, transparent 1px),
-    /* arch highlights at intersections */
     radial-gradient(ellipse 30px 18px at 50% 0%, rgba(201, 168, 76, 0.04) 0%, transparent 100%);
   background-size: 56px 56px, 56px 56px, 56px 56px;
+}
+
+/* Responsive card grid */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (min-width: 600px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
 }

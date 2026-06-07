@@ -80,6 +80,7 @@ interface Props {
   highlightStat?: StatKey | null;
   onClick?: () => void;
   serialNumber?: number;
+  ownerHandle?: string;
 }
 
 export default function BattleCard({
@@ -89,9 +90,9 @@ export default function BattleCard({
   highlightStat,
   onClick,
   serialNumber,
+  ownerHandle,
 }: Props) {
   const cfg = RARITY_CONFIG[card.rarity];
-  const w = compact ? 200 : 272;
   const edition = editionLabel(card.variantIndex, card.totalVariants);
 
   return (
@@ -101,8 +102,7 @@ export default function BattleCard({
         background: cfg.border,
         padding: 2,
         borderRadius: 18,
-        width: w,
-        flexShrink: 0,
+        width: '100%',
         cursor: onClick ? 'pointer' : 'default',
         transform: selected ? 'scale(1.04)' : undefined,
         transition: 'transform 0.2s, box-shadow 0.2s',
@@ -118,7 +118,7 @@ export default function BattleCard({
           style={{
             position: 'relative',
             width: '100%',
-            height: compact ? 140 : 185,
+            height: compact ? 130 : 180,
             background: cfg.header,
             overflow: 'hidden',
           }}
@@ -128,7 +128,7 @@ export default function BattleCard({
             alt={card.displayName}
             fill
             style={{ objectFit: 'cover', opacity: 0.9 }}
-            sizes={`${w}px`}
+            sizes="(max-width: 600px) 50vw, 272px"
             unoptimized
           />
 
@@ -279,7 +279,8 @@ export default function BattleCard({
               </div>
               {serialNumber !== undefined && (
                 <div style={{ fontSize: 8, color: '#3d3050', marginTop: 1 }}>
-                  #{serialNumber} / {card.fid === 1 ? 'I' : card.fid.toLocaleString()}
+                  #{serialNumber} / {card.fid.toLocaleString()}
+                  {ownerHandle && <span style={{ color: '#5c4070', marginLeft: 4 }}>· @{ownerHandle}</span>}
                 </div>
               )}
             </div>

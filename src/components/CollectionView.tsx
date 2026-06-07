@@ -45,51 +45,50 @@ export default function CollectionView({ owned }: Props) {
     <div>
       {/* Battle arena */}
       {hasBattle && (
-        <div
-          style={{
-            maxWidth: 860, margin: '0 auto 40px',
-            borderRadius: 20, padding: '20px 16px',
-            background: 'rgba(0,212,255,0.04)',
-            border: '1px solid rgba(0,212,255,0.12)',
-          }}
-        >
-          <div style={{ textAlign: 'center', fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: '#4b5563', textTransform: 'uppercase', marginBottom: 20 }}>
+        <div style={{
+          margin: '0 auto 24px',
+          borderRadius: 20, padding: '16px 12px',
+          background: 'rgba(138,99,210,0.04)',
+          border: '1px solid rgba(138,99,210,0.15)',
+        }}>
+          <div style={{ textAlign: 'center', fontSize: 8, fontWeight: 700, letterSpacing: '0.3em', color: '#3d2a50', textTransform: 'uppercase', marginBottom: 16 }}>
             ⚔ Battle Arena ⚔
           </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <BattleCard card={cardA} selected compact serialNumber={slotA.serialNumber} onClick={() => toggleSelect(slotA)} />
+          {/* Stat comparison — stacked on mobile */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'start', maxWidth: 600, margin: '0 auto' }}>
+            <div><BattleCard card={cardA} selected compact serialNumber={slotA.serialNumber} onClick={() => toggleSelect(slotA)} /></div>
 
-            <div style={{ minWidth: 160, maxWidth: 200, flex: 1 }}>
-              <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 900, color: '#1f2937', marginBottom: 14 }}>VS</div>
+            <div style={{ minWidth: 80, padding: '8px 0' }}>
+              <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: '#3d2a50', marginBottom: 12 }}>VS</div>
               {STAT_ORDER.map((key: StatKey) => {
                 const a = cardA.stats[key];
                 const b = cardB.stats[key];
                 return (
-                  <div key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: 9, gap: 6 }}>
-                    <span style={{ width: 30, textAlign: 'right', fontSize: 14, fontWeight: 900, color: a > b ? '#00ff88' : '#374151' }}>{a}</span>
-                    <div style={{ flex: 1, textAlign: 'center', fontSize: 7, fontWeight: 700, letterSpacing: '0.12em', color: '#4b5563', textTransform: 'uppercase' }}>
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 4 }}>
+                    <span style={{ width: 24, textAlign: 'right', fontSize: 12, fontWeight: 900, color: a > b ? '#C9A84C' : '#3d2a50' }}>{a}</span>
+                    <div style={{ flex: 1, textAlign: 'center', fontSize: 6, fontWeight: 700, letterSpacing: '0.1em', color: '#4a3d5c', textTransform: 'uppercase' }}>
                       {STAT_LABELS[key]}
                     </div>
-                    <span style={{ width: 30, textAlign: 'left', fontSize: 14, fontWeight: 900, color: b > a ? '#00ff88' : '#374151' }}>{b}</span>
+                    <span style={{ width: 24, textAlign: 'left', fontSize: 12, fontWeight: 900, color: b > a ? '#C9A84C' : '#3d2a50' }}>{b}</span>
                   </div>
                 );
               })}
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.06)', textAlign: 'center' }}>
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(138,99,210,0.12)', textAlign: 'center' }}>
                 {winner ? (
                   <>
-                    <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.2em', color: '#4b5563', textTransform: 'uppercase', marginBottom: 4 }}>Winner</div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#00ff88' }}>{winner.displayName}</div>
-                    <div style={{ fontSize: 10, color: '#374151', marginTop: 2 }}>
+                    <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.2em', color: '#4a3d5c', textTransform: 'uppercase', marginBottom: 3 }}>Winner</div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#C9A84C' }}>{winner.displayName}</div>
+                    <div style={{ fontSize: 9, color: '#3d2a50', marginTop: 2 }}>
                       {Math.max(cardA.battleScore, cardB.battleScore)} vs {Math.min(cardA.battleScore, cardB.battleScore)}
                     </div>
                   </>
                 ) : (
-                  <div style={{ fontSize: 16, fontWeight: 900, color: '#FFD700' }}>TIE</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#C9A84C' }}>TIE</div>
                 )}
               </div>
             </div>
 
-            <BattleCard card={cardB} selected compact serialNumber={slotB.serialNumber} onClick={() => toggleSelect(slotB)} />
+            <div><BattleCard card={cardB} selected compact serialNumber={slotB.serialNumber} onClick={() => toggleSelect(slotB)} /></div>
           </div>
         </div>
       )}
@@ -106,7 +105,7 @@ export default function CollectionView({ owned }: Props) {
       </div>
 
       {/* Grid */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', maxWidth: 1400, margin: '0 auto' }}>
+      <div className="card-grid">
         {owned.map((oc, i) => (
           <BattleCard
             key={`${oc.card.imageId}-${i}`}
