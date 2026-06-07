@@ -54,7 +54,7 @@ export default function Home() {
           fontSize: 8, fontWeight: 700, letterSpacing: '0.4em', color: '#5c4070',
           textTransform: 'uppercase', margin: '0 0 4px',
         }}>
-          ROME PLAYS · MMXXVI
+          2026 EDITION
         </p>
 
         <h1 style={{

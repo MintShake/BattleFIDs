@@ -67,7 +67,7 @@ export async function GET() {
           fontSize: 16, fontWeight: 700, letterSpacing: '0.45em',
           color: '#5c4070', textTransform: 'uppercase', marginBottom: 16,
         }}>
-          ROME PLAYS · MMXXVI
+          2026 EDITION
         </div>
 
         {/* Title */}
