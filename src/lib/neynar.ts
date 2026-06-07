@@ -27,39 +27,22 @@ export async function fetchNeynarUsersDirect(fids: number[]): Promise<Map<number
   }
 }
 
-// Server-side: fetch cast engagement for one FID — both calls in parallel
+// Server-side: fetch cast engagement (reply interactivity) for one FID
 export async function fetchCastEngagement(fid: number): Promise<CastEngagement> {
   if (!process.env.NEYNAR_API_KEY) return { replyCount: 0, castCount30d: 0 };
 
-  const [repliesRes, metricsRes] = await Promise.allSettled([
-    fetch(
+  try {
+    const res = await fetch(
       `${NEYNAR_BASE}/farcaster/feed/user/replies_and_recasts?fid=${fid}&filter=replies&limit=50`,
       { headers: apiHeaders(), next: { revalidate: 300 } },
-    ),
-    fetch(
-      `${NEYNAR_BASE}/farcaster/cast/metrics?author_fid=${fid}&interval=30d`,
-      { headers: apiHeaders(), next: { revalidate: 3600 } },
-    ),
-  ]);
-
-  let replyCount = 0;
-  if (repliesRes.status === 'fulfilled' && repliesRes.value.ok) {
-    const data = await repliesRes.value.json();
-    replyCount = Array.isArray(data.casts) ? data.casts.length : 0;
+    );
+    if (!res.ok) return { replyCount: 0, castCount30d: 0 };
+    const data = await res.json();
+    const replyCount = Array.isArray(data.casts) ? data.casts.length : 0;
+    return { replyCount, castCount30d: 0 };
+  } catch {
+    return { replyCount: 0, castCount30d: 0 };
   }
-
-  let castCount30d = 0;
-  if (metricsRes.status === 'fulfilled' && metricsRes.value.ok) {
-    const data = await metricsRes.value.json();
-    // Sum all time-bucket cast counts for the interval
-    if (Array.isArray(data)) {
-      castCount30d = data.reduce((sum: number, b: { cast_count?: number }) => sum + (b.cast_count ?? 0), 0);
-    } else if (Array.isArray(data.data)) {
-      castCount30d = data.data.reduce((sum: number, b: { cast_count?: number }) => sum + (b.cast_count ?? 0), 0);
-    }
-  }
-
-  return { replyCount, castCount30d };
 }
 
 // Fetch engagement for multiple FIDs in parallel

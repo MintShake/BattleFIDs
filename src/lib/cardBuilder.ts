@@ -5,34 +5,32 @@ import { NeynarUser, CastEngagement } from '@/types/neynar';
 // ── stat normalizers ──────────────────────────────────────────────────────────
 
 function supplyRarityScore(fid: number): number {
-  return Math.max(0, Math.round(100 * (1 - Math.log10(Math.max(fid, 1)) / 6)));
+  // /7 extends the scale to FID ~10M — ensures all current FIDs (even 3M+) get a non-zero score
+  return Math.max(0, Math.round(100 * (1 - Math.log10(Math.max(fid, 1)) / 7)));
 }
 
 function followerScore(count: number): number {
   return Math.min(100, Math.round((Math.log10(count + 1) / Math.log10(1_000_000)) * 100));
 }
 
-// replyCount = 0–50 replies in last 50 posts sample
-function replyScore(replyCount: number): number {
-  return Math.min(100, replyCount * 2);
-}
-
-// castCount30d from Neynar metrics; log scale ~500/mo → 100
-function castVolumeScore(castCount: number): number {
-  return Math.min(100, Math.round((Math.log10(castCount + 1) / Math.log10(501)) * 100));
-}
-
+// replyCount = 0–50 from replies_and_recasts sample
+// Even 1 reply → 4 pts; 10 replies → 40 pts; 25+ replies → 100 pts
 function castActivityScore(eng?: CastEngagement): number {
   if (!eng) return 0;
-  return Math.round(replyScore(eng.replyCount) * 0.5 + castVolumeScore(eng.castCount30d) * 0.5);
+  return Math.min(100, Math.round(eng.replyCount * 4));
 }
 
 function badgeScore(user: NeynarUser | undefined): number {
   if (!user) return 0;
-  // power_badge removed from Neynar v2 — use score ≥ 0.5 as badge tier
-  const badge = (user.power_badge ?? (user.score >= 0.5)) ? 50 : 0;
-  const verif = Math.min(3, user.verifications?.length ?? 0) * 10;
-  return Math.min(100, badge + verif);
+  // power badge tier (score ≥ 0.5) = 40 pts
+  const badge = (user.power_badge ?? (user.score >= 0.5)) ? 40 : 0;
+  // Neynar score 0–1 → up to 30 pts for everyone
+  const scoreBonus = Math.round(user.score * 30);
+  // Verified addresses (ETH wallet etc.) → up to 20 pts
+  const verif = Math.min(2, user.verifications?.length ?? 0) * 10;
+  // Following activity → up to 10 pts (following 100+ people = engaged user)
+  const following = Math.min(10, Math.round((Math.log10(user.following_count + 1) / Math.log10(101)) * 10));
+  return Math.min(100, badge + scoreBonus + verif + following);
 }
 
 function pfpFreshnessScore(storedAt: string): number {
