@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { OwnedCard } from '@/types/card';
 import { fetchCollection } from '@/lib/collection';
 import BattleCard from '@/components/BattleCard';
@@ -10,6 +10,7 @@ import MiniAppActions from '@/components/MiniAppActions';
 import { useMiniApp } from '@/hooks/useMiniApp';
 
 type Tab = 'browse' | 'pack' | 'collection';
+type BrowseSort = 'recent' | 'score' | 'fid' | 'name';
 
 // Global browse — all cards opened by anyone
 interface GlobalCard { ownedCard: OwnedCard; ownerHandle?: string; }
@@ -26,6 +27,8 @@ export default function Home() {
   const [owned, setOwned] = useState<OwnedCard[]>([]);
   const [globalCards, setGlobalCards] = useState<GlobalCard[]>([]);
   const [browseLoading, setBrowseLoading] = useState(true);
+  const [browseSearch, setBrowseSearch] = useState('');
+  const [browseSort, setBrowseSort] = useState<BrowseSort>('recent');
 
   // Load user's own collection
   useEffect(() => {
@@ -45,6 +48,25 @@ export default function Home() {
     fetchGlobalCards().then(setGlobalCards).catch(() => {});
     setTab('collection');
   }
+
+  const filteredBrowse = useMemo(() => {
+    const q = browseSearch.toLowerCase().trim();
+    let list = q
+      ? globalCards.filter(({ ownedCard: { card } }) =>
+          card.handle.toLowerCase().includes(q) ||
+          card.displayName.toLowerCase().includes(q) ||
+          String(card.fid).includes(q),
+        )
+      : [...globalCards];
+
+    switch (browseSort) {
+      case 'score': list.sort((a, b) => b.ownedCard.card.battleScore - a.ownedCard.card.battleScore); break;
+      case 'fid':   list.sort((a, b) => a.ownedCard.card.fid - b.ownedCard.card.fid); break;
+      case 'name':  list.sort((a, b) => a.ownedCard.card.handle.localeCompare(b.ownedCard.card.handle)); break;
+      // 'recent' preserves API order (newest first)
+    }
+    return list;
+  }, [globalCards, browseSearch, browseSort]);
 
   const TAB_ICONS: Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔' };
   const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards' };
@@ -130,11 +152,54 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {/* Search + Sort controls */}
+              <div style={{ marginBottom: 12 }}>
+                <input
+                  type="search"
+                  value={browseSearch}
+                  onChange={(e) => setBrowseSearch(e.target.value)}
+                  placeholder="Search by name or FID…"
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '8px 12px', borderRadius: 10,
+                    border: '1px solid rgba(138,99,210,0.2)',
+                    background: 'rgba(138,99,210,0.06)',
+                    color: '#c4b5d8', fontSize: 12,
+                    outline: 'none', marginBottom: 8,
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                  {(['recent', 'score', 'fid', 'name'] as BrowseSort[]).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setBrowseSort(s)}
+                      style={{
+                        padding: '5px 12px', borderRadius: 99,
+                        border: browseSort === s ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)',
+                        background: browseSort === s ? 'rgba(138,99,210,0.18)' : 'transparent',
+                        color: browseSort === s ? '#c4a4ff' : '#5c4070',
+                        fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {s === 'recent' ? 'NEW' : s === 'score' ? 'SCORE' : s === 'fid' ? 'FID' : 'A–Z'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <p style={{ textAlign: 'center', fontSize: 9, color: '#3d3050', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
-                {globalCards.length} card{globalCards.length !== 1 ? 's' : ''} in circulation
+                {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation
               </p>
+
+              {filteredBrowse.length === 0 && (
+                <p style={{ textAlign: 'center', fontSize: 11, color: '#5c4070', marginTop: 40 }}>
+                  No cards match "{browseSearch}"
+                </p>
+              )}
+
               <div className="card-grid">
-                {globalCards.map((gc, i) => (
+                {filteredBrowse.map((gc, i) => (
                   <BattleCard
                     key={`${gc.ownedCard.card.imageId}-${i}`}
                     card={gc.ownedCard.card}
