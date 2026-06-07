@@ -6,11 +6,11 @@
   },
   "miniapp": {
     "version": "1",
-    "name": "Battle FIDs",
+    "name": "The Protocol",
     "iconUrl": "https://battle-fids.vercel.app/icon.png",
     "homeUrl": "https://battle-fids.vercel.app",
     "imageUrl": "https://battle-fids.vercel.app/og.png",
-    "buttonTitle": "Play Battle FIDs",
+    "buttonTitle": "Play The Protocol",
     "splashImageUrl": "https://battle-fids.vercel.app/splash.png",
     "splashBackgroundColor": "#050c18",
     "webhookUrl": "https://battle-fids.vercel.app/api/webhook"

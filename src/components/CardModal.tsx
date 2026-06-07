@@ -14,7 +14,7 @@ const STAT_INFO: Record<StatKey, string> = {
   castActivity:  'Reply interactivity: how often this user replies to others, sampled from their last 50 posts.',
   badgeScore:    'Neynar power badge (score ≥ 0.5) + verified wallet addresses + following engagement.',
   pfpFreshness:  'How recently this PFP was captured. Newest variant scores highest. Decays over 365 days.',
-  xploraXP:      'Xplora XP — cross-app experience points. Coming soon: earn XP by playing Battle FIDs and other Xplora-integrated mini apps.',
+  xploraXP:      'Xplora XP — cross-app experience points. Coming soon: earn XP by playing The Protocol and other Xplora-integrated mini apps.',
 };
 
 interface ProfileRow {
@@ -79,7 +79,7 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
   }, [onClose]);
 
   const handleShare = useCallback(async () => {
-    const text = `Check out ${card.displayName} (@${card.handle}) — Battle Score ${card.battleScore} | FID #${card.fid} | Battle FIDs 2026 Edition`;
+    const text = `Check out ${card.displayName} (@${card.handle}) — Battle Score ${card.battleScore} | FID #${card.fid} | The Protocol 2026`;
     if (navigator.share) {
       await navigator.share({ text, url: 'https://battle-fids.vercel.app' }).catch(() => {});
     } else {

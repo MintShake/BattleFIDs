@@ -78,7 +78,7 @@ export default function MiniAppActions({
       const sdk = sdkRef.current;
       if (!sdk) throw new Error('SDK not loaded');
       await sdk.actions.composeCast({
-        text: '⚔ Battle FIDs 2026 Edition — collect Farcaster identity cards, battle for supremacy. Rome Plays.',
+        text: '⚔ The Protocol 2026 — collect Farcaster identity cards, battle for supremacy. Rome Plays.',
         embeds: [APP_URL],
       });
     } catch {

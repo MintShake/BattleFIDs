@@ -23,18 +23,18 @@ const BASE_URL = "https://battle-fids.vercel.app";
 const SPLASH_COLOR = "#050c18";
 
 export const metadata: Metadata = {
-  title: "Battle FIDs",
-  description: "Farcaster Identity Battle Cards — collect, compare, and battle Farcaster profiles",
+  title: "The Protocol",
+  description: "Farcaster Identity Cards — collect, compare, and battle Farcaster profiles",
   other: {
     // Farcaster Mini App embed meta tag
     "fc:miniapp": JSON.stringify({
       version: "next",
       imageUrl: `${BASE_URL}/og.png`,
       button: {
-        title: "Play Battle FIDs",
+        title: "Play The Protocol",
         action: {
           type: "launch_miniapp",
-          name: "Battle FIDs",
+          name: "The Protocol",
           url: BASE_URL,
           splashImageUrl: `${BASE_URL}/splash.png`,
           splashBackgroundColor: SPLASH_COLOR,

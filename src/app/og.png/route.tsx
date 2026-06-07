@@ -79,7 +79,7 @@ export async function GET() {
           lineHeight: 1,
           marginBottom: 18,
         }}>
-          BATTLE FIDs
+          THE PROTOCOL
         </div>
 
         {/* Subtitle */}
@@ -88,7 +88,7 @@ export async function GET() {
           letterSpacing: '0.3em', textTransform: 'uppercase',
           marginBottom: 40,
         }}>
-          Farcaster Identity Battle Cards
+          Farcaster Identity Cards · MMXXVI
         </div>
 
         {/* Rarity tier pills */}

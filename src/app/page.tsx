@@ -110,7 +110,7 @@ export default function Home() {
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               backgroundClip: 'text', lineHeight: 1.05, margin: 0,
             }}>
-              BATTLE FIDs
+              THE PROTOCOL
             </h1>
 
             {/* Red crayon "2026" scrawled over the title */}
