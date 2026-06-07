@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey } from '@/types/card';
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
+import { cardValue } from '@/lib/valuation';
 
 // ── Rarity configs — Roman · Farcaster theme ──────────────────────────────────
 
@@ -278,7 +279,7 @@ export default function BattleCard({
           </div>
         </div>
 
-        {/* Battle score footer */}
+        {/* Battle score + est. value footer */}
         <div style={{ padding: '0 10px 10px' }}>
           <div style={{
             borderRadius: 10, padding: '7px 10px',
@@ -300,6 +301,21 @@ export default function BattleCard({
             <span style={{ fontSize: compact ? 18 : 24, fontWeight: 900, color: cfg.accent }}>
               {card.battleScore}
             </span>
+          </div>
+
+          {/* Estimated value strip */}
+          <div style={{
+            marginTop: 5, borderRadius: 8, padding: '5px 10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'rgba(201,168,76,0.06)',
+            border: '1px solid rgba(201,168,76,0.2)',
+          }}>
+            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.2em', color: '#5c4030', textTransform: 'uppercase' }}>
+              Est. Value
+            </div>
+            <div style={{ fontSize: compact ? 11 : 13, fontWeight: 900, color: '#C9A84C', letterSpacing: '0.05em' }}>
+              {cardValue(card, serialNumber)}
+            </div>
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey } from '@/types/card';
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
+import { cardValue } from '@/lib/valuation';
 
 const STAT_INFO: Record<StatKey, string> = {
   supplyRarity:  'Based on FID number. Lower FID = lower max supply = rarer card. FID 1 = only 1 can ever exist.',
@@ -87,11 +88,7 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
     }
   }, [card]);
 
-  // Mock floor price based on rarity
-  const mockFloor = card.rarity === 'Alpha' ? '2.5 ETH' :
-                    card.rarity === 'Legendary' ? '0.8 ETH' :
-                    card.rarity === 'Elite' ? '0.15 ETH' :
-                    card.rarity === 'Rare' ? '0.04 ETH' : '0.008 ETH';
+  const mockFloor = cardValue(card, serialNumber);
 
   return (
     <div
