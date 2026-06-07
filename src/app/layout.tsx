@@ -12,9 +12,36 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const BASE_URL = "https://battle-fids.vercel.app";
+const SPLASH_COLOR = "#050c18";
+
 export const metadata: Metadata = {
   title: "Battle FIDs",
   description: "Farcaster Identity Battle Cards — collect, compare, and battle Farcaster profiles",
+  other: {
+    // Farcaster Mini App embed meta tag
+    "fc:miniapp": JSON.stringify({
+      version: "next",
+      imageUrl: `${BASE_URL}/og.png`,
+      button: {
+        title: "Play Battle FIDs",
+        action: {
+          type: "launch_miniapp",
+          name: "Battle FIDs",
+          url: BASE_URL,
+          splashImageUrl: `${BASE_URL}/splash.png`,
+          splashBackgroundColor: SPLASH_COLOR,
+        },
+      },
+    }),
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

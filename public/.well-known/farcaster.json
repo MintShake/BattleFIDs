@@ -1,0 +1,18 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEsInR5cGUiOiJjdXN0b2R5IiwibmJmIjoxNzE3MDAwMDAwfQ",
+    "payload": "eyJkb21haW4iOiJiYXR0bGUtZmlkcy52ZXJjZWwuYXBwIn0",
+    "signature": "MHhwbGFjZWhvbGRlcnNpZ25hdHVyZQ"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Battle FIDs",
+    "iconUrl": "https://battle-fids.vercel.app/icon.png",
+    "homeUrl": "https://battle-fids.vercel.app",
+    "imageUrl": "https://battle-fids.vercel.app/og.png",
+    "buttonTitle": "Play Battle FIDs",
+    "splashImageUrl": "https://battle-fids.vercel.app/splash.png",
+    "splashBackgroundColor": "#050c18",
+    "webhookUrl": "https://battle-fids.vercel.app/api/webhook"
+  }
+}
