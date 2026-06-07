@@ -18,17 +18,19 @@ export interface CardStats {
   castActivity: number;  // Neynar: blend of reply interactivity + cast volume (30d)
   badgeScore: number;    // power badge (score≥0.5) + verified addresses
   pfpFreshness: number;  // storedAt recency — variant differentiator
+  xploraXP: number;      // Xplora XP — reserved, always 0 until wired
 }
 
 export type StatKey = keyof CardStats;
 
 export const STAT_LABELS: Record<StatKey, string> = {
-  supplyRarity: 'SUPPLY',
+  supplyRarity:  'SUPPLY',
   followerPower: 'FOLLOWERS',
-  neynarForce: 'NEYNAR',
-  castActivity: 'ACTIVITY',
-  badgeScore: 'BADGES',
-  pfpFreshness: 'PFP FRESH',
+  neynarForce:   'NEYNAR',
+  castActivity:  'ACTIVITY',
+  badgeScore:    'BADGES',
+  pfpFreshness:  'PFP FRESH',
+  xploraXP:      'XPLORA XP',
 };
 
 export const STAT_ORDER: StatKey[] = [
@@ -38,6 +40,7 @@ export const STAT_ORDER: StatKey[] = [
   'castActivity',
   'badgeScore',
   'pfpFreshness',
+  'xploraXP',
 ];
 
 export interface BattleFIDCard {

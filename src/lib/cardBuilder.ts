@@ -67,6 +67,7 @@ export function buildCard(
     castActivity:  castActivityScore(engagement),
     badgeScore:    badgeScore(neynarUser),
     pfpFreshness:  pfpFreshnessScore(image.storedAt),
+    xploraXP:      0, // reserved — wired up when Xplora integration is ready
   };
 
   const handle =

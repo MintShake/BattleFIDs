@@ -14,6 +14,7 @@ const STAT_INFO: Record<StatKey, string> = {
   castActivity:  'Reply interactivity: how often this user replies to others, sampled from their last 50 posts.',
   badgeScore:    'Neynar power badge (score ≥ 0.5) + verified wallet addresses + following engagement.',
   pfpFreshness:  'How recently this PFP was captured. Newest variant scores highest. Decays over 365 days.',
+  xploraXP:      'Xplora XP — cross-app experience points. Coming soon: earn XP by playing Battle FIDs and other Xplora-integrated mini apps.',
 };
 
 interface ProfileRow {
