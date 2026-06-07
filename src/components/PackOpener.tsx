@@ -1,26 +1,33 @@
 'use client';
 
 import { useState } from 'react';
-import { BattleFIDCard } from '@/types/card';
-import { openPack } from '@/lib/pack';
-import { addToCollection } from '@/lib/collection';
+import { BattleFIDCard, OwnedCard } from '@/types/card';
+import { openPackRemote } from '@/lib/collection';
 import BattleCard from './BattleCard';
 
 type Phase = 'idle' | 'opening' | 'revealing' | 'done';
 
-export default function PackOpener({ onCollected }: { onCollected?: () => void }) {
+export default function PackOpener({
+  onCollected,
+  ownerFid,
+}: {
+  onCollected?: () => void;
+  ownerFid?: number;
+}) {
   const [phase, setPhase] = useState<Phase>('idle');
-  const [cards, setCards] = useState<BattleFIDCard[]>([]);
+  const [owned, setOwned] = useState<OwnedCard[]>([]);
   const [revealed, setRevealed] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [revealAll, setRevealAll] = useState(false);
+
+  const cards: BattleFIDCard[] = owned.map((o) => o.card);
 
   async function handleOpenPack() {
     setPhase('opening');
     setError(null);
     try {
-      const pack = await openPack();
-      setCards(pack);
+      const pack = await openPackRemote(ownerFid);
+      setOwned(pack);
       setRevealed(new Set());
       setRevealAll(false);
       setPhase('revealing');
@@ -41,14 +48,14 @@ export default function PackOpener({ onCollected }: { onCollected?: () => void }
   }
 
   function handleCollect() {
-    addToCollection(cards);
+    // Cards are already persisted to Neon when the pack was opened
     setPhase('done');
     onCollected?.();
   }
 
   function handleAgain() {
     setPhase('idle');
-    setCards([]);
+    setOwned([]);
     setRevealed(new Set());
   }
 

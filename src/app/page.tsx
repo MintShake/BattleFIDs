@@ -1,76 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { BattleFIDCard, OwnedCard } from '@/types/card';
-import { fetchFaces } from '@/lib/faces';
-import { fetchNeynarUsers } from '@/lib/neynar';
-import { buildCard } from '@/lib/cardBuilder';
-import { getCollection } from '@/lib/collection';
+import { useState, useEffect } from 'react';
+import { OwnedCard } from '@/types/card';
+import { fetchCollection } from '@/lib/collection';
 import BattleCard from '@/components/BattleCard';
 import PackOpener from '@/components/PackOpener';
 import CollectionView from '@/components/CollectionView';
-import { FidTimeline } from '@/types/faces';
 import { useMiniApp } from '@/hooks/useMiniApp';
 
 type Tab = 'browse' | 'pack' | 'collection';
 
-interface BrowseState {
-  cards: BattleFIDCard[];
-  totalFids: number;
-  loading: boolean;
-  loadingMore: boolean;
-  offset: number;
-}
-
-const PAGE = 25;
-
-async function loadPage(offset: number): Promise<{
-  cards: BattleFIDCard[];
-  totalFids: number;
-}> {
-  const res = await fetchFaces({ limit: PAGE, offset, imagesPerFid: 1, sort: 'fid', order: 'asc' });
-  const fids = res.data.map((t: FidTimeline) => t.fid);
-  const neynarMap = await fetchNeynarUsers(fids);
-  const cards = res.data.map((tl: FidTimeline) => buildCard(tl, 0, neynarMap.get(tl.fid)));
-  return { cards, totalFids: res.totalFids };
-}
-
 export default function Home() {
   const { user: miniAppUser, safeAreaInsets } = useMiniApp();
-  const [tab, setTab] = useState<Tab>('browse');
-  const [browse, setBrowse] = useState<BrowseState>({
-    cards: [], totalFids: 0, loading: true, loadingMore: false, offset: 0,
-  });
+  const [tab, setTab] = useState<Tab>('pack');
   const [owned, setOwned] = useState<OwnedCard[]>([]);
 
   useEffect(() => {
-    loadPage(0).then(({ cards, totalFids }) => {
-      setBrowse({ cards, totalFids, loading: false, loadingMore: false, offset: PAGE });
-    }).catch(console.error);
-  }, []);
-
-  useEffect(() => {
-    setOwned(getCollection());
-  }, []);
-
-  const loadMore = useCallback(async () => {
-    if (browse.loadingMore || browse.cards.length >= browse.totalFids) return;
-    setBrowse((s) => ({ ...s, loadingMore: true }));
-    try {
-      const { cards } = await loadPage(browse.offset);
-      setBrowse((s) => ({
-        ...s,
-        cards: [...s.cards, ...cards],
-        offset: s.offset + PAGE,
-        loadingMore: false,
-      }));
-    } catch {
-      setBrowse((s) => ({ ...s, loadingMore: false }));
-    }
-  }, [browse.offset, browse.loadingMore, browse.totalFids, browse.cards.length]);
+    fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {});
+  }, [miniAppUser?.fid]);
 
   function handleCollected() {
-    setOwned(getCollection());
+    fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {});
     setTab('collection');
   }
 
@@ -117,52 +67,49 @@ export default function Home() {
 
       {/* Content area */}
       <div style={{ flex: 1, padding: '8px 12px 0', overflowY: 'auto' }}>
-        {/* Browse */}
+        {/* Browse — only cards won from packs */}
         {tab === 'browse' && (
           <div>
-            {browse.loading ? (
-              <div style={{ textAlign: 'center', paddingTop: 60, color: '#374151', letterSpacing: '0.2em', fontSize: 11 }}>
-                Loading cards…
+            {owned.length === 0 ? (
+              <div style={{ textAlign: 'center', paddingTop: 80, color: '#374151' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🃏</div>
+                <p style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                  No cards discovered yet
+                </p>
+                <p style={{ fontSize: 10, color: '#4b5563', marginTop: 8 }}>
+                  Cards only appear here after being won from a pack
+                </p>
+                <button
+                  onClick={() => setTab('pack')}
+                  style={{
+                    marginTop: 24, padding: '12px 28px', borderRadius: 99,
+                    border: '1px solid rgba(0,212,255,0.3)',
+                    background: 'transparent', color: '#00d4ff',
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+                    textTransform: 'uppercase', cursor: 'pointer',
+                  }}
+                >
+                  Open a Pack
+                </button>
               </div>
             ) : (
               <>
                 <div style={{ textAlign: 'center', marginBottom: 16 }}>
                   <p style={{ fontSize: 10, color: '#374151', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                    {browse.cards.length.toLocaleString()} of {browse.totalFids.toLocaleString()} FIDs
+                    {owned.length} card{owned.length !== 1 ? 's' : ''} discovered
                   </p>
                 </div>
-
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'center', maxWidth: 1400, margin: '0 auto' }}>
-                  {browse.cards.map((card) => (
-                    <BattleCard key={card.imageId} card={card} />
+                  {owned.map((oc, i) => (
+                    <BattleCard key={`${oc.card.imageId}-${i}`} card={oc.card} serialNumber={oc.serialNumber} />
                   ))}
                 </div>
-
-                {browse.cards.length < browse.totalFids && (
-                  <div style={{ textAlign: 'center', marginTop: 28, marginBottom: 12 }}>
-                    <button
-                      onClick={loadMore}
-                      disabled={browse.loadingMore}
-                      style={{
-                        padding: '12px 28px', borderRadius: 99,
-                        border: '1px solid rgba(0,212,255,0.25)',
-                        cursor: browse.loadingMore ? 'default' : 'pointer',
-                        background: 'transparent',
-                        color: browse.loadingMore ? '#374151' : '#00d4ff',
-                        fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                        opacity: browse.loadingMore ? 0.5 : 1,
-                      }}
-                    >
-                      {browse.loadingMore ? 'Loading…' : `Load More (${(browse.totalFids - browse.cards.length).toLocaleString()} remaining)`}
-                    </button>
-                  </div>
-                )}
               </>
             )}
           </div>
         )}
 
-        {tab === 'pack' && <PackOpener onCollected={handleCollected} />}
+        {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} />}
         {tab === 'collection' && <CollectionView owned={owned} />}
       </div>
 
