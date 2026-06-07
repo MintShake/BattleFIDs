@@ -1,6 +1,6 @@
 import { BattleFIDCard, CardStats, rarityFromFid } from '@/types/card';
 import { FidTimeline } from '@/types/faces';
-import { NeynarUser } from '@/types/neynar';
+import { NeynarUser, CastEngagement } from '@/types/neynar';
 
 // ── stat normalizers ──────────────────────────────────────────────────────────
 
@@ -12,9 +12,19 @@ function followerScore(count: number): number {
   return Math.min(100, Math.round((Math.log10(count + 1) / Math.log10(1_000_000)) * 100));
 }
 
-function likeScore(likeCount: number): number {
-  // Log scale: 0 likes → 0, ~1000 likes → 100
-  return Math.min(100, Math.round((Math.log10(likeCount + 1) / 3) * 100));
+// replyCount = 0–50 replies in last 50 posts sample
+function replyScore(replyCount: number): number {
+  return Math.min(100, replyCount * 2);
+}
+
+// castCount30d from Neynar metrics; log scale ~500/mo → 100
+function castVolumeScore(castCount: number): number {
+  return Math.min(100, Math.round((Math.log10(castCount + 1) / Math.log10(501)) * 100));
+}
+
+function castActivityScore(eng?: CastEngagement): number {
+  if (!eng) return 0;
+  return Math.round(replyScore(eng.replyCount) * 0.5 + castVolumeScore(eng.castCount30d) * 0.5);
 }
 
 function badgeScore(user: NeynarUser | undefined): number {
@@ -47,6 +57,7 @@ export function buildCard(
   timeline: FidTimeline,
   imageIndex: number,
   neynarUser?: NeynarUser,
+  engagement?: CastEngagement,
 ): BattleFIDCard {
   const image = timeline.images[imageIndex] ?? timeline.images[0];
   const profile = timeline.profile ?? neynarUser;
@@ -55,7 +66,7 @@ export function buildCard(
     supplyRarity:  supplyRarityScore(timeline.fid),
     followerPower: followerScore(neynarUser?.follower_count ?? 0),
     neynarForce:   Math.min(100, Math.round((neynarUser?.score ?? 0) * 100)),
-    castActivity:  likeScore(image.likeCount ?? 0),
+    castActivity:  castActivityScore(engagement),
     badgeScore:    badgeScore(neynarUser),
     pfpFreshness:  pfpFreshnessScore(image.storedAt),
   };
@@ -92,6 +103,7 @@ export function buildCard(
 export function buildAllVariants(
   timeline: FidTimeline,
   neynarUser?: NeynarUser,
+  engagement?: CastEngagement,
 ): BattleFIDCard[] {
-  return timeline.images.map((_, i) => buildCard(timeline, i, neynarUser));
+  return timeline.images.map((_, i) => buildCard(timeline, i, neynarUser, engagement));
 }

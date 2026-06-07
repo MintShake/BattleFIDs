@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchFaces } from '@/lib/faces';
-import { fetchNeynarUsersDirect } from '@/lib/neynar';
+import { fetchNeynarUsersDirect, fetchCastEngagements } from '@/lib/neynar';
 import { buildAllVariants } from '@/lib/cardBuilder';
 import { BattleFIDCard, OwnedCard } from '@/types/card';
 
@@ -38,10 +38,14 @@ export async function POST(req: NextRequest) {
 
   const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, PACK_SIZE);
   const uniqueFids = [...new Set(shuffled.map((x) => x.timeline.fid))];
-  const neynarMap = await fetchNeynarUsersDirect(uniqueFids);
+
+  const [neynarMap, engagementMap] = await Promise.all([
+    fetchNeynarUsersDirect(uniqueFids),
+    fetchCastEngagements(uniqueFids),
+  ]);
 
   const cards: BattleFIDCard[] = shuffled.map(({ timeline, imageIndex }) =>
-    buildAllVariants(timeline, neynarMap.get(timeline.fid))[imageIndex],
+    buildAllVariants(timeline, neynarMap.get(timeline.fid), engagementMap.get(timeline.fid))[imageIndex],
   );
 
   // 2. Upsert card definitions (ignore conflicts — card type may already exist)

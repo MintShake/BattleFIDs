@@ -16,3 +16,8 @@ export interface NeynarUser {
 export interface NeynarBulkUsersResponse {
   users: NeynarUser[];
 }
+
+export interface CastEngagement {
+  replyCount: number;    // replies made to others in last ~50 posts
+  castCount30d: number;  // total casts in last 30 days
+}

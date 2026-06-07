@@ -15,7 +15,7 @@ export interface CardStats {
   supplyRarity: number;  // FID-based: lower FID → higher score (fixed)
   followerPower: number; // Neynar follower_count normalized
   neynarForce: number;   // Neynar score × 100
-  castActivity: number;  // Faces likeCount normalized (was casts, pending Neynar endpoint)
+  castActivity: number;  // Neynar: blend of reply interactivity + cast volume (30d)
   badgeScore: number;    // power badge (score≥0.5) + verified addresses
   pfpFreshness: number;  // storedAt recency — variant differentiator
 }
@@ -26,7 +26,7 @@ export const STAT_LABELS: Record<StatKey, string> = {
   supplyRarity: 'SUPPLY',
   followerPower: 'FOLLOWERS',
   neynarForce: 'NEYNAR',
-  castActivity: 'LIKES',
+  castActivity: 'ACTIVITY',
   badgeScore: 'BADGES',
   pfpFreshness: 'PFP FRESH',
 };
