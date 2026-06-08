@@ -124,6 +124,6 @@ export async function GET() {
       fonts: caveat ? [{ name: 'Caveat', data: caveat, style: 'normal', weight: 700 }] : [],
     },
   );
-  img.headers.set('Cache-Control', 'no-store');
+  img.headers.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
   return img;
 }

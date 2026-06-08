@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Caveat } from "next/font/google";
-import { MiniAppReady } from "@/components/MiniAppReady";
+import dynamic from "next/dynamic";
 import "./globals.css";
+
+const MiniAppReady = dynamic(
+  () => import("@/components/MiniAppReady").then(m => ({ default: m.MiniAppReady })),
+  { ssr: false },
+);
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });

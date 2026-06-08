@@ -1,28 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
-import { dlog } from '@/lib/debug';
+import { sdk } from '@farcaster/miniapp-sdk';
 
-// Fires sdk.actions.ready() at layout level so the Farcaster splash
-// dismisses on every route, not just on the home page.
+// Loaded via next/dynamic({ ssr: false }) in layout.tsx — never runs on server.
+// Static import means endpoint.js IIFE evaluates here, client-side only,
+// when window.ReactNativeWebView is already injected by the Farcaster native app.
+// ready() fires immediately when this chunk loads — no useEffect delay.
+sdk.actions.ready();
+
 export function MiniAppReady() {
-  useEffect(() => {
-    let cancelled = false;
-    async function signal() {
-      dlog('MiniAppReady: importing SDK…');
-      try {
-        const { sdk } = await import('@farcaster/miniapp-sdk');
-        if (cancelled) { dlog('MiniAppReady: cancelled before ready()'); return; }
-        dlog('MiniAppReady: calling ready()…');
-        await sdk.actions.ready({ disableNativeGestures: true });
-        dlog('MiniAppReady: ready() resolved ✓');
-      } catch (e) {
-        dlog(`MiniAppReady: error — ${e instanceof Error ? e.message : String(e)}`);
-      }
-    }
-    void signal();
-    return () => { cancelled = true; };
-  }, []);
-
   return null;
 }
