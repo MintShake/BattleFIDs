@@ -7,7 +7,7 @@ const config: Edition = {
   theme: {
     bgClass:         'bg-grid',
     headerEra:       'FARCASTER · MMXXVI',
-    bgImage:         '/editions/rome-bg.jpg',
+    bgImage:         '/bg-roman.png',
     accentPrimary:   '#C9A84C',
     accentSecondary: '#8a63d2',
   },
