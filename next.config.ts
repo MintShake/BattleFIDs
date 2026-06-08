@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@farcaster/miniapp-sdk', '@farcaster/miniapp-core'],
   images: {
     remotePatterns: [
       {
