@@ -13,6 +13,7 @@ import WeekProgress from '@/components/WeekProgress';
 import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
+import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
 import { useWallet } from '@/hooks/useWallet';
 import { isAdminAddress } from '@/lib/adminAuth';
@@ -108,6 +109,7 @@ function AppInner({
   return (
     <>
     <EditionBackdrop />
+    <DebugOverlay />
     <main className={`${edition.theme.bgClass} min-h-screen`} style={{ display: 'flex', flexDirection: 'column' }}>
       <div
         className="page-inner"

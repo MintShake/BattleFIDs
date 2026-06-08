@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { dlog } from '@/lib/debug';
 
 export interface MiniAppUser {
   fid: number;
@@ -26,11 +27,12 @@ export interface MiniAppState {
 const DEFAULT_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
 // Start loading the SDK at module evaluation time — before React renders.
-// This eliminates the render → useEffect → dynamic-import chain on slow devices.
-// Guarded so it's a no-op during SSR.
+dlog('useMiniApp module: eagerly importing SDK…');
 const _sdkPromise: Promise<typeof import('@farcaster/miniapp-sdk')['sdk'] | null> =
   typeof window !== 'undefined'
-    ? import('@farcaster/miniapp-sdk').then(m => m.sdk).catch(() => null)
+    ? import('@farcaster/miniapp-sdk')
+        .then(m => { dlog('useMiniApp module: SDK loaded ✓'); return m.sdk; })
+        .catch(e => { dlog(`useMiniApp module: SDK import failed — ${e}`); return null; })
     : Promise.resolve(null);
 
 export function useMiniApp(): MiniAppState {
@@ -41,45 +43,42 @@ export function useMiniApp(): MiniAppState {
 
   useEffect(() => {
     let active = true;
+    dlog('useMiniApp: effect start');
 
     async function init() {
       const sdk = await _sdkPromise;
-      if (!sdk) return;
-
+      if (!sdk) { dlog('useMiniApp: no SDK — not in miniapp'); return; }
       if (!active) return;
 
+      dlog('useMiniApp: checking isInMiniApp…');
       try {
         const inApp = await Promise.race([
           sdk.isInMiniApp(),
           new Promise<boolean>(resolve => setTimeout(() => resolve(false), 2000)),
         ]);
         if (!active) return;
+        dlog(`useMiniApp: isInMiniApp = ${inApp}`);
         setIsInMiniApp(inApp);
-      } catch { /* ignore */ }
+      } catch (e) { dlog(`useMiniApp: isInMiniApp error — ${e}`); }
 
-      // sdk.context is a Comlink proxy that can hang on older Safari/WebKit.
-      // Race it against a 3-second timeout so UI always becomes interactive.
+      dlog('useMiniApp: fetching context (3s timeout)…');
       try {
         const ctx = await Promise.race([
           sdk.context,
           new Promise<null>(resolve => setTimeout(() => resolve(null), 3000)),
         ]);
-        if (!active || !ctx) return;
+        if (!active) return;
+        if (!ctx) { dlog('useMiniApp: context timed out'); return; }
 
+        dlog(`useMiniApp: context received — fid=${ctx.user?.fid}`);
         if (ctx.user) {
           const fid = ctx.user.fid;
-          setUser({
-            fid,
-            username:    ctx.user.username,
-            displayName: ctx.user.displayName,
-            pfpUrl:      ctx.user.pfpUrl,
-          });
-          // Persist FID so other pages can read it without re-initialising the SDK
+          setUser({ fid, username: ctx.user.username, displayName: ctx.user.displayName, pfpUrl: ctx.user.pfpUrl });
           try { sessionStorage.setItem('miniapp_fid', String(fid)); } catch { /* noop */ }
         }
         if (ctx.client?.safeAreaInsets) setSafeAreaInsets(ctx.client.safeAreaInsets);
         if (ctx.client) setAdded(ctx.client.added ?? false);
-      } catch { /* context fetch failed — ready() already fired, app is usable */ }
+      } catch (e) { dlog(`useMiniApp: context error — ${e}`); }
     }
 
     init();

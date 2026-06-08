@@ -9,11 +9,13 @@ const caveat    = Caveat({ variable: "--font-caveat", subsets: ["latin"], weight
 
 const BASE_URL    = "https://battle-fids.vercel.app";
 const SPLASH_COLOR = "#07020e";
+// Bump this when you want to force Farcaster to re-fetch cached embed/splash images
+const ASSET_V = "20260608c";
 
 export async function generateMetadata(): Promise<Metadata> {
   // Pull the default edition from DB to drive the embed card
-  let embedImageUrl  = `${BASE_URL}/og.png`;
-  let splashImageUrl = `${BASE_URL}/splash.png`;
+  let embedImageUrl  = `${BASE_URL}/og.png?v=${ASSET_V}`;
+  let splashImageUrl = `${BASE_URL}/splash.png?v=${ASSET_V}`;
   let editionName    = "The Protocol";
 
   try {

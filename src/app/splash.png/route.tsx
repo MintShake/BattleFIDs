@@ -8,7 +8,7 @@ const BG = 'https://battle-fids.vercel.app/bg-roman.png';
 export async function GET() {
   const caveat = await loadCaveat();
 
-  return new ImageResponse(
+  const img = new ImageResponse(
     (
       <div
         style={{
@@ -87,4 +87,6 @@ export async function GET() {
       fonts: caveat ? [{ name: 'Caveat', data: caveat, style: 'normal', weight: 700 }] : [],
     },
   );
+  img.headers.set('Cache-Control', 'no-store');
+  return img;
 }
