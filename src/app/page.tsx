@@ -11,15 +11,16 @@ import MiniAppActions from '@/components/MiniAppActions';
 import TeamBuilder from '@/components/TeamBuilder';
 import WeekProgress from '@/components/WeekProgress';
 import Leaderboard from '@/components/Leaderboard';
+import EditionSelect from '@/components/EditionSelect';
 import { useMiniApp } from '@/hooks/useMiniApp';
-import { edition } from '@/editions';
-import { HeaderOverlay } from '@/editions/ui';
+import { EditionProvider, readStoredEditionId, writeEditionId, EDITIONS } from '@/editions/context';
+import { useEdition } from '@/editions/context';
+import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
 
 type Tab = 'browse' | 'pack' | 'collection' | 'league';
 type LeagueView = 'team' | 'progress' | 'leaderboard';
 type BrowseSort = 'recent' | 'score' | 'fid' | 'name';
 
-// Global browse — all cards opened by anyone
 interface GlobalCard { ownedCard: OwnedCard; ownerHandle?: string; }
 
 async function fetchGlobalCards(): Promise<GlobalCard[]> {
@@ -28,31 +29,33 @@ async function fetchGlobalCards(): Promise<GlobalCard[]> {
   return res.json();
 }
 
-export default function Home() {
+// ── Inner app — wrapped by EditionProvider ────────────────────────────────────
+function AppInner({
+  onChangeEdition,
+}: {
+  onChangeEdition: () => void;
+}) {
+  const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
-  const [tab, setTab]             = useState<Tab>('browse');
+  const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const deviceId = typeof window !== 'undefined'
     ? (localStorage.getItem('deviceId') ?? (() => { const id = crypto.randomUUID(); localStorage.setItem('deviceId', id); return id; })())
     : '';
-  const [owned, setOwned] = useState<OwnedCard[]>([]);
+  const [owned, setOwned]           = useState<OwnedCard[]>([]);
   const [globalCards, setGlobalCards] = useState<GlobalCard[]>([]);
   const [browseLoading, setBrowseLoading] = useState(true);
-  const [browseSearch, setBrowseSearch] = useState('');
-  const [browseSort, setBrowseSort] = useState<BrowseSort>('recent');
-  const [modalCard, setModalCard] = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
+  const [browseSearch, setBrowseSearch]   = useState('');
+  const [browseSort, setBrowseSort]       = useState<BrowseSort>('recent');
+  const [modalCard, setModalCard]   = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
 
-  // Load user's own collection
   useEffect(() => {
     fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {});
   }, [miniAppUser?.fid]);
 
-  // Load global browse on mount
   useEffect(() => {
-    fetchGlobalCards().then((cards) => {
-      setGlobalCards(cards);
-      setBrowseLoading(false);
-    }).catch(() => setBrowseLoading(false));
+    fetchGlobalCards().then(cards => { setGlobalCards(cards); setBrowseLoading(false); })
+      .catch(() => setBrowseLoading(false));
   }, []);
 
   function handleCollected() {
@@ -67,26 +70,21 @@ export default function Home() {
       ? globalCards.filter(({ ownedCard: { card } }) =>
           card.handle.toLowerCase().includes(q) ||
           card.displayName.toLowerCase().includes(q) ||
-          String(card.fid).includes(q),
-        )
+          String(card.fid).includes(q))
       : [...globalCards];
-
     switch (browseSort) {
       case 'score': list.sort((a, b) => b.ownedCard.card.battleScore - a.ownedCard.card.battleScore); break;
       case 'fid':   list.sort((a, b) => a.ownedCard.card.fid - b.ownedCard.card.fid); break;
       case 'name':  list.sort((a, b) => a.ownedCard.card.handle.localeCompare(b.ownedCard.card.handle)); break;
-      // 'recent' preserves API order (newest first)
     }
     return list;
   }, [globalCards, browseSearch, browseSort]);
 
-  const TAB_ICONS: Record<Tab, string>  = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆' };
+  const TAB_ICONS:  Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆' };
   const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League' };
 
   return (
     <main className={`${edition.theme.bgClass} min-h-screen`} style={{ display: 'flex', flexDirection: 'column' }}>
-
-      {/* Centered content — constrains to 1200px on wide screens */}
       <div
         className="page-inner"
         style={{
@@ -99,12 +97,9 @@ export default function Home() {
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
           <div style={{
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
-            width: 180, height: 28,
-            borderRadius: '0 0 90px 90px',
+            width: 180, height: 28, borderRadius: '0 0 90px 90px',
             background: 'linear-gradient(180deg, rgba(138,99,210,0.08) 0%, transparent 100%)',
-            border: '1px solid rgba(138,99,210,0.12)',
-            borderTop: 'none',
-            pointerEvents: 'none',
+            border: '1px solid rgba(138,99,210,0.12)', borderTop: 'none', pointerEvents: 'none',
           }} />
 
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.4em', color: '#5c4070', textTransform: 'uppercase', margin: '0 0 3px' }}>
@@ -122,9 +117,26 @@ export default function Home() {
             }}>
               THE PROTOCOL
             </h1>
-
-            <HeaderOverlay />
+            <EditionHeaderOverlay />
           </div>
+
+          {/* Edition switcher pill */}
+          <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={onChangeEdition}
+              style={{
+                fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase',
+                padding: '4px 12px', borderRadius: 99,
+                background: `${edition.theme.accentPrimary}12`,
+                border: `1px solid ${edition.theme.accentPrimary}35`,
+                color: edition.theme.accentPrimary,
+                cursor: 'pointer',
+              }}
+            >
+              {edition.name} ↗
+            </button>
+          </div>
+
           {miniAppUser ? (
             <p style={{ color: '#5c4d70', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
               FID {miniAppUser.fid} · @{miniAppUser.username ?? miniAppUser.displayName}
@@ -136,192 +148,88 @@ export default function Home() {
           )}
         </div>
 
-        {/* Add + Share buttons */}
         <MiniAppActions isInMiniApp={isInMiniApp} added={added} />
 
-        {/* Content area — plain div, body handles scrolling */}
         <div style={{ flex: 1, padding: '8px 16px 0' }}>
-
-        {/* Browse — all cards opened by anyone */}
-        {tab === 'browse' && (
-          browseLoading ? (
-            <div style={{ textAlign: 'center', paddingTop: 60, color: '#3d3050', fontSize: 11, letterSpacing: '0.2em' }}>
-              Loading…
-            </div>
-          ) : globalCards.length === 0 ? (
-            <div style={{ textAlign: 'center', paddingTop: 80 }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🃏</div>
-              <p style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#5c4070' }}>
-                No cards discovered yet
-              </p>
-              <p style={{ fontSize: 10, color: '#3d3050', marginTop: 8 }}>
-                Be the first — open a pack
-              </p>
-              <button
-                onClick={() => setTab('pack')}
-                style={{
-                  marginTop: 20, padding: '12px 28px', borderRadius: 99,
-                  border: '1px solid rgba(138,99,210,0.3)',
-                  background: 'transparent', color: '#8a63d2',
-                  fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Open a Pack
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Search + Sort controls */}
-              <div style={{ marginBottom: 12 }}>
-                <input
-                  type="search"
-                  value={browseSearch}
-                  onChange={(e) => setBrowseSearch(e.target.value)}
-                  placeholder="Search by name or FID…"
-                  style={{
-                    width: '100%', boxSizing: 'border-box',
-                    padding: '8px 12px', borderRadius: 10,
-                    border: '1px solid rgba(138,99,210,0.2)',
-                    background: 'rgba(138,99,210,0.06)',
-                    color: '#c4b5d8', fontSize: 12,
-                    outline: 'none', marginBottom: 8,
-                  }}
-                />
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                  {(['recent', 'score', 'fid', 'name'] as BrowseSort[]).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setBrowseSort(s)}
-                      style={{
-                        padding: '5px 12px', borderRadius: 99,
-                        border: browseSort === s ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)',
-                        background: browseSort === s ? 'rgba(138,99,210,0.18)' : 'transparent',
-                        color: browseSort === s ? '#c4a4ff' : '#5c4070',
-                        fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {s === 'recent' ? 'NEW' : s === 'score' ? 'SCORE' : s === 'fid' ? 'FID' : 'A–Z'}
-                    </button>
+          {tab === 'browse' && (
+            browseLoading ? (
+              <div style={{ textAlign: 'center', paddingTop: 60, color: '#3d3050', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
+            ) : globalCards.length === 0 ? (
+              <div style={{ textAlign: 'center', paddingTop: 80 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🃏</div>
+                <p style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#5c4070' }}>No cards discovered yet</p>
+                <p style={{ fontSize: 10, color: '#3d3050', marginTop: 8 }}>Be the first — open a pack</p>
+                <button onClick={() => setTab('pack')} style={{ marginTop: 20, padding: '12px 28px', borderRadius: 99, border: '1px solid rgba(138,99,210,0.3)', background: 'transparent', color: '#8a63d2', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                  Open a Pack
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <input
+                    type="search"
+                    value={browseSearch}
+                    onChange={e => setBrowseSearch(e.target.value)}
+                    placeholder="Search by name or FID…"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(138,99,210,0.2)', background: 'rgba(138,99,210,0.06)', color: '#c4b5d8', fontSize: 12, outline: 'none', marginBottom: 8 }}
+                  />
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                    {(['recent', 'score', 'fid', 'name'] as BrowseSort[]).map(s => (
+                      <button key={s} onClick={() => setBrowseSort(s)} style={{ padding: '5px 12px', borderRadius: 99, border: browseSort === s ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: browseSort === s ? 'rgba(138,99,210,0.18)' : 'transparent', color: browseSort === s ? '#c4a4ff' : '#5c4070', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                        {s === 'recent' ? 'NEW' : s === 'score' ? 'SCORE' : s === 'fid' ? 'FID' : 'A–Z'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p style={{ textAlign: 'center', fontSize: 9, color: '#3d3050', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
+                  {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation
+                </p>
+                {filteredBrowse.length === 0 && (
+                  <p style={{ textAlign: 'center', fontSize: 11, color: '#5c4070', marginTop: 40 }}>No cards match "{browseSearch}"</p>
+                )}
+                <div className="card-grid">
+                  {filteredBrowse.map((gc, i) => (
+                    <BattleCard
+                      key={`${gc.ownedCard.card.imageId}-${i}`}
+                      card={gc.ownedCard.card}
+                      serialNumber={gc.ownedCard.serialNumber}
+                      ownerHandle={gc.ownerHandle}
+                      onClick={() => setModalCard({ card: gc.ownedCard.card, serialNumber: gc.ownedCard.serialNumber, ownerHandle: gc.ownerHandle })}
+                    />
                   ))}
                 </div>
-              </div>
+              </>
+            )
+          )}
 
-              <p style={{ textAlign: 'center', fontSize: 9, color: '#3d3050', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
-                {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation
-              </p>
+          {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} isInMiniApp={isInMiniApp} />}
+          {tab === 'collection' && <CollectionView owned={owned} />}
 
-              {filteredBrowse.length === 0 && (
-                <p style={{ textAlign: 'center', fontSize: 11, color: '#5c4070', marginTop: 40 }}>
-                  No cards match "{browseSearch}"
-                </p>
-              )}
-
-              <div className="card-grid">
-                {filteredBrowse.map((gc, i) => (
-                  <BattleCard
-                    key={`${gc.ownedCard.card.imageId}-${i}`}
-                    card={gc.ownedCard.card}
-                    serialNumber={gc.ownedCard.serialNumber}
-                    ownerHandle={gc.ownerHandle}
-                    onClick={() => setModalCard({ card: gc.ownedCard.card, serialNumber: gc.ownedCard.serialNumber, ownerHandle: gc.ownerHandle })}
-                  />
+          {tab === 'league' && (
+            <div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 16, justifyContent: 'center' }}>
+                {(['progress', 'team', 'leaderboard'] as LeagueView[]).map(v => (
+                  <button key={v} onClick={() => setLeagueView(v)} style={{ padding: '6px 14px', borderRadius: 99, border: leagueView === v ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: leagueView === v ? 'rgba(138,99,210,0.18)' : 'transparent', color: leagueView === v ? '#c4a4ff' : '#5c4070', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                    {v === 'progress' ? 'My Week' : v === 'team' ? 'My Team' : 'Leaderboard'}
+                  </button>
                 ))}
               </div>
-            </>
-          )
-        )}
-
-        {tab === 'pack' && <PackOpener onCollected={handleCollected} ownerFid={miniAppUser?.fid} isInMiniApp={isInMiniApp} />}
-        {tab === 'collection' && <CollectionView owned={owned} />}
-
-        {tab === 'league' && (
-          <div>
-            {/* League sub-nav */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16, justifyContent: 'center' }}>
-              {(['progress', 'team', 'leaderboard'] as LeagueView[]).map(v => (
-                <button
-                  key={v}
-                  onClick={() => setLeagueView(v)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 99,
-                    border: leagueView === v ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)',
-                    background: leagueView === v ? 'rgba(138,99,210,0.18)' : 'transparent',
-                    color: leagueView === v ? '#c4a4ff' : '#5c4070',
-                    fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer',
-                  }}
-                >
-                  {v === 'progress' ? 'My Week' : v === 'team' ? 'My Team' : 'Leaderboard'}
-                </button>
-              ))}
+              {leagueView === 'progress'     && <WeekProgress ownerFid={miniAppUser?.fid} ownerDevice={deviceId} onGoToTeam={() => setLeagueView('team')} />}
+              {leagueView === 'team'         && <TeamBuilder owned={owned} ownerFid={miniAppUser?.fid} ownerDevice={deviceId} />}
+              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} totalWageredUsdc={0} />}
             </div>
+          )}
+        </div>
+      </div>
 
-            {leagueView === 'progress' && (
-              <WeekProgress
-                ownerFid={miniAppUser?.fid}
-                ownerDevice={deviceId}
-                onGoToTeam={() => setLeagueView('team')}
-              />
-            )}
-            {leagueView === 'team' && (
-              <TeamBuilder
-                owned={owned}
-                ownerFid={miniAppUser?.fid}
-                ownerDevice={deviceId}
-              />
-            )}
-            {leagueView === 'leaderboard' && (
-              <Leaderboard
-                ownerFid={miniAppUser?.fid}
-                totalWageredUsdc={0}
-              />
-            )}
-          </div>
-        )}
-        </div>{/* end content */}
-      </div>{/* end page-inner */}
-
-      {/* Card detail modal */}
       {modalCard && (
-        <CardModal
-          card={modalCard.card}
-          serialNumber={modalCard.serialNumber}
-          ownerHandle={modalCard.ownerHandle}
-          onClose={() => setModalCard(null)}
-        />
+        <CardModal card={modalCard.card} serialNumber={modalCard.serialNumber} ownerHandle={modalCard.ownerHandle} onClose={() => setModalCard(null)} />
       )}
 
-      {/* Bottom nav — full-width backdrop, content centered at 1200px */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: 64 + safeAreaInsets.bottom,
-        background: 'rgba(9,4,15,0.94)',
-        backdropFilter: 'blur(16px)',
-        borderTop: '1px solid rgba(138,99,210,0.18)',
-        zIndex: 100,
-      }}>
-        <div
-          className="page-inner"
-          style={{
-            height: '100%', paddingBottom: safeAreaInsets.bottom,
-            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around',
-          }}
-        >
-          {(['browse', 'pack', 'collection', 'league'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                flex: 1, height: 64,
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 3,
-                background: 'none', border: 'none',
-                color: tab === t ? '#8a63d2' : '#4a3d5c',
-                transition: 'color 0.15s',
-                minHeight: 44,
-              }}
-            >
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64 + safeAreaInsets.bottom, background: 'rgba(9,4,15,0.94)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(138,99,210,0.18)', zIndex: 100 }}>
+        <div className="page-inner" style={{ height: '100%', paddingBottom: safeAreaInsets.bottom, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around' }}>
+          {(['browse', 'pack', 'collection', 'league'] as Tab[]).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', color: tab === t ? '#8a63d2' : '#4a3d5c', transition: 'color 0.15s', minHeight: 44 }}>
               <span style={{ fontSize: 20 }}>{TAB_ICONS[t]}</span>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 {t === 'collection' && owned.length > 0 ? `${TAB_LABELS[t]} (${owned.length})` : TAB_LABELS[t]}
@@ -331,5 +239,42 @@ export default function Home() {
         </div>
       </nav>
     </main>
+  );
+}
+
+// ── Root page — handles edition selection ─────────────────────────────────────
+export default function Home() {
+  const [editionId, setEditionId]   = useState<string | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Read stored edition from localStorage on mount
+  useEffect(() => {
+    const stored = readStoredEditionId();
+    setEditionId(stored);
+  }, []);
+
+  function selectEdition(id: string) {
+    writeEditionId(id);
+    setEditionId(id);
+    setShowPicker(false);
+  }
+
+  // Not yet read from localStorage
+  if (editionId === null) return null;
+
+  // Show edition picker (first time or user tapped the switcher)
+  if (showPicker || !EDITIONS[editionId]) {
+    return (
+      <EditionSelect
+        onSelect={selectEdition}
+        currentId={editionId}
+      />
+    );
+  }
+
+  return (
+    <EditionProvider initialId={editionId}>
+      <AppInner onChangeEdition={() => setShowPicker(true)} />
+    </EditionProvider>
   );
 }

@@ -22,8 +22,11 @@ export interface PackFlavour {
 }
 
 export interface EditionTheme {
-  bgClass:   string;  // CSS class on <main>
-  headerEra: string;  // e.g. 'FARCASTER · MMXXVI'
+  bgClass:          string;   // CSS class on <main>
+  headerEra:        string;   // e.g. 'FARCASTER · MMXXVI'
+  bgImage:          string;   // path to full background image e.g. '/editions/base-bg.jpg'
+  accentPrimary:    string;   // dominant accent colour for the edition picker card
+  accentSecondary:  string;   // secondary accent colour
 }
 
 export interface EditionLeague {

@@ -1,0 +1,203 @@
+'use client';
+
+import Image from 'next/image';
+import { Edition } from '@/editions/types';
+import { EDITIONS, EDITION_ORDER } from '@/editions/context';
+
+const EDITION_DESC: Record<string, string> = {
+  'base':      'The core Farcaster card game. Collect identities, build teams, battle weekly.',
+  '2026-rome': 'Imperial Rome meets the protocol. IMPERATOR through CITIZEN — glory awaits.',
+  'builders':  'Build season is live. ARCHITECTs to BUILDERs compete for supremacy.',
+};
+
+const EDITION_TAG: Record<string, { label: string; color: string }> = {
+  'base':      { label: 'LIVE',         color: '#22c55e' },
+  '2026-rome': { label: '2026 EDITION', color: '#C9A84C' },
+  'builders':  { label: 'BUILD SEASON', color: '#06b6d4' },
+};
+
+interface Props {
+  onSelect: (editionId: string) => void;
+  currentId?: string;
+}
+
+export default function EditionSelect({ onSelect, currentId }: Props) {
+  return (
+    <div style={{
+      minHeight: '100dvh',
+      background: '#07020e',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', padding: '32px 20px 20px' }}>
+        <p style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.45em',
+          color: '#3d2a50', textTransform: 'uppercase', margin: '0 0 8px',
+        }}>
+          FARCASTER · THE PROTOCOL
+        </p>
+        <h1 style={{
+          fontSize: 'clamp(28px, 6vw, 56px)',
+          fontWeight: 900, letterSpacing: '0.08em',
+          background: 'linear-gradient(90deg, #8a63d2, #C9A84C, #8a63d2)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text', lineHeight: 1, margin: 0,
+        }}>
+          CHOOSE<br/>EDITION
+        </h1>
+        <p style={{
+          fontSize: 11, color: '#4a3d5c',
+          marginTop: 10, letterSpacing: '0.05em', lineHeight: 1.5,
+        }}>
+          Each edition is a themed season with its own<br/>card rankings, league rules, and visual world.
+        </p>
+      </div>
+
+      {/* Edition cards */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 16,
+        padding: '4px 20px 40px', width: '100%', maxWidth: 480, boxSizing: 'border-box',
+      }}>
+        {EDITION_ORDER.map(id => {
+          const ed: Edition = EDITIONS[id];
+          const tag         = EDITION_TAG[id];
+          const desc        = EDITION_DESC[id];
+          const isActive    = id === currentId;
+
+          return (
+            <button
+              key={id}
+              onClick={() => onSelect(id)}
+              style={{
+                position: 'relative',
+                width: '100%', border: 'none', padding: 0,
+                borderRadius: 20, overflow: 'hidden',
+                cursor: 'pointer',
+                boxShadow: isActive
+                  ? `0 0 0 2px ${ed.theme.accentPrimary}, 0 0 30px ${ed.theme.accentPrimary}40`
+                  : '0 4px 24px rgba(0,0,0,0.5)',
+                transform: isActive ? 'scale(1.01)' : undefined,
+                transition: 'transform 0.15s, box-shadow 0.15s',
+              }}
+            >
+              {/* Background image */}
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
+                <Image
+                  src={ed.theme.bgImage}
+                  alt={ed.name}
+                  fill
+                  style={{ objectFit: 'cover' }}
+                  unoptimized
+                />
+                {/* Dark gradient overlay for text legibility */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(180deg, rgba(7,2,14,0.2) 0%, rgba(7,2,14,0.75) 60%, rgba(7,2,14,0.95) 100%)',
+                }} />
+
+                {/* Content */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  padding: '14px 18px',
+                  display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                  textAlign: 'left',
+                }}>
+                  {/* Tag */}
+                  <div style={{
+                    position: 'absolute', top: 14, left: 18,
+                    fontSize: 8, fontWeight: 900, letterSpacing: '0.25em',
+                    padding: '3px 10px', borderRadius: 99,
+                    background: `${tag.color}22`,
+                    border: `1px solid ${tag.color}60`,
+                    color: tag.color,
+                  }}>
+                    {tag.label}
+                  </div>
+
+                  {/* Currently active badge */}
+                  {isActive && (
+                    <div style={{
+                      position: 'absolute', top: 14, right: 18,
+                      fontSize: 8, fontWeight: 900, letterSpacing: '0.2em',
+                      padding: '3px 10px', borderRadius: 99,
+                      background: `${ed.theme.accentPrimary}30`,
+                      border: `1px solid ${ed.theme.accentPrimary}`,
+                      color: ed.theme.accentPrimary,
+                    }}>
+                      ACTIVE
+                    </div>
+                  )}
+
+                  <div>
+                    <h2 style={{
+                      fontSize: 'clamp(18px, 4vw, 26px)',
+                      fontWeight: 900, letterSpacing: '0.08em',
+                      color: '#f8f4ff', margin: '0 0 4px',
+                      textShadow: `0 0 20px ${ed.theme.accentPrimary}60`,
+                    }}>
+                      {ed.name.toUpperCase()}
+                    </h2>
+                    <p style={{
+                      fontSize: 11, color: '#8a7fa0', margin: '0 0 12px', lineHeight: 1.4,
+                    }}>
+                      {desc}
+                    </p>
+
+                    {/* Rarity strip */}
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+                      {(['Alpha', 'Legendary', 'Elite', 'Rare', 'Common'] as const).map(r => (
+                        <div
+                          key={r}
+                          style={{
+                            flex: 1, height: 3, borderRadius: 99,
+                            background: ed.rarity[r].accent,
+                            opacity: r === 'Alpha' ? 1 : r === 'Legendary' ? 0.85 : r === 'Elite' ? 0.7 : r === 'Rare' ? 0.55 : 0.35,
+                          }}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Tier name pills */}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {(['Alpha', 'Legendary', 'Elite'] as const).map(r => (
+                        <span key={r} style={{
+                          fontSize: 7, fontWeight: 900, letterSpacing: '0.15em',
+                          padding: '2px 7px', borderRadius: 99,
+                          background: `${ed.rarity[r].accent}18`,
+                          border: `1px solid ${ed.rarity[r].accent}40`,
+                          color: ed.rarity[r].accent,
+                        }}>
+                          {ed.rarity[r].tier}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enter button strip */}
+              <div style={{
+                padding: '12px 18px',
+                background: `linear-gradient(135deg, ${ed.theme.accentPrimary}14, ${ed.theme.accentSecondary}0a)`,
+                borderTop: `1px solid ${ed.theme.accentPrimary}25`,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <span style={{ fontSize: 10, color: '#5c4070', letterSpacing: '0.1em' }}>
+                  {ed.league.seasonLabel}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 900, letterSpacing: '0.15em',
+                  color: ed.theme.accentPrimary,
+                }}>
+                  {isActive ? '◈ PLAYING' : 'ENTER →'}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

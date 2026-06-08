@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { OwnedCard, CardType, RarityTier } from '@/types/card';
-import { edition } from '@/editions';
+import { useEdition } from '@/editions/context';
 
 const SLOT_ORDER: CardType[] = ['CAPTAIN', 'BROADCASTER', 'PUBLISHER', 'AGITATOR', 'NETWORKER'];
 
@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
+  const edition = useEdition();
   const [slots, setSlots]         = useState<TeamSlots>({ CAPTAIN: null, BROADCASTER: null, PUBLISHER: null, AGITATOR: null, NETWORKER: null });
   const [picking, setPicking]     = useState<CardType | null>(null);
   const [saving, setSaving]       = useState(false);
@@ -87,17 +88,13 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
     }
   }
 
-  // Cards eligible for a slot: for CAPTAIN any card, for others match cardType
+  // Any card can fill any slot — the slot determines which stat is measured,
+  // not the card. Place strategically based on each FID's actual activity.
   function eligibleFor(type: CardType): OwnedCard[] {
     const alreadyUsed = new Set(
       SLOT_ORDER.filter(t => t !== type && slots[t]).map(t => slots[t]!.card.imageId)
     );
-    return owned.filter(o => {
-      if (alreadyUsed.has(o.card.imageId)) return false;
-      // CAPTAIN slot: all cards eligible (rarity determines multiplier)
-      if (type === 'CAPTAIN') return true;
-      return o.card.cardType === type;
-    });
+    return owned.filter(o => !alreadyUsed.has(o.card.imageId));
   }
 
   // Estimate team score for display

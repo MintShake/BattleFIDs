@@ -5,7 +5,7 @@ import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey, RarityTier } from '@/t
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
 import { cardValue } from '@/lib/valuation';
-import { edition } from '@/editions';
+import { useEdition } from '@/editions/context';
 
 function variantLabel(variantIndex: number, totalVariants: number): string {
   if (totalVariants <= 1) return '';
@@ -43,6 +43,7 @@ export default function BattleCard({
   ownerHandle,
   showFollow = true,
 }: Props) {
+  const edition = useEdition();
   const cfg = edition.rarity[card.rarity as RarityTier];
   const vLabel = variantLabel(card.variantIndex, card.totalVariants);
 

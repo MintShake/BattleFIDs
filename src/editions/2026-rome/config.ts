@@ -5,8 +5,11 @@ const config: Edition = {
   name: '2026 Edition',
 
   theme: {
-    bgClass:   'bg-grid',
-    headerEra: 'FARCASTER · MMXXVI',
+    bgClass:         'bg-grid',
+    headerEra:       'FARCASTER · MMXXVI',
+    bgImage:         '/bg-roman.png',
+    accentPrimary:   '#C9A84C',
+    accentSecondary: '#8a63d2',
   },
 
   rarity: {
@@ -86,40 +89,42 @@ const config: Edition = {
   league: {
     seasonLabel: 'Roman Season 2026',
 
+    // Roman slot display names
     cardTypeLabels: {
-      CAPTAIN:     'Captain',
-      BROADCASTER: 'Broadcaster',
-      PUBLISHER:   'Publisher',
-      AGITATOR:    'Agitator',
-      NETWORKER:   'Networker',
+      CAPTAIN:     'Imperator',
+      BROADCASTER: 'Herald',
+      PUBLISHER:   'Scribe',
+      AGITATOR:    'Provocateur',
+      NETWORKER:   'Envoy',
     },
 
     cardTypeDescs: {
-      CAPTAIN:     'Any card · rarity multiplies team score',
-      BROADCASTER: 'High follower reach · scored on recasts received',
-      PUBLISHER:   'Content quality · scored on likes received',
-      AGITATOR:    'Controversial voice · scored on replies received',
-      NETWORKER:   'Active replier · scored on replies sent',
+      CAPTAIN:     'Any card · rarity multiplies entire team score',
+      BROADCASTER: 'Viral reach · scored on recasts received this week',
+      PUBLISHER:   'Quality content · scored on likes received this week',
+      AGITATOR:    'Stirs debate · scored on replies received this week',
+      NETWORKER:   'Builds alliances · scored on replies sent this week',
     },
 
+    // Prestige season — harder caps, bigger captain reward
     captainMult: {
-      Alpha:     1.50,
-      Legendary: 1.30,
-      Elite:     1.15,
-      Rare:      1.05,
+      Alpha:     1.60,
+      Legendary: 1.35,
+      Elite:     1.20,
+      Rare:      1.08,
       Common:    1.00,
     },
 
     logMax: {
-      BROADCASTER: Math.log10(5001),  // 5 000 recasts/week = perfect score
-      PUBLISHER:   Math.log10(2001),  // 2 000 likes/week
-      AGITATOR:    Math.log10(1001),  // 1 000 replies received/week
-      NETWORKER:   Math.log10(201),   // 200 replies sent/week
+      BROADCASTER: Math.log10(10001),  // 10 000 recasts/week for perfect Herald score
+      PUBLISHER:   Math.log10(5001),   // 5 000 likes/week for perfect Scribe score
+      AGITATOR:    Math.log10(2001),   // 2 000 replies received
+      NETWORKER:   Math.log10(501),    // 500 replies sent
     },
 
     rules:
-      'Pick 5 cards from your collection — one per role. Your Captain\'s rarity multiplies the team total. ' +
-      'Scores update live based on real Farcaster activity. Lock in before the week ends.',
+      'The Roman season demands excellence. Caps are higher — only the truly viral earn maximum glory. ' +
+      'Rare captains command greater multipliers. Ave, Imperator.',
   },
 };
 

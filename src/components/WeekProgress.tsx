@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CardType } from '@/types/card';
 import { MAX_TEAM_SCORE } from '@/lib/weeklyScoring';
-import { edition } from '@/editions';
+import { useEdition } from '@/editions/context';
 
 interface SlotResult {
   type:   CardType;
@@ -40,6 +40,7 @@ interface Props {
 }
 
 export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Props) {
+  const edition = useEdition();
   const [data, setData]       = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
