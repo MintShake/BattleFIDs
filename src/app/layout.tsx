@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let splashImageUrl = `${BASE_URL}/splash.png?v=${ASSET_V}`;
   let editionName    = "The Protocol";
 
+  console.log(`[layout] generateMetadata start — BASE_URL=${BASE_URL} ASSET_V=${ASSET_V}`);
   try {
     // Import sql lazily so layout stays compatible with edge runtime when needed
     const { sql } = await import('@/lib/db');
@@ -33,10 +34,11 @@ export async function generateMetadata(): Promise<Metadata> {
       if (r.splash_image_url) splashImageUrl = r.splash_image_url;
       if (r.name)             editionName    = r.name;
     }
-  } catch {
-    // DB unavailable (build time, missing tables) — fall through to defaults
+  } catch (e) {
+    console.error(`[layout] generateMetadata DB error — ${e}`);
   }
 
+  console.log(`[layout] metadata resolved — edition="${editionName}" embedImage="${embedImageUrl}" splash="${splashImageUrl}"`);
   return {
     title: "The Protocol",
     description: "Farcaster Identity Cards — collect, compare, and battle Farcaster profiles",

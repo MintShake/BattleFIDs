@@ -26,28 +26,30 @@ export interface MiniAppState {
 
 const DEFAULT_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 
-// Start loading the SDK at module evaluation time — before React renders.
-dlog('useMiniApp module: eagerly importing SDK…');
-const _sdkPromise: Promise<typeof import('@farcaster/miniapp-sdk')['sdk'] | null> =
-  typeof window !== 'undefined'
-    ? import('@farcaster/miniapp-sdk')
-        .then(m => { dlog('useMiniApp module: SDK loaded ✓'); return m.sdk; })
-        .catch(e => { dlog(`useMiniApp module: SDK import failed — ${e}`); return null; })
-    : Promise.resolve(null);
-
 export function useMiniApp(): MiniAppState {
-  const [user, setUser] = useState<MiniAppUser | null>(null);
+  const [user, setUser]               = useState<MiniAppUser | null>(null);
   const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [safeAreaInsets, setSafeAreaInsets] = useState<SafeAreaInsets>(DEFAULT_INSETS);
-  const [added, setAdded] = useState(false);
+  const [added, setAdded]             = useState(false);
 
   useEffect(() => {
     let active = true;
     dlog('useMiniApp: effect start');
 
     async function init() {
-      const sdk = await _sdkPromise;
-      if (!sdk) { dlog('useMiniApp: no SDK — not in miniapp'); return; }
+      // Import lazily inside the effect — NOT at module level.
+      // The SDK endpoint IIFE checks window.ReactNativeWebView once and
+      // freezes that choice. Importing at module eval time hits it before
+      // Farcaster's RN WebView bridge is ready, picking the wrong endpoint.
+      dlog('useMiniApp: importing SDK…');
+      let sdk: typeof import('@farcaster/miniapp-sdk')['sdk'] | null = null;
+      try {
+        sdk = (await import('@farcaster/miniapp-sdk')).sdk;
+        dlog('useMiniApp: SDK loaded ✓');
+      } catch (e) {
+        dlog(`useMiniApp: SDK import failed — ${e}`);
+        return;
+      }
       if (!active) return;
 
       dlog('useMiniApp: checking isInMiniApp…');

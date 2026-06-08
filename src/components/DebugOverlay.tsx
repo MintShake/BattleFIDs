@@ -1,16 +1,26 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getLogs, onDebugChange, type DebugEntry } from '@/lib/debug';
+import { getLogs, onDebugChange, dlog, type DebugEntry } from '@/lib/debug';
+
+const BUILD = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local';
 
 export function DebugOverlay() {
   const [open, setOpen] = useState(false);
   const [logs, setLogs] = useState<DebugEntry[]>([]);
+  // Snapshot of env at mount time — key for diagnosing RN WebView bridge timing
+  const [env, setEnv]   = useState<string>('');
 
   const refresh = useCallback(() => setLogs(getLogs()), []);
 
   useEffect(() => {
     refresh();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const rnwv   = !!w.ReactNativeWebView;
+    const parent = window.parent === window ? 'self' : 'iframe';
+    setEnv(`rnwv=${rnwv} parent=${parent} ua=${navigator.userAgent.slice(0, 60)}`);
+    dlog(`env: ReactNativeWebView=${rnwv} parent=${parent}`);
     return onDebugChange(refresh);
   }, [refresh]);
 
@@ -43,9 +53,10 @@ export function DebugOverlay() {
           border: '1px solid rgba(138,99,210,0.3)', borderRadius: 12,
           padding: '10px 12px',
         }}>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.2em', color: '#a08cc0', textTransform: 'uppercase', margin: '0 0 8px' }}>
-            Debug · {logs.length} entries
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.2em', color: '#a08cc0', textTransform: 'uppercase', margin: '0 0 4px' }}>
+            Debug · build {BUILD} · {logs.length} entries
           </p>
+          {env && <p style={{ fontSize: 8, color: '#6b5a80', marginBottom: 8, wordBreak: 'break-all', fontFamily: 'monospace' }}>{env}</p>}
           {logs.length === 0 && (
             <p style={{ fontSize: 10, color: '#7a6a90' }}>No logs yet</p>
           )}
