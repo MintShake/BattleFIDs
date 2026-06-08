@@ -12,6 +12,7 @@ import TeamBuilder from '@/components/TeamBuilder';
 import WeekProgress from '@/components/WeekProgress';
 import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
+import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { useMiniApp } from '@/hooks/useMiniApp';
 import { EditionProvider, readStoredEditionId, writeEditionId, EDITIONS } from '@/editions/context';
 import { useEdition } from '@/editions/context';
@@ -84,6 +85,8 @@ function AppInner({
   const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League' };
 
   return (
+    <>
+    <EditionBackdrop />
     <main className={`${edition.theme.bgClass} min-h-screen`} style={{ display: 'flex', flexDirection: 'column' }}>
       <div
         className="page-inner"
@@ -239,6 +242,7 @@ function AppInner({
         </div>
       </nav>
     </main>
+    </>
   );
 }
 
