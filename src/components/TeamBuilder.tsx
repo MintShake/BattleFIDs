@@ -2,26 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { OwnedCard, CardType, CARD_TYPE_LABELS, CARD_TYPE_DESC, RarityTier } from '@/types/card';
-import { CAPTAIN_MULT } from '@/lib/weeklyScoring';
+import { OwnedCard, CardType, RarityTier } from '@/types/card';
+import { edition } from '@/editions';
 
 const SLOT_ORDER: CardType[] = ['CAPTAIN', 'BROADCASTER', 'PUBLISHER', 'AGITATOR', 'NETWORKER'];
-
-const SLOT_COLOR: Record<CardType, string> = {
-  CAPTAIN:     '#C9A84C',
-  BROADCASTER: '#8a63d2',
-  PUBLISHER:   '#cd7f32',
-  AGITATOR:    '#e63946',
-  NETWORKER:   '#3a9bdc',
-};
-
-const SLOT_ICON: Record<CardType, string> = {
-  CAPTAIN:     '★',
-  BROADCASTER: '📡',
-  PUBLISHER:   '✍',
-  AGITATOR:    '⚡',
-  NETWORKER:   '🔗',
-};
 
 interface TeamSlots {
   CAPTAIN:     OwnedCard | null;
@@ -118,7 +102,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
 
   // Estimate team score for display
   const captainRarity = (slots.CAPTAIN?.card.rarity ?? 'Common') as RarityTier;
-  const captainMult   = CAPTAIN_MULT[captainRarity];
+  const captainMult   = edition.league.captainMult[captainRarity];
   const slotScores    = SLOT_ORDER
     .filter(t => t !== 'CAPTAIN')
     .map(t => scores[slots[t]?.card.imageId ?? ''] ?? 0);
@@ -140,7 +124,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {SLOT_ORDER.map(type => {
           const card    = slots[type];
-          const color   = SLOT_COLOR[type];
+          const color   = edition.cardSlots[type].color;
           const score   = card ? (scores[card.card.imageId] ?? null) : null;
           const eligible = eligibleFor(type).length;
 
@@ -163,14 +147,14 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 13, flexShrink: 0,
               }}>
-                {SLOT_ICON[type]}
+                {edition.cardSlots[type].icon}
               </div>
 
               {/* Slot info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', color, textTransform: 'uppercase' }}>
-                    {CARD_TYPE_LABELS[type]}
+                    {edition.league.cardTypeLabels[type]}
                   </span>
                   {type === 'CAPTAIN' && card && (
                     <span style={{ fontSize: 8, color: '#C9A84C', fontWeight: 700 }}>
@@ -185,7 +169,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                   </div>
                 ) : (
                   <div style={{ fontSize: 9, color: '#3d3050' }}>
-                    {CARD_TYPE_DESC[type]} · {eligible} eligible
+                    {edition.league.cardTypeDescs[type]} · {eligible} eligible
                   </div>
                 )}
               </div>
@@ -211,14 +195,14 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
       {/* Card picker — shown inline below the active slot */}
       {picking && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: SLOT_COLOR[picking], textTransform: 'uppercase', marginBottom: 8 }}>
-            Choose {CARD_TYPE_LABELS[picking]}
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: edition.cardSlots[picking].color, textTransform: 'uppercase', marginBottom: 8 }}>
+            Choose {edition.league.cardTypeLabels[picking]}
           </div>
           {eligibleFor(picking).length === 0 ? (
             <div style={{ fontSize: 11, color: '#3d3050', padding: '12px 0', textAlign: 'center' }}>
               {picking === 'CAPTAIN'
                 ? 'No cards in your collection yet'
-                : `No ${CARD_TYPE_LABELS[picking]} cards — open a pack or buy one from browse`}
+                : `No ${edition.league.cardTypeLabels[picking]} cards — open a pack or buy one from browse`}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
@@ -240,7 +224,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#c4b5d8' }}>@{o.card.handle}</div>
                     <div style={{ fontSize: 8, color: '#5c4070' }}>
                       FID {o.card.fid} · {o.card.rarity}
-                      {picking === 'CAPTAIN' && ` · ${CAPTAIN_MULT[o.card.rarity as RarityTier]}×`}
+                      {picking === 'CAPTAIN' && ` · ${edition.league.captainMult[o.card.rarity as RarityTier]}×`}
                     </div>
                   </div>
                   <div style={{ fontSize: 9, fontWeight: 700, color: '#8a63d2' }}>

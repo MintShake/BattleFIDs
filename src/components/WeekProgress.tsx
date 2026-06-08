@@ -1,16 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CardType, CARD_TYPE_LABELS } from '@/types/card';
+import { CardType } from '@/types/card';
 import { MAX_TEAM_SCORE } from '@/lib/weeklyScoring';
-
-const TYPE_COLOR: Record<CardType, string> = {
-  CAPTAIN:     '#C9A84C',
-  BROADCASTER: '#8a63d2',
-  PUBLISHER:   '#cd7f32',
-  AGITATOR:    '#e63946',
-  NETWORKER:   '#3a9bdc',
-};
+import { edition } from '@/editions';
 
 interface SlotResult {
   type:   CardType;
@@ -166,7 +159,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
       {/* Per-slot breakdown */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {data.slots.map(slot => {
-          const color = TYPE_COLOR[slot.type];
+          const color = edition.cardSlots[slot.type].color;
           const pct   = slot.type === 'CAPTAIN' ? 100 : Math.min(100, slot.score);
           return (
             <div key={slot.type} style={{
@@ -176,7 +169,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
               border: '1px solid rgba(138,99,210,0.1)',
             }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color, textTransform: 'uppercase', width: 72, flexShrink: 0 }}>
-                {CARD_TYPE_LABELS[slot.type]}
+                {edition.league.cardTypeLabels[slot.type]}
               </div>
               <div style={{ fontSize: 9, color: '#5c4070', width: 80, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 @{slot.handle}

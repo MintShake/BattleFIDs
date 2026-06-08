@@ -1,4 +1,5 @@
 import { CardType, RarityTier } from '@/types/card';
+import { edition } from '@/editions';
 
 // ── Week ID helpers ────────────────────────────────────────────────────────────
 // Weeks run Monday 00:00 UTC → Sunday 23:59 UTC.
@@ -28,14 +29,8 @@ export function weekBounds(weekId: string): { start: Date; end: Date } {
   return { start: monday, end: sunday };
 }
 
-// ── Captain multiplier by rarity ──────────────────────────────────────────────
-export const CAPTAIN_MULT: Record<RarityTier, number> = {
-  Alpha:     1.50,
-  Legendary: 1.30,
-  Elite:     1.15,
-  Rare:      1.05,
-  Common:    1.00,
-};
+// ── Captain multiplier — delegated to active edition ─────────────────────────
+export const CAPTAIN_MULT: Record<RarityTier, number> = edition.league.captainMult;
 
 // ── Neynar weekly stats ───────────────────────────────────────────────────────
 export interface WeeklyStats {
@@ -47,14 +42,7 @@ export interface WeeklyStats {
 }
 
 // ── Log-normalised score (0–100) ─────────────────────────────────────────────
-// Using log10 so viral outliers don't flatten everyone else.
-// Expected max values calibrated to active-but-not-celebrity Farcaster users.
-const LOG_MAX: Record<Exclude<CardType, 'CAPTAIN'>, number> = {
-  BROADCASTER: Math.log10(5001),   // 5 000 recasts/week = perfect score
-  PUBLISHER:   Math.log10(2001),   // 2 000 likes/week
-  AGITATOR:    Math.log10(1001),   // 1 000 replies received/week
-  NETWORKER:   Math.log10(201),    // 200 replies sent/week
-};
+const LOG_MAX: Record<Exclude<CardType, 'CAPTAIN'>, number> = edition.league.logMax;
 
 function logNorm(raw: number, type: Exclude<CardType, 'CAPTAIN'>): number {
   if (raw <= 0) return 0;
