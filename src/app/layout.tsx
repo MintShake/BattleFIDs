@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Caveat } from "next/font/google";
+import { MiniAppReady } from "@/components/MiniAppReady";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -39,7 +40,21 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "Farcaster Identity Cards — collect, compare, and battle Farcaster profiles",
     other: {
       "fc:miniapp": JSON.stringify({
-        version: "next",
+        version: "1",
+        imageUrl: embedImageUrl,
+        button: {
+          title: `Play ${editionName}`,
+          action: {
+            type: "launch_miniapp",
+            name: "The Protocol",
+            url: BASE_URL,
+            splashImageUrl,
+            splashBackgroundColor: SPLASH_COLOR,
+          },
+        },
+      }),
+      "fc:frame": JSON.stringify({
+        version: "1",
         imageUrl: embedImageUrl,
         button: {
           title: `Play ${editionName}`,
@@ -67,6 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        <MiniAppReady />
         {children}
       </body>
     </html>

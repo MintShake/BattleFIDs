@@ -170,7 +170,12 @@ export default function AdminEditionsPage() {
     <div style={{ minHeight: '100dvh', background: '#07020e', padding: '24px 16px 60px', maxWidth: 600, margin: '0 auto', boxSizing: 'border-box' }}>
 
       <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.35em', color: '#6b5a80', textTransform: 'uppercase', margin: '0 0 6px' }}>THE PROTOCOL · ADMIN</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.35em', color: '#6b5a80', textTransform: 'uppercase', margin: 0 }}>THE PROTOCOL · ADMIN</p>
+          <a href="/" style={{ fontSize: 9, color: '#a08cc0', letterSpacing: '0.15em', textDecoration: 'none', textTransform: 'uppercase', padding: '6px 12px', borderRadius: 99, border: '1px solid rgba(138,99,210,0.2)' }}>
+            ← Home
+          </a>
+        </div>
         <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.08em', color: '#e0d4f0', margin: 0 }}>EDITION MANAGER</h1>
         <p style={{ fontSize: 9, color: '#7a6a90', marginTop: 4 }}>{custody}</p>
       </div>

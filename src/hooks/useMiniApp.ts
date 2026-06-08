@@ -46,10 +46,6 @@ export function useMiniApp(): MiniAppState {
       const sdk = await _sdkPromise;
       if (!sdk) return;
 
-      // Fire ready() without await — Warpcast dismisses the splash on message receipt,
-      // not on our acknowledgment. Awaiting Comlink's response can hang on iOS 16.
-      sdk.actions.ready().catch(() => {});
-
       if (!active) return;
 
       try {
