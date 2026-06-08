@@ -20,14 +20,19 @@ export async function generateMetadata(): Promise<Metadata> {
 
   console.log(`[layout] generateMetadata start — BASE_URL=${BASE_URL} ASSET_V=${ASSET_V}`);
   try {
-    // Import sql lazily so layout stays compatible with edge runtime when needed
     const { sql } = await import('@/lib/db');
-    const rows = await sql`
+    const dbQuery = sql`
       SELECT name, embed_image_url, splash_image_url
       FROM   editions
       WHERE  is_active = TRUE AND is_default = TRUE
       LIMIT  1
     `;
+    // Hard 1.5s cap — a slow DB call must not block HTML delivery,
+    // because the Farcaster splash waits for ready() which fires after hydration.
+    const rows = await Promise.race([
+      dbQuery,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500)),
+    ]);
     if (rows[0]) {
       const r = rows[0];
       if (r.embed_image_url)  embedImageUrl  = r.embed_image_url;
@@ -35,7 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
       if (r.name)             editionName    = r.name;
     }
   } catch (e) {
-    console.error(`[layout] generateMetadata DB error — ${e}`);
+    console.error(`[layout] generateMetadata DB error/timeout — ${e}`);
   }
 
   console.log(`[layout] metadata resolved — edition="${editionName}" embedImage="${embedImageUrl}" splash="${splashImageUrl}"`);
