@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Caveat } from "next/font/google";
-import dynamic from "next/dynamic";
+import { ClientInit } from "@/components/ClientInit";
 import "./globals.css";
-
-const MiniAppReady = dynamic(
-  () => import("@/components/MiniAppReady").then(m => ({ default: m.MiniAppReady })),
-  { ssr: false },
-);
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -96,7 +91,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <MiniAppReady />
+        <ClientInit />
         {children}
       </body>
     </html>
