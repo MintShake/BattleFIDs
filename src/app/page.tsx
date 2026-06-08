@@ -14,9 +14,11 @@ import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { useMiniApp } from '@/hooks/useMiniApp';
-import { EditionProvider, readStoredEditionId, writeEditionId, EDITIONS } from '@/editions/context';
+import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS } from '@/editions/context';
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
+import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
+import type { Edition } from '@/editions/types';
 
 type Tab = 'browse' | 'pack' | 'collection' | 'league';
 type LeagueView = 'team' | 'progress' | 'leaderboard';
@@ -248,13 +250,26 @@ function AppInner({
 
 // ── Root page — handles edition selection ─────────────────────────────────────
 export default function Home() {
+  const [dbEditions, setDbEditions] = useState<Edition[]>([]);
   const [editionId, setEditionId]   = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
-  // Read stored edition from localStorage on mount
   useEffect(() => {
-    const stored = readStoredEditionId();
-    setEditionId(stored);
+    fetch('/api/editions')
+      .then(r => r.json())
+      .then(({ editions, defaultId }: { editions: DbEditionRow[]; defaultId: string }) => {
+        const eds = editions.map(dbToEdition);
+        setDbEditions(eds);
+
+        const stored = readStoredEditionId();
+        const validIds = new Set(eds.map(e => e.id));
+        setEditionId(validIds.has(stored) ? stored : (defaultId ?? 'base'));
+      })
+      .catch(() => {
+        // Fallback to static editions
+        setDbEditions(Object.values(STATIC_EDITIONS));
+        setEditionId(readStoredEditionId());
+      });
   }, []);
 
   function selectEdition(id: string) {
@@ -263,13 +278,18 @@ export default function Home() {
     setShowPicker(false);
   }
 
-  // Not yet read from localStorage
+  // Still loading
   if (editionId === null) return null;
 
-  // Show edition picker (first time or user tapped the switcher)
-  if (showPicker || !EDITIONS[editionId]) {
+  const allEditions = dbEditions.length > 0 ? dbEditions : Object.values(STATIC_EDITIONS);
+  const resolvedEdition = allEditions.find(e => e.id === editionId)
+    ?? STATIC_EDITIONS[editionId]
+    ?? Object.values(STATIC_EDITIONS)[0];
+
+  if (showPicker) {
     return (
       <EditionSelect
+        editions={allEditions}
         onSelect={selectEdition}
         currentId={editionId}
       />
@@ -277,7 +297,7 @@ export default function Home() {
   }
 
   return (
-    <EditionProvider initialId={editionId}>
+    <EditionProvider edition={resolvedEdition}>
       <AppInner onChangeEdition={() => setShowPicker(true)} />
     </EditionProvider>
   );

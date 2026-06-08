@@ -3,8 +3,8 @@
 import Image from 'next/image';
 import { useEdition } from '@/editions/context';
 
-// Per-edition atmospheric overlay (gradient stack on top of the photo)
-const ATMOSPHERE: Record<string, string> = {
+// Hand-crafted atmosphere for the three built-in editions
+const KNOWN_ATMOSPHERE: Record<string, string> = {
   'base': `
     linear-gradient(180deg, #07020e 0%, transparent 30%, transparent 70%, #07020e 100%),
     radial-gradient(ellipse 110% 55% at 50% -5%,  rgba(138, 99,  210, 0.50) 0%, transparent 65%),
@@ -28,26 +28,49 @@ const ATMOSPHERE: Record<string, string> = {
   `,
 };
 
-const IMG_FILTER: Record<string, string> = {
-  'base':      'sepia(0.2) hue-rotate(240deg) saturate(1.4)',
-  '2026-rome': 'sepia(0.4) hue-rotate(220deg) saturate(1.6)',
-  'builders':  'sepia(0.3) hue-rotate(100deg)  saturate(1.5)',
-};
+// Parse a hex colour like #8a63d2 → "138, 99, 210"
+function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '');
+  if (h.length !== 6) return '138, 99, 210';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
 
-const BASE_BG: Record<string, string> = {
-  'base':      '#07020e',
-  '2026-rome': '#07020e',
-  'builders':  '#030e08',
-};
+function dynamicAtmosphere(primary: string, secondary: string, baseBg: string): string {
+  const p = hexToRgb(primary);
+  const s = hexToRgb(secondary);
+  return `
+    linear-gradient(180deg, ${baseBg} 0%, transparent 30%, transparent 70%, ${baseBg} 100%),
+    radial-gradient(ellipse 110% 55% at 50% -5%,  rgba(${p}, 0.50) 0%, transparent 65%),
+    radial-gradient(ellipse 60%  40% at 90%  10%, rgba(${s}, 0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 45%  60% at -5%  50%, rgba(${p}, 0.25) 0%, transparent 60%),
+    radial-gradient(ellipse 50%  35% at 100% 90%, rgba(${s}, 0.15) 0%, transparent 55%)
+  `;
+}
+
+function baseBgFromEdition(id: string): string {
+  if (id === 'builders') return '#030e08';
+  return '#07020e';
+}
 
 export function EditionBackdrop() {
   const edition = useEdition();
-  const id = edition.id;
+  const id      = edition.id;
+
+  const atmosphere = KNOWN_ATMOSPHERE[id] ?? dynamicAtmosphere(
+    edition.theme.accentPrimary,
+    edition.theme.accentSecondary,
+    baseBgFromEdition(id),
+  );
+
+  const baseBg = baseBgFromEdition(id);
 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-      background: BASE_BG[id] ?? '#07020e',
+      background: baseBg,
     }}>
       <Image
         src={edition.theme.bgImage}
@@ -60,14 +83,10 @@ export function EditionBackdrop() {
           objectPosition: 'center top',
           opacity: 0.18,
           mixBlendMode: 'luminosity',
-          filter: IMG_FILTER[id] ?? IMG_FILTER['base'],
+          filter: 'sepia(0.3) saturate(1.4)',
         }}
       />
-      {/* Atmospheric colour overlay */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: ATMOSPHERE[id] ?? ATMOSPHERE['base'],
-      }} />
+      <div style={{ position: 'absolute', inset: 0, background: atmosphere }} />
     </div>
   );
 }

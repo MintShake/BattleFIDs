@@ -43,6 +43,14 @@ export interface EditionLeague {
   rules: string;
 }
 
+export interface EditionUI {
+  tagLabel:    string;
+  tagColor:    string;
+  description: string;
+  isDefault:   boolean;
+  sortOrder:   number;
+}
+
 export interface Edition {
   id:        string;
   name:      string;
@@ -55,4 +63,5 @@ export interface Edition {
     codex:  PackFlavour;
   };
   league:    EditionLeague;
+  ui?:       EditionUI;
 }
