@@ -85,7 +85,7 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
   const handleShare = useCallback(async () => {
     const text = `Check out ${card.displayName} (@${card.handle}) — Battle Score ${card.battleScore} | FID #${card.fid} | The Protocol 2026`;
     if (navigator.share) {
-      await navigator.share({ text, url: 'https://battle-fids.vercel.app' }).catch(() => {});
+      await navigator.share({ text, url: 'https://the-protocol.vercel.app' }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(text).catch(() => {});
       setCopied(true);

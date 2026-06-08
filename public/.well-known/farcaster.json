@@ -1,18 +1,18 @@
 {
   "accountAssociation": {
     "header": "eyJmaWQiOjY3OTEwMywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUxZTgyNTRhMDkxMzE4RjdkZUREMDZmOEFlZDg4Yjg2MjBDNDc0RGYifQ",
-    "payload": "eyJkb21haW4iOiJiYXR0bGUtZmlkcy52ZXJjZWwuYXBwIn0",
-    "signature": "CNNP2FrqPKm0/kTiNeAaa6LiGzfyE3QDMEGnrxlOU7xs6cSGxa3D0TIjgLlb2/DsmUgfi4O2zjt4ytbrZGjF8xw="
+    "payload": "eyJkb21haW4iOiJ0aGUtcHJvdG9jb2wudmVyY2VsLmFwcCJ9",
+    "signature": "NEEDS_RESIGN"
   },
   "miniapp": {
     "version": "1",
     "name": "The Protocol",
-    "iconUrl": "https://battle-fids.vercel.app/icon.png",
-    "homeUrl": "https://battle-fids.vercel.app",
-    "imageUrl": "https://battle-fids.vercel.app/og.png",
+    "iconUrl": "https://the-protocol.vercel.app/icon.png",
+    "homeUrl": "https://the-protocol.vercel.app",
+    "imageUrl": "https://the-protocol.vercel.app/og.png",
     "buttonTitle": "Play The Protocol",
-    "splashImageUrl": "https://battle-fids.vercel.app/splash.png",
+    "splashImageUrl": "https://the-protocol.vercel.app/splash.png",
     "splashBackgroundColor": "#07020e",
-    "webhookUrl": "https://battle-fids.vercel.app/api/webhook"
+    "webhookUrl": "https://the-protocol.vercel.app/api/webhook"
   }
 }

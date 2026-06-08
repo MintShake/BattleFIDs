@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server';
 
-const BASE_URL = 'https://battle-fids.vercel.app';
+const BASE_URL = 'https://the-protocol.vercel.app';
 
+// TODO: re-sign accountAssociation for the-protocol.vercel.app at
+// https://farcaster.xyz/~/developers/mini-apps/manifest and replace these values.
 const manifest = {
   accountAssociation: {
     header:    'eyJmaWQiOjY3OTEwMywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUxZTgyNTRhMDkxMzE4RjdkZUREMDZmOEFlZDg4Yjg2MjBDNDc0RGYifQ',
-    payload:   'eyJkb21haW4iOiJiYXR0bGUtZmlkcy52ZXJjZWwuYXBwIn0',
-    signature: 'CNNP2FrqPKm0/kTiNeAaa6LiGzfyE3QDMEGnrxlOU7xs6cSGxa3D0TIjgLlb2/DsmUgfi4O2zjt4ytbrZGjF8xw=',
+    payload:   'eyJkb21haW4iOiJ0aGUtcHJvdG9jb2wudmVyY2VsLmFwcCJ9',
+    signature: 'NEEDS_RESIGN',
   },
   miniapp: {
     version: '1',
     name: 'The Protocol',
     iconUrl:              `${BASE_URL}/icon.png`,
     homeUrl:              BASE_URL,
+    imageUrl:             `${BASE_URL}/og.png`,
+    buttonTitle:          'Play The Protocol',
     splashImageUrl:       `${BASE_URL}/splash.png`,
     splashBackgroundColor: '#07020e',
     webhookUrl:           `${BASE_URL}/api/webhook`,

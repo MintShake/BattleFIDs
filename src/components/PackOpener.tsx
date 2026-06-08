@@ -112,7 +112,7 @@ export default function PackOpener({
 
     try {
       const { sdk } = await import('@farcaster/miniapp-sdk');
-      await sdk.actions.composeCast({ text: castText, embeds: ['https://battle-fids.vercel.app'] });
+      await sdk.actions.composeCast({ text: castText, embeds: ['https://the-protocol.vercel.app'] });
     } catch {
       // user dismissed
     }

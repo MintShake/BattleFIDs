@@ -3,7 +3,7 @@ import { loadCaveat } from '@/lib/ogFont';
 
 export const runtime = 'edge';
 
-const BG = 'https://battle-fids.vercel.app/bg-roman.png';
+const BG = 'https://the-protocol.vercel.app/bg-roman.png';
 
 export async function GET() {
   const caveat = await loadCaveat();

@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 const caveat    = Caveat({ variable: "--font-caveat", subsets: ["latin"], weight: ["700"] });
 
-const BASE_URL    = "https://battle-fids.vercel.app";
+const BASE_URL    = "https://the-protocol.vercel.app";
 const SPLASH_COLOR = "#07020e";
 // Bump this when you want to force Farcaster to re-fetch cached embed/splash images
 const ASSET_V = "20260608c";
