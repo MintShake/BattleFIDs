@@ -104,9 +104,11 @@ function AppInner({
           <a
             href="/admin/editions"
             style={{
-              position: 'absolute', top: 18, right: 16,
-              fontSize: 8, fontWeight: 700, letterSpacing: '0.15em',
-              color: '#2a1e38', textDecoration: 'none', textTransform: 'uppercase',
+              position: 'absolute', top: 16, right: 16,
+              fontSize: 16, lineHeight: 1,
+              color: '#4a3d5c', textDecoration: 'none',
+              minWidth: 44, minHeight: 44,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             ⚙
