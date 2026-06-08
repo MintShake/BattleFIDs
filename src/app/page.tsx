@@ -15,7 +15,6 @@ import EditionSelect from '@/components/EditionSelect';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { useMiniApp } from '@/hooks/useMiniApp';
 import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS } from '@/editions/context';
-import { isAdminAddress } from '@/lib/adminAuth';
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
 import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
@@ -41,6 +40,18 @@ function AppInner({
 }) {
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check admin status using the FID already stored by useMiniApp — no SDK init needed
+    let fid: string | null = null;
+    try { fid = sessionStorage.getItem('miniapp_fid'); } catch { /* noop */ }
+    if (!fid) return;
+    fetch(`/api/admin/check?fid=${fid}`)
+      .then(r => r.json())
+      .then((d: { authorized: boolean }) => { if (d.authorized) setIsAdmin(true); })
+      .catch(() => {});
+  }, []);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const deviceId = typeof window !== 'undefined'
@@ -101,8 +112,8 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
-          {/* Admin link — only shown to authorised custody addresses */}
-          {isAdminAddress(miniAppUser?.custodyAddress) && (
+          {/* Admin link — only shown to authorised Farcaster accounts */}
+          {isAdmin && (
             <a
               href="/admin/editions"
               style={{

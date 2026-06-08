@@ -1,14 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { isAdminAddress } from '@/lib/adminAuth';
-import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
-
-// Re-use the same module-level SDK promise pattern from useMiniApp
-const _sdkPromise: Promise<typeof import('@farcaster/miniapp-sdk')['sdk'] | null> =
-  typeof window !== 'undefined'
-    ? import('@farcaster/miniapp-sdk').then(m => m.sdk).catch(() => null)
-    : Promise.resolve(null);
+import type { DbEditionRow } from '@/lib/editionDb';
 
 const FIELD_STYLE: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box',
@@ -59,38 +52,38 @@ function blankForm(): FormState {
 }
 
 export default function AdminEditionsPage() {
-  const [custody, setCustody]   = useState<string | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [editions, setEditions] = useState<DbEditionRow[]>([]);
-  const [form, setForm]         = useState<FormState>(blankForm());
-  const [saving, setSaving]     = useState(false);
-  const [msg, setMsg]           = useState('');
-  const [section, setSection]   = useState<'basic' | 'theme' | 'rarity' | 'slots' | 'packs' | 'scoring'>('basic');
+  const [custody, setCustody]       = useState<string | null>(null);
+  const [authorized, setAuthorized] = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [editions, setEditions]     = useState<DbEditionRow[]>([]);
+  const [form, setForm]             = useState<FormState>(blankForm());
+  const [saving, setSaving]         = useState(false);
+  const [msg, setMsg]               = useState('');
+  const [section, setSection]       = useState<'basic' | 'theme' | 'rarity' | 'slots' | 'packs' | 'scoring'>('basic');
 
-  // Get custody address from Farcaster SDK on mount
+  // Read FID stored by useMiniApp — no SDK needed here
   useEffect(() => {
-    async function detect() {
-      const sdk = await _sdkPromise;
-      if (!sdk) { setLoading(false); return; }
+    async function check() {
+      let fid: string | null = null;
+      try { fid = sessionStorage.getItem('miniapp_fid'); } catch { /* noop */ }
+
+      if (!fid) { setLoading(false); return; }
+
       try {
-        const ctx = await Promise.race([
-          sdk.context,
-          new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
-        ]);
-        const addr = (ctx?.user as Record<string, unknown> | undefined)?.custody as string | undefined;
-        setCustody(addr ?? null);
+        const res  = await fetch(`/api/admin/check?fid=${fid}`);
+        const data = await res.json() as { authorized: boolean; custody: string | null };
+        setCustody(data.custody ?? null);
+        setAuthorized(data.authorized);
       } catch {
-        // not in miniapp
+        // network error — remain unauthorized
       } finally {
         setLoading(false);
       }
     }
-    detect();
+    check();
   }, []);
 
-  const authorized = isAdminAddress(custody);
-
-  // Load editions when authorised
+  // Load editions when authorized
   useEffect(() => {
     if (!authorized) return;
     fetch('/api/editions')
@@ -132,7 +125,7 @@ export default function AdminEditionsPage() {
     fetch('/api/editions').then(r => r.json()).then(d => setEditions(d.editions ?? []));
   }
 
-  // ── Screens ─────────────────────────────────────────────────────────────────
+  // ── Screens ──────────────────────────────────────────────────────────────────
 
   if (loading) return (
     <div style={{ minHeight: '100dvh', background: '#07020e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3d3050', fontSize: 11, letterSpacing: '0.15em' }}>
@@ -303,7 +296,7 @@ export default function AdminEditionsPage() {
               {RARITY_TIERS.map(tier => (
                 <div key={tier} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <span style={{ fontSize: 9, color: '#5c4070', width: 80, flexShrink: 0 }}>{tier}</span>
-                  <input type="number" step="0.01" min="1" max="3" style={{ ...FIELD_STYLE, flex: 1 }} value={form.captain_mults[tier] ?? DEFAULT_MULTS[tier]} onChange={e => setF('captain_mults', { ...form.captain_mults, [tier]: parseFloat(e.target.value) })} />
+                  <input type="number" step="0.01" min="1" max="3" style={{ ...FIELD_STYLE, flex: 1 }} value={form.captain_mults[tier] ?? DEFAULT_MULTS[tier as keyof typeof DEFAULT_MULTS]} onChange={e => setF('captain_mults', { ...form.captain_mults, [tier]: parseFloat(e.target.value) })} />
                 </div>
               ))}
             </div>
