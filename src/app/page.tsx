@@ -100,6 +100,17 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
+          {/* Admin link — top-right corner */}
+          <a
+            href="/admin/editions"
+            style={{
+              position: 'absolute', top: 18, right: 16,
+              fontSize: 8, fontWeight: 700, letterSpacing: '0.15em',
+              color: '#2a1e38', textDecoration: 'none', textTransform: 'uppercase',
+            }}
+          >
+            ⚙
+          </a>
           <div style={{
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
             width: 180, height: 28, borderRadius: '0 0 90px 90px',
