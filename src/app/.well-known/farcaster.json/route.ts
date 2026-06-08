@@ -8,7 +8,7 @@ const manifest = {
     payload:   'eyJkb21haW4iOiJiYXR0bGUtZmlkcy52ZXJjZWwuYXBwIn0',
     signature: 'CNNP2FrqPKm0/kTiNeAaa6LiGzfyE3QDMEGnrxlOU7xs6cSGxa3D0TIjgLlb2/DsmUgfi4O2zjt4ytbrZGjF8xw=',
   },
-  frame: {
+  miniapp: {
     version: '1',
     name: 'The Protocol',
     iconUrl:              `${BASE_URL}/icon.png`,
