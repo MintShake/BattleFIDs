@@ -9,11 +9,11 @@ const FIELD_STYLE: React.CSSProperties = {
   padding: '8px 10px', borderRadius: 8,
   border: '1px solid rgba(138,99,210,0.2)',
   background: 'rgba(138,99,210,0.05)',
-  color: '#c4b5d8', fontSize: 11, outline: 'none',
+  color: '#e0d4f0', fontSize: 11, outline: 'none',
 };
 const LABEL: React.CSSProperties = {
   fontSize: 9, fontWeight: 700, letterSpacing: '0.2em',
-  color: '#5c4070', textTransform: 'uppercase', display: 'block', marginBottom: 4,
+  color: '#a08cc0', textTransform: 'uppercase', display: 'block', marginBottom: 4,
 };
 
 const RARITY_TIERS  = ['Alpha', 'Legendary', 'Elite', 'Rare', 'Common'] as const;
@@ -139,7 +139,7 @@ export default function AdminEditionsPage() {
   // ── Screens ──────────────────────────────────────────────────────────────────
 
   if (loading) return (
-    <div style={{ minHeight: '100dvh', background: '#07020e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3d3050', fontSize: 11, letterSpacing: '0.15em' }}>
+    <div style={{ minHeight: '100dvh', background: '#07020e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a6a90', fontSize: 11, letterSpacing: '0.15em' }}>
       Checking…
     </div>
   );
@@ -147,8 +147,8 @@ export default function AdminEditionsPage() {
   if (!custody) return (
     <div style={{ minHeight: '100dvh', background: '#07020e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
       <p style={{ fontSize: 20 }}>🔒</p>
-      <p style={{ fontSize: 11, color: '#5c4070', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Open in Farcaster</p>
-      <p style={{ fontSize: 9, color: '#3d3050' }}>Admin is only accessible inside the Farcaster miniapp</p>
+      <p style={{ fontSize: 11, color: '#a08cc0', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Open in Farcaster</p>
+      <p style={{ fontSize: 9, color: '#7a6a90' }}>Admin is only accessible inside the Farcaster miniapp</p>
     </div>
   );
 
@@ -156,7 +156,7 @@ export default function AdminEditionsPage() {
     <div style={{ minHeight: '100dvh', background: '#07020e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
       <p style={{ fontSize: 24 }}>🚫</p>
       <p style={{ fontSize: 11, color: '#e63946', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Not authorised</p>
-      <p style={{ fontSize: 9, color: '#3d3050' }}>{custody}</p>
+      <p style={{ fontSize: 9, color: '#7a6a90' }}>{custody}</p>
     </div>
   );
 
@@ -170,22 +170,22 @@ export default function AdminEditionsPage() {
     <div style={{ minHeight: '100dvh', background: '#07020e', padding: '24px 16px 60px', maxWidth: 600, margin: '0 auto', boxSizing: 'border-box' }}>
 
       <div style={{ marginBottom: 24 }}>
-        <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.35em', color: '#3d2a50', textTransform: 'uppercase', margin: '0 0 6px' }}>THE PROTOCOL · ADMIN</p>
-        <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.08em', color: '#c4b5d8', margin: 0 }}>EDITION MANAGER</h1>
-        <p style={{ fontSize: 9, color: '#3d3050', marginTop: 4 }}>{custody}</p>
+        <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.35em', color: '#6b5a80', textTransform: 'uppercase', margin: '0 0 6px' }}>THE PROTOCOL · ADMIN</p>
+        <h1 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.08em', color: '#e0d4f0', margin: 0 }}>EDITION MANAGER</h1>
+        <p style={{ fontSize: 9, color: '#7a6a90', marginTop: 4 }}>{custody}</p>
       </div>
 
       {/* Existing editions */}
       <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', color: '#5c4070', textTransform: 'uppercase', marginBottom: 10 }}>Active Editions</p>
+        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', color: '#a08cc0', textTransform: 'uppercase', marginBottom: 10 }}>Active Editions</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {editions.map(ed => (
             <div key={ed.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'rgba(138,99,210,0.05)', border: `1px solid ${ed.is_default ? ed.accent_primary : 'rgba(138,99,210,0.15)'}` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: ed.is_default ? ed.accent_primary : '#c4b5d8' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: ed.is_default ? ed.accent_primary : '#e0d4f0' }}>
                   {ed.name}{ed.is_default && <span style={{ fontSize: 8, marginLeft: 6, letterSpacing: '0.15em' }}>DEFAULT</span>}
                 </div>
-                <div style={{ fontSize: 9, color: '#5c4070', marginTop: 2 }}>/{ed.id} · {ed.is_active ? 'active' : 'hidden'}</div>
+                <div style={{ fontSize: 9, color: '#a08cc0', marginTop: 2 }}>/{ed.id} · {ed.is_active ? 'active' : 'hidden'}</div>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {!ed.is_default && (
@@ -193,23 +193,23 @@ export default function AdminEditionsPage() {
                     SET DEFAULT
                   </button>
                 )}
-                <button onClick={() => patch(ed.id, { is_active: !ed.is_active })} style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(138,99,210,0.2)', background: 'transparent', color: '#5c4070', fontSize: 8, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => patch(ed.id, { is_active: !ed.is_active })} style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(138,99,210,0.2)', background: 'transparent', color: '#a08cc0', fontSize: 8, fontWeight: 700, cursor: 'pointer' }}>
                   {ed.is_active ? 'HIDE' : 'SHOW'}
                 </button>
               </div>
             </div>
           ))}
-          {editions.length === 0 && <p style={{ fontSize: 10, color: '#3d3050' }}>No editions yet — hit /api/migrate first.</p>}
+          {editions.length === 0 && <p style={{ fontSize: 10, color: '#7a6a90' }}>No editions yet — hit /api/migrate first.</p>}
         </div>
       </div>
 
       {/* Create form */}
       <div style={{ borderTop: '1px solid rgba(138,99,210,0.15)', paddingTop: 24 }}>
-        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', color: '#5c4070', textTransform: 'uppercase', marginBottom: 16 }}>Create New Edition</p>
+        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', color: '#a08cc0', textTransform: 'uppercase', marginBottom: 16 }}>Create New Edition</p>
 
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 20 }}>
           {SECTIONS.map(s => (
-            <button key={s.key} onClick={() => setSection(s.key)} style={{ padding: '4px 10px', borderRadius: 99, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', border: section === s.key ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: section === s.key ? 'rgba(138,99,210,0.15)' : 'transparent', color: section === s.key ? '#c4a4ff' : '#5c4070', cursor: 'pointer' }}>
+            <button key={s.key} onClick={() => setSection(s.key)} style={{ padding: '4px 10px', borderRadius: 99, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', border: section === s.key ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: section === s.key ? 'rgba(138,99,210,0.15)' : 'transparent', color: section === s.key ? '#c4a4ff' : '#a08cc0', cursor: 'pointer' }}>
               {s.label.toUpperCase()}
             </button>
           ))}
@@ -263,10 +263,10 @@ export default function AdminEditionsPage() {
 
         {section === 'rarity' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <p style={{ fontSize: 9, color: '#5c4070' }}>Rename the five rarity tiers for this edition.</p>
+            <p style={{ fontSize: 9, color: '#a08cc0' }}>Rename the five rarity tiers for this edition.</p>
             {RARITY_TIERS.map(tier => (
               <div key={tier} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 9, color: '#5c4070', width: 70, flexShrink: 0 }}>{tier}</span>
+                <span style={{ fontSize: 9, color: '#a08cc0', width: 70, flexShrink: 0 }}>{tier}</span>
                 <input style={{ ...FIELD_STYLE, flex: 1 }} value={form.rarity_names[tier] ?? ''} onChange={e => setF('rarity_names', { ...form.rarity_names, [tier]: e.target.value })} />
               </div>
             ))}
@@ -306,17 +306,17 @@ export default function AdminEditionsPage() {
               <p style={{ ...LABEL, marginBottom: 8 }}>Captain Multipliers</p>
               {RARITY_TIERS.map(tier => (
                 <div key={tier} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <span style={{ fontSize: 9, color: '#5c4070', width: 80, flexShrink: 0 }}>{tier}</span>
+                  <span style={{ fontSize: 9, color: '#a08cc0', width: 80, flexShrink: 0 }}>{tier}</span>
                   <input type="number" step="0.01" min="1" max="3" style={{ ...FIELD_STYLE, flex: 1 }} value={form.captain_mults[tier] ?? DEFAULT_MULTS[tier as keyof typeof DEFAULT_MULTS]} onChange={e => setF('captain_mults', { ...form.captain_mults, [tier]: parseFloat(e.target.value) })} />
                 </div>
               ))}
             </div>
             <div>
               <p style={{ ...LABEL, marginBottom: 4 }}>Log₁₀ Max Caps</p>
-              <p style={{ fontSize: 9, color: '#3d3050', marginBottom: 8 }}>log10(5001) ≈ 3.699 — the weekly count that earns 100 pts</p>
+              <p style={{ fontSize: 9, color: '#7a6a90', marginBottom: 8 }}>log10(5001) ≈ 3.699 — the weekly count that earns 100 pts</p>
               {(['BROADCASTER', 'PUBLISHER', 'AGITATOR', 'NETWORKER'] as const).map(t => (
                 <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <span style={{ fontSize: 9, color: '#5c4070', width: 100, flexShrink: 0 }}>{t}</span>
+                  <span style={{ fontSize: 9, color: '#a08cc0', width: 100, flexShrink: 0 }}>{t}</span>
                   <input type="number" step="0.001" min="1" max="6" style={{ ...FIELD_STYLE, flex: 1 }} value={form.log_maxes[t] ?? DEFAULT_LOGS[t]} onChange={e => setF('log_maxes', { ...form.log_maxes, [t]: parseFloat(e.target.value) })} />
                 </div>
               ))}
@@ -330,7 +330,7 @@ export default function AdminEditionsPage() {
           </div>
         )}
 
-        <button onClick={save} disabled={saving || !form.id || !form.name} style={{ marginTop: 20, width: '100%', padding: '14px', borderRadius: 12, background: (!form.id || !form.name) ? 'rgba(138,99,210,0.08)' : 'linear-gradient(135deg, #8a63d2, #C9A84C)', border: 'none', color: (!form.id || !form.name) ? '#3d3050' : '#fff', fontSize: 12, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: (!form.id || !form.name) ? 'default' : 'pointer' }}>
+        <button onClick={save} disabled={saving || !form.id || !form.name} style={{ marginTop: 20, width: '100%', padding: '14px', borderRadius: 12, background: (!form.id || !form.name) ? 'rgba(138,99,210,0.08)' : 'linear-gradient(135deg, #8a63d2, #C9A84C)', border: 'none', color: (!form.id || !form.name) ? '#7a6a90' : '#fff', fontSize: 12, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: (!form.id || !form.name) ? 'default' : 'pointer' }}>
           {saving ? 'Creating…' : 'Create Edition'}
         </button>
       </div>

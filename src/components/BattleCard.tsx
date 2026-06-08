@@ -138,7 +138,7 @@ export default function BattleCard({
                 <div style={{ color: '#f0eaf8', fontWeight: 700, fontSize: compact ? 11 : 13, lineHeight: 1.2 }}>
                   {card.displayName}
                 </div>
-                <div style={{ color: '#5c4d70', fontSize: 9, marginTop: 1 }}>@{card.handle}</div>
+                <div style={{ color: '#a08cc0', fontSize: 9, marginTop: 1 }}>@{card.handle}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
                 {vLabel && (
@@ -179,7 +179,7 @@ export default function BattleCard({
             return (
               <div key={key} style={{ marginBottom: 7, opacity: dimmed ? 0.25 : 1, transition: 'opacity 0.2s' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.15em', color: '#5c4d70', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.15em', color: '#a08cc0', textTransform: 'uppercase' }}>
                     {STAT_LABELS[key]}
                   </span>
                   <span style={{ fontSize: 9, fontWeight: 700, color: cfg.accent }}>{score}</span>
@@ -215,15 +215,15 @@ export default function BattleCard({
                   </span>
                 ))}
                 {badges.length > 3 && (
-                  <span style={{ fontSize: 8, color: '#4a3d5c', padding: '2px 4px' }}>+{badges.length - 3}</span>
+                  <span style={{ fontSize: 8, color: '#7a6a90', padding: '2px 4px' }}>+{badges.length - 3}</span>
                 )}
               </div>
             ) : null;
           })()}
           {/* Faces community row */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <span style={{ fontSize: 9, color: '#4a3d5c' }}>❤ {card.likeCount.toLocaleString()}</span>
-            <span style={{ fontSize: 9, color: '#4a3d5c' }}>🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 9, color: '#7a6a90' }}>❤ {card.likeCount.toLocaleString()}</span>
+            <span style={{ fontSize: 9, color: '#7a6a90' }}>🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}</span>
             <span style={{
               fontSize: 7, color: '#8a63d2', marginLeft: 'auto',
               fontWeight: 700, letterSpacing: '0.08em',
@@ -247,12 +247,12 @@ export default function BattleCard({
               background: 'rgba(138,99,210,0.07)',
               border: '1px solid rgba(138,99,210,0.18)',
             }}>
-              <span style={{ fontSize: 8, color: '#4a3d5c', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>
+              <span style={{ fontSize: 8, color: '#7a6a90', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>
                 Owned by
               </span>
               <span style={{
                 fontSize: 9, fontWeight: 700,
-                color: ownerHandle === 'anon' ? '#3d2a50' : '#8a63d2',
+                color: ownerHandle === 'anon' ? '#6b5a80' : '#8a63d2',
                 fontStyle: ownerHandle === 'anon' ? 'italic' : 'normal',
               }}>
                 {ownerHandle === 'anon' ? 'anon' : `@${ownerHandle}`}
@@ -267,11 +267,11 @@ export default function BattleCard({
             border: `1px solid ${cfg.accent}25`,
           }}>
             <div>
-              <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#3d3050', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#7a6a90', textTransform: 'uppercase' }}>
                 Battle Score
               </div>
               {serialNumber !== undefined && (
-                <div style={{ fontSize: 8, color: '#3d3050', marginTop: 1 }}>
+                <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
                   #{serialNumber} / {card.fid.toLocaleString()}
                 </div>
               )}

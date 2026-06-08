@@ -55,13 +55,13 @@ export default function ProfilePage() {
 
   if (isNaN(fid)) return (
     <div style={SCREEN}>
-      <p style={{ color: '#5c4070', fontSize: 11 }}>Invalid FID</p>
+      <p style={{ color: '#a08cc0', fontSize: 11 }}>Invalid FID</p>
     </div>
   );
 
   if (loading) return (
     <div style={SCREEN}>
-      <p style={{ color: '#3d3050', fontSize: 11, letterSpacing: '0.15em' }}>Loading…</p>
+      <p style={{ color: '#7a6a90', fontSize: 11, letterSpacing: '0.15em' }}>Loading…</p>
     </div>
   );
 
@@ -100,7 +100,7 @@ export default function ProfilePage() {
 
       {/* Back */}
       <div style={{ padding: '16px 16px 0' }}>
-        <a href="/" style={{ fontSize: 9, color: '#3d3050', letterSpacing: '0.2em', textDecoration: 'none', textTransform: 'uppercase' }}>
+        <a href="/" style={{ fontSize: 9, color: '#7a6a90', letterSpacing: '0.2em', textDecoration: 'none', textTransform: 'uppercase' }}>
           ← The Protocol
         </a>
       </div>
@@ -114,23 +114,23 @@ export default function ProfilePage() {
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: 18, fontWeight: 900, color: '#c4b5d8', margin: 0, letterSpacing: '0.04em' }}>{displayName}</h1>
+            <h1 style={{ fontSize: 18, fontWeight: 900, color: '#e0d4f0', margin: 0, letterSpacing: '0.04em' }}>{displayName}</h1>
             {neynarUser?.power_badge && <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 99, background: 'rgba(191,90,242,0.15)', color: '#bf5af2', fontWeight: 700 }}>⚡ POWER</span>}
           </div>
-          {handle && <p style={{ fontSize: 11, color: '#5c4070', margin: '2px 0 0', letterSpacing: '0.08em' }}>@{handle} · FID {fid}</p>}
+          {handle && <p style={{ fontSize: 11, color: '#a08cc0', margin: '2px 0 0', letterSpacing: '0.08em' }}>@{handle} · FID {fid}</p>}
           <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
             {neynarUser?.follower_count != null && (
-              <span style={{ fontSize: 10, color: '#3d3050' }}>
+              <span style={{ fontSize: 10, color: '#7a6a90' }}>
                 <span style={{ color: '#8a63d2', fontWeight: 700 }}>{fmt(neynarUser.follower_count)}</span> followers
               </span>
             )}
             {neynarUser?.following_count != null && (
-              <span style={{ fontSize: 10, color: '#3d3050' }}>
+              <span style={{ fontSize: 10, color: '#7a6a90' }}>
                 <span style={{ color: '#8a63d2', fontWeight: 700 }}>{fmt(neynarUser.following_count)}</span> following
               </span>
             )}
           </div>
-          {bio && <p style={{ fontSize: 10, color: '#5c4070', marginTop: 6, lineHeight: 1.4 }}>{bio}</p>}
+          {bio && <p style={{ fontSize: 10, color: '#a08cc0', marginTop: 6, lineHeight: 1.4 }}>{bio}</p>}
         </div>
       </div>
 
@@ -159,7 +159,7 @@ export default function ProfilePage() {
                     {contractLive ? (
                       <span style={{ fontSize: 8, color: '#22c55e', letterSpacing: '0.12em' }}>⬡ MINTED</span>
                     ) : (
-                      <span style={{ fontSize: 8, color: '#3d3050', letterSpacing: '0.12em' }}>◌ NOT MINTED</span>
+                      <span style={{ fontSize: 8, color: '#7a6a90', letterSpacing: '0.12em' }}>◌ NOT MINTED</span>
                     )}
                   </div>
                 </div>
@@ -173,8 +173,8 @@ export default function ProfilePage() {
         <section style={{ padding: '0 16px 24px' }}>
           <p style={SECTION_LABEL}>BattleFID Card</p>
           <div style={{ padding: '24px 0', textAlign: 'center', border: '1px dashed rgba(138,99,210,0.15)', borderRadius: 16 }}>
-            <p style={{ fontSize: 11, color: '#3d3050', letterSpacing: '0.1em' }}>No card minted yet</p>
-            <p style={{ fontSize: 9, color: '#2a2038', marginTop: 4 }}>Open a pack to mint your card</p>
+            <p style={{ fontSize: 11, color: '#7a6a90', letterSpacing: '0.1em' }}>No card minted yet</p>
+            <p style={{ fontSize: 9, color: '#6b5a80', marginTop: 4 }}>Open a pack to mint your card</p>
           </div>
         </section>
       )}
@@ -220,5 +220,5 @@ const SCREEN: React.CSSProperties = {
 
 const SECTION_LABEL: React.CSSProperties = {
   fontSize: 9, fontWeight: 700, letterSpacing: '0.25em',
-  color: '#5c4070', textTransform: 'uppercase', marginBottom: 12,
+  color: '#a08cc0', textTransform: 'uppercase', marginBottom: 12,
 };

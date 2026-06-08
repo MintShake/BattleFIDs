@@ -127,7 +127,7 @@ function MysteryCard({ rarity }: { rarity: RarityTier }) {
             position: 'absolute', top: 6, right: 6,
             fontSize: 6, fontWeight: 700,
             padding: '2px 5px', borderRadius: 99,
-            background: 'rgba(0,0,0,0.75)', color: '#5c4070',
+            background: 'rgba(0,0,0,0.75)', color: '#a08cc0',
           }}>FID #?</div>
 
           {/* Name overlay */}
@@ -139,7 +139,7 @@ function MysteryCard({ rarity }: { rarity: RarityTier }) {
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 3 }}>
               <div>
                 <div style={{ color: '#f0eaf8', fontWeight: 700, fontSize: 8, lineHeight: 1.2 }}>??? ???</div>
-                <div style={{ color: '#5c4d70', fontSize: 6, marginTop: 1 }}>@???</div>
+                <div style={{ color: '#a08cc0', fontSize: 6, marginTop: 1 }}>@???</div>
               </div>
               <div style={{
                 fontSize: 6, fontWeight: 900, letterSpacing: '0.12em',
@@ -160,7 +160,7 @@ function MysteryCard({ rarity }: { rarity: RarityTier }) {
           {STAT_LABELS.map((label, i) => (
             <div key={label} style={{ marginBottom: 5 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                <span style={{ fontSize: 5, fontWeight: 700, letterSpacing: '0.1em', color: '#3d2a50', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 5, fontWeight: 700, letterSpacing: '0.1em', color: '#6b5a80', textTransform: 'uppercase' }}>
                   {label}
                 </span>
                 <span style={{ fontSize: 6, fontWeight: 700, color: cfg.accent }}>??</span>
@@ -251,13 +251,13 @@ function PackCard({ pack, onOpen }: { pack: PackDef; onOpen: () => void }) {
             <div style={{ fontSize: 14, fontWeight: 900, color: pack.accentColor, letterSpacing: '0.1em' }}>
               {pack.name}
             </div>
-            <div style={{ fontSize: 9, color: '#4a3d5c', marginTop: 1 }}>{pack.subtitle}</div>
+            <div style={{ fontSize: 9, color: '#7a6a90', marginTop: 1 }}>{pack.subtitle}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: pack.accentColor, lineHeight: 1 }}>
               ${pack.priceUsdc}
             </div>
-            <div style={{ fontSize: 8, color: '#3d2a50', marginTop: 1 }}>USDC</div>
+            <div style={{ fontSize: 8, color: '#6b5a80', marginTop: 1 }}>USDC</div>
           </div>
         </div>
 
@@ -301,7 +301,7 @@ function PackCard({ pack, onOpen }: { pack: PackDef; onOpen: () => void }) {
               style={{
                 fontSize: 7, padding: '1px 6px', borderRadius: 99,
                 background: 'rgba(138,99,210,0.08)', border: '1px solid rgba(138,99,210,0.2)',
-                color: '#5c4070', cursor: 'pointer', minHeight: 0,
+                color: '#a08cc0', cursor: 'pointer', minHeight: 0,
               }}
             >
               {expanded ? '▲' : '▼ all'}
@@ -322,10 +322,10 @@ function PackCard({ pack, onOpen }: { pack: PackDef; onOpen: () => void }) {
                       background: `linear-gradient(90deg, ${o.color}, ${o.color}99)`, borderRadius: 99,
                     }} />
                   </div>
-                  <div style={{ fontSize: 7, color: '#5c4070', width: 80, flexShrink: 0 }}>{o.label}</div>
+                  <div style={{ fontSize: 7, color: '#a08cc0', width: 80, flexShrink: 0 }}>{o.label}</div>
                 </div>
               ))}
-              <p style={{ fontSize: 7, color: '#2d1f40', margin: '4px 0 0', fontStyle: 'italic', lineHeight: 1.4 }}>
+              <p style={{ fontSize: 7, color: '#6b5a80', margin: '4px 0 0', fontStyle: 'italic', lineHeight: 1.4 }}>
                 Per-card odds · 10 independent rolls
                 {pack.guaranteeRarity ? ` · worst slot upgraded to ${pack.guaranteeRarity} if none rolled` : ''}
               </p>
@@ -365,7 +365,7 @@ export default function PackSelect({ onSelect }: { onSelect: (tier: PackTier) =>
     <div style={{ padding: '8px 0 0' }}>
       <p style={{
         textAlign: 'center', fontSize: 9, fontWeight: 700,
-        letterSpacing: '0.3em', color: '#3d2a50', textTransform: 'uppercase',
+        letterSpacing: '0.3em', color: '#6b5a80', textTransform: 'uppercase',
         marginBottom: 18,
       }}>
         Choose Your Pack · 10 Cards Each
@@ -378,7 +378,7 @@ export default function PackSelect({ onSelect }: { onSelect: (tier: PackTier) =>
       </div>
 
       <p style={{
-        textAlign: 'center', fontSize: 8, color: '#2d1f40',
+        textAlign: 'center', fontSize: 8, color: '#6b5a80',
         letterSpacing: '0.1em', marginTop: 18, fontStyle: 'italic',
       }}>
         Prices in ETH · Payment required at mint · Smart contract coming soon

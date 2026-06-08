@@ -51,7 +51,7 @@ export default function CollectionView({ owned }: Props) {
           background: 'rgba(138,99,210,0.04)',
           border: '1px solid rgba(138,99,210,0.15)',
         }}>
-          <div style={{ textAlign: 'center', fontSize: 8, fontWeight: 700, letterSpacing: '0.3em', color: '#3d2a50', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ textAlign: 'center', fontSize: 8, fontWeight: 700, letterSpacing: '0.3em', color: '#6b5a80', textTransform: 'uppercase', marginBottom: 16 }}>
             ⚔ Battle Arena ⚔
           </div>
           {/* Stat comparison — stacked on mobile */}
@@ -59,26 +59,26 @@ export default function CollectionView({ owned }: Props) {
             <div><BattleCard card={cardA} selected compact serialNumber={slotA.serialNumber} onClick={() => toggleSelect(slotA)} /></div>
 
             <div style={{ minWidth: 80, padding: '8px 0' }}>
-              <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: '#3d2a50', marginBottom: 12 }}>VS</div>
+              <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: '#6b5a80', marginBottom: 12 }}>VS</div>
               {STAT_ORDER.map((key: StatKey) => {
                 const a = cardA.stats[key];
                 const b = cardB.stats[key];
                 return (
                   <div key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 4 }}>
-                    <span style={{ width: 24, textAlign: 'right', fontSize: 12, fontWeight: 900, color: a > b ? '#C9A84C' : '#3d2a50' }}>{a}</span>
-                    <div style={{ flex: 1, textAlign: 'center', fontSize: 6, fontWeight: 700, letterSpacing: '0.1em', color: '#4a3d5c', textTransform: 'uppercase' }}>
+                    <span style={{ width: 24, textAlign: 'right', fontSize: 12, fontWeight: 900, color: a > b ? '#C9A84C' : '#6b5a80' }}>{a}</span>
+                    <div style={{ flex: 1, textAlign: 'center', fontSize: 6, fontWeight: 700, letterSpacing: '0.1em', color: '#7a6a90', textTransform: 'uppercase' }}>
                       {STAT_LABELS[key]}
                     </div>
-                    <span style={{ width: 24, textAlign: 'left', fontSize: 12, fontWeight: 900, color: b > a ? '#C9A84C' : '#3d2a50' }}>{b}</span>
+                    <span style={{ width: 24, textAlign: 'left', fontSize: 12, fontWeight: 900, color: b > a ? '#C9A84C' : '#6b5a80' }}>{b}</span>
                   </div>
                 );
               })}
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(138,99,210,0.12)', textAlign: 'center' }}>
                 {winner ? (
                   <>
-                    <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.2em', color: '#4a3d5c', textTransform: 'uppercase', marginBottom: 3 }}>Winner</div>
+                    <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.2em', color: '#7a6a90', textTransform: 'uppercase', marginBottom: 3 }}>Winner</div>
                     <div style={{ fontSize: 13, fontWeight: 900, color: '#C9A84C' }}>{winner.displayName}</div>
-                    <div style={{ fontSize: 9, color: '#3d2a50', marginTop: 2 }}>
+                    <div style={{ fontSize: 9, color: '#6b5a80', marginTop: 2 }}>
                       {Math.max(cardA.battleScore, cardB.battleScore)} vs {Math.min(cardA.battleScore, cardB.battleScore)}
                     </div>
                   </>

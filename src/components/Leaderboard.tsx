@@ -60,14 +60,14 @@ export default function Leaderboard({ ownerFid, totalWageredUsdc, XP_PER_USDC = 
   }
 
   if (loading) return (
-    <div style={{ textAlign: 'center', paddingTop: 40, color: '#3d3050', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
+    <div style={{ textAlign: 'center', paddingTop: 40, color: '#7a6a90', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
   );
 
   if (entries.length === 0) return (
     <div style={{ textAlign: 'center', paddingTop: 60 }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>🏆</div>
-      <p style={{ fontSize: 12, color: '#5c4070', letterSpacing: '0.15em', textTransform: 'uppercase' }}>No teams yet</p>
-      <p style={{ fontSize: 10, color: '#3d3050', marginTop: 6 }}>Be the first to lock in a team this week</p>
+      <p style={{ fontSize: 12, color: '#a08cc0', letterSpacing: '0.15em', textTransform: 'uppercase' }}>No teams yet</p>
+      <p style={{ fontSize: 10, color: '#7a6a90', marginTop: 6 }}>Be the first to lock in a team this week</p>
     </div>
   );
 
@@ -118,7 +118,7 @@ export default function Leaderboard({ ownerFid, totalWageredUsdc, XP_PER_USDC = 
                 <div style={{
                   width: 28, textAlign: 'center', flexShrink: 0,
                   fontSize: isTop3 ? 13 : 10, fontWeight: 900,
-                  color: rankStyle?.color ?? '#3d3050',
+                  color: rankStyle?.color ?? '#7a6a90',
                 }}>
                   {rankStyle?.label ?? `#${entry.rank}`}
                 </div>
@@ -166,7 +166,7 @@ export default function Leaderboard({ ownerFid, totalWageredUsdc, XP_PER_USDC = 
         })}
       </div>
 
-      <p style={{ fontSize: 9, color: '#3d3050', textAlign: 'center', marginTop: 14, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 9, color: '#7a6a90', textAlign: 'center', marginTop: 14, lineHeight: 1.6 }}>
         Free entry — top 3 free players earn 25 XP each
         {creditPool > 0 && ` · Staked: top 3 split ${creditPool.toLocaleString()} XP by score`}
       </p>

@@ -93,14 +93,14 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
   }, [data?.endsAt]);
 
   if (loading) return (
-    <div style={{ textAlign: 'center', paddingTop: 40, color: '#3d3050', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
+    <div style={{ textAlign: 'center', paddingTop: 40, color: '#7a6a90', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
   );
 
   if (!data) return (
     <div style={{ textAlign: 'center', paddingTop: 60 }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>⚔</div>
-      <p style={{ fontSize: 12, color: '#5c4070', letterSpacing: '0.15em', textTransform: 'uppercase' }}>No team set</p>
-      <p style={{ fontSize: 10, color: '#3d3050', marginTop: 6, marginBottom: 20 }}>Build your 5-card team to enter this week's competition</p>
+      <p style={{ fontSize: 12, color: '#a08cc0', letterSpacing: '0.15em', textTransform: 'uppercase' }}>No team set</p>
+      <p style={{ fontSize: 10, color: '#7a6a90', marginTop: 6, marginBottom: 20 }}>Build your 5-card team to enter this week's competition</p>
       <button
         onClick={onGoToTeam}
         style={{
@@ -128,17 +128,17 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', color: '#5c4070', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.25em', color: '#a08cc0', textTransform: 'uppercase' }}>
             {data.weekId}
           </div>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#C9A84C', lineHeight: 1.1 }}>{data.totalScore}</div>
-          <div style={{ fontSize: 9, color: '#5c4070' }}>/ {MAX_TEAM_SCORE} max</div>
+          <div style={{ fontSize: 9, color: '#a08cc0' }}>/ {MAX_TEAM_SCORE} max</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           {data.rank && (
             <div style={{ fontSize: 22, fontWeight: 900, color: '#8a63d2' }}>
               #{data.rank}
-              <span style={{ fontSize: 10, color: '#5c4070', fontWeight: 400 }}> / {data.totalTeams}</span>
+              <span style={{ fontSize: 10, color: '#a08cc0', fontWeight: 400 }}> / {data.totalTeams}</span>
             </div>
           )}
           {data.wagerUsdc > 0 && (
@@ -147,7 +147,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
             </div>
           )}
           {timeLeft && (
-            <div style={{ fontSize: 9, color: '#3d3050', marginTop: 2 }}>{timeLeft}</div>
+            <div style={{ fontSize: 9, color: '#7a6a90', marginTop: 2 }}>{timeLeft}</div>
           )}
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color, textTransform: 'uppercase', width: 72, flexShrink: 0 }}>
                 {edition.league.cardTypeLabels[slot.type]}
               </div>
-              <div style={{ fontSize: 9, color: '#5c4070', width: 80, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 9, color: '#a08cc0', width: 80, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 @{slot.handle}
               </div>
               {slot.type === 'CAPTAIN' ? (

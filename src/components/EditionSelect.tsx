@@ -23,7 +23,7 @@ export default function EditionSelect({ editions, onSelect, currentId }: Props) 
       <div style={{ textAlign: 'center', padding: '32px 20px 20px' }}>
         <p style={{
           fontSize: 9, fontWeight: 700, letterSpacing: '0.45em',
-          color: '#3d2a50', textTransform: 'uppercase', margin: '0 0 8px',
+          color: '#6b5a80', textTransform: 'uppercase', margin: '0 0 8px',
         }}>
           FARCASTER · THE PROTOCOL
         </p>
@@ -36,7 +36,7 @@ export default function EditionSelect({ editions, onSelect, currentId }: Props) 
         }}>
           CHOOSE<br />EDITION
         </h1>
-        <p style={{ fontSize: 11, color: '#4a3d5c', marginTop: 10, letterSpacing: '0.05em', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 11, color: '#7a6a90', marginTop: 10, letterSpacing: '0.05em', lineHeight: 1.5 }}>
           Each edition is a themed season with its own<br />card rankings, league rules, and visual world.
         </p>
       </div>
@@ -152,7 +152,7 @@ export default function EditionSelect({ editions, onSelect, currentId }: Props) 
                 borderTop: `1px solid ${ed.theme.accentPrimary}25`,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <span style={{ fontSize: 10, color: '#5c4070', letterSpacing: '0.1em' }}>
+                <span style={{ fontSize: 10, color: '#a08cc0', letterSpacing: '0.1em' }}>
                   {ed.league.seasonLabel}
                 </span>
                 <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', color: ed.theme.accentPrimary }}>
@@ -164,7 +164,7 @@ export default function EditionSelect({ editions, onSelect, currentId }: Props) 
         })}
 
         {list.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#3d3050', fontSize: 12, paddingTop: 40 }}>
+          <div style={{ textAlign: 'center', color: '#7a6a90', fontSize: 12, paddingTop: 40 }}>
             Loading editions…
           </div>
         )}

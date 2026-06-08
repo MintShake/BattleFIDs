@@ -256,7 +256,7 @@ function CardFace({ card, serialNumber, ownerHandle, badges }: {
             <div style={{ fontSize: 20, fontWeight: 900, color: '#f0eaf8', lineHeight: 1.1 }}>
               {card.displayName}
             </div>
-            <div style={{ fontSize: 11, color: '#5c4d70' }}>@{card.handle}</div>
+            <div style={{ fontSize: 11, color: '#a08cc0' }}>@{card.handle}</div>
           </div>
         </div>
 
@@ -284,7 +284,7 @@ function CardFace({ card, serialNumber, ownerHandle, badges }: {
             return (
               <div key={key} style={{ marginBottom: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.15em', color: '#5c4d70', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.15em', color: '#a08cc0', textTransform: 'uppercase' }}>
                     {STAT_LABELS[key]}
                   </span>
                   <span style={{ fontSize: 9, fontWeight: 700, color: accent }}>{score}</span>
@@ -304,11 +304,11 @@ function CardFace({ card, serialNumber, ownerHandle, badges }: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#3d3050', textTransform: 'uppercase' }}>Battle Score</div>
+            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#7a6a90', textTransform: 'uppercase' }}>Battle Score</div>
             {serialNumber !== undefined && (
-              <div style={{ fontSize: 8, color: '#3d3050', marginTop: 1 }}>
+              <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
                 #{serialNumber} / {card.fid.toLocaleString()}
-                {ownerHandle && <span style={{ color: '#5c4070', marginLeft: 4 }}>· @{ownerHandle}</span>}
+                {ownerHandle && <span style={{ color: '#a08cc0', marginLeft: 4 }}>· @{ownerHandle}</span>}
               </div>
             )}
           </div>
@@ -359,7 +359,7 @@ function ProfileBack({
   const section = (title: string) => (
     <div style={{
       fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase',
-      color: '#3d2a50', marginBottom: 10, paddingBottom: 4,
+      color: '#6b5a80', marginBottom: 10, paddingBottom: 4,
       borderBottom: `1px solid ${accent}20`,
     }}>{title}</div>
   );
@@ -380,7 +380,7 @@ function ProfileBack({
           <div style={{ fontSize: 17, fontWeight: 900, color: '#f0eaf8', lineHeight: 1.2, marginBottom: 2 }}>
             {card.displayName}
           </div>
-          <div style={{ fontSize: 11, color: '#5c4d70', marginBottom: 5 }}>@{card.handle}</div>
+          <div style={{ fontSize: 11, color: '#a08cc0', marginBottom: 5 }}>@{card.handle}</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <span style={{
               fontSize: 9, padding: '2px 8px', borderRadius: 99,
@@ -412,8 +412,8 @@ function ProfileBack({
           { label: 'VERIFIED', value: verifications.length > 0 ? '✓' : '—' },
         ].map(({ label, value }) => (
           <div key={label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 13, fontWeight: 900, color: '#c4b5d8' }}>{value}</div>
-            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.15em', color: '#3d2a50', textTransform: 'uppercase' }}>{label}</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: '#e0d4f0' }}>{value}</div>
+            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.15em', color: '#6b5a80', textTransform: 'uppercase' }}>{label}</div>
           </div>
         ))}
       </div>
@@ -455,7 +455,7 @@ function ProfileBack({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <div style={{
             fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', textTransform: 'uppercase',
-            color: '#3d2a50', paddingBottom: 4, borderBottom: `1px solid ${accent}20`, flex: 1,
+            color: '#6b5a80', paddingBottom: 4, borderBottom: `1px solid ${accent}20`, flex: 1,
           }}>Community</div>
           <a
             href="https://warpcast.com/~/mini-apps/launch?url=https%3A%2F%2Ffaces.sh"
@@ -476,14 +476,14 @@ function ProfileBack({
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#e86a6a' }}>❤</div>
             <div style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>{card.likeCount.toLocaleString()}</div>
-            <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Likes</div>
+            <div style={{ fontSize: 7, color: '#6b5a80', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Likes</div>
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#8a63d2' }}>🖼</div>
             <div style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>{card.totalVariants}</div>
-            <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase' }}>PFPs</div>
+            <div style={{ fontSize: 7, color: '#6b5a80', letterSpacing: '0.15em', textTransform: 'uppercase' }}>PFPs</div>
           </div>
-          <div style={{ flex: 1, fontSize: 9, color: '#4a3d5c', lineHeight: 1.5 }}>
+          <div style={{ flex: 1, fontSize: 9, color: '#7a6a90', lineHeight: 1.5 }}>
             Likes and PFP history are sourced from the <strong style={{ color: '#8a63d2' }}>Faces</strong> mini app — a community curation layer for Farcaster profiles.
           </div>
         </div>
@@ -512,11 +512,11 @@ function ProfileBack({
                 )}
                 {row.variant_index === pfpHistory.length - 1 && pfpHistory.length > 1 && (
                   <div style={{ position: 'absolute', bottom: -2, left: -2,
-                    fontSize: 8, background: '#3d2a50', color: '#8a63d2', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
+                    fontSize: 8, background: '#6b5a80', color: '#8a63d2', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
                     OG
                   </div>
                 )}
-                <div style={{ fontSize: 7, color: '#3d2a50', textAlign: 'center', marginTop: 2 }}>
+                <div style={{ fontSize: 7, color: '#6b5a80', textAlign: 'center', marginTop: 2 }}>
                   ❤ {row.like_count}
                 </div>
               </div>
@@ -535,7 +535,7 @@ function ProfileBack({
             <div key={key} style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', color: '#5c4d70', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.15em', color: '#a08cc0', textTransform: 'uppercase' }}>
                     {STAT_LABELS[key]}
                   </span>
                   <button
@@ -543,7 +543,7 @@ function ProfileBack({
                     style={{
                       width: 14, height: 14, borderRadius: '50%', border: 'none',
                       background: isActive ? accent : 'rgba(138,99,210,0.2)',
-                      color: isActive ? '#000' : '#5c4070',
+                      color: isActive ? '#000' : '#a08cc0',
                       fontSize: 8, fontWeight: 900, lineHeight: 1,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', minHeight: 0, padding: 0,
@@ -579,7 +579,7 @@ function ProfileBack({
           {[
             { label: 'Est. Floor',  value: mockFloor,     color: '#C9A84C' },
             { label: '≈ USD',       value: mockFloorUsdc, color: '#a78bfa' },
-            { label: 'Last Sale',   value: '—',           color: '#5c4070' },
+            { label: 'Last Sale',   value: '—',           color: '#a08cc0' },
             { label: 'Supply',      value: card.maxSupply.toLocaleString(), color: '#f0eaf8' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{
@@ -587,7 +587,7 @@ function ProfileBack({
               background: 'rgba(138,99,210,0.04)',
               border: '1px solid rgba(138,99,210,0.1)',
             }}>
-              <div style={{ fontSize: 6, color: '#3d2a50', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 6, color: '#6b5a80', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
               <div style={{ fontSize: 13, fontWeight: 900, color }}>{value}</div>
             </div>
           ))}
@@ -601,10 +601,10 @@ function ProfileBack({
             background: `${accent}08`, border: `1px solid ${accent}20`,
           }}>
             <div>
-              <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>Serial No.</div>
+              <div style={{ fontSize: 7, color: '#6b5a80', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 1 }}>Serial No.</div>
               <div style={{ fontSize: 18, fontWeight: 900, color: accent }}>
                 #{serialNumber}
-                <span style={{ fontSize: 10, color: '#5c4070', fontWeight: 400, marginLeft: 4 }}>
+                <span style={{ fontSize: 10, color: '#a08cc0', fontWeight: 400, marginLeft: 4 }}>
                   of {card.maxSupply.toLocaleString()}
                 </span>
               </div>
@@ -681,7 +681,7 @@ function ProfileBack({
           }}>
             {!contractLive && (
               <div style={{
-                fontSize: 8, color: '#5c4070', fontStyle: 'italic',
+                fontSize: 8, color: '#a08cc0', fontStyle: 'italic',
                 marginBottom: 10, lineHeight: 1.4,
               }}>
                 Contract coming soon — submit interest below and the owner will be notified when trading is live.
@@ -703,7 +703,7 @@ function ProfileBack({
                   flex: 1, padding: '10px 12px', borderRadius: 8,
                   border: '1px solid rgba(138,99,210,0.3)',
                   background: 'rgba(138,99,210,0.06)',
-                  color: '#c4b5d8', fontSize: 11, outline: 'none',
+                  color: '#e0d4f0', fontSize: 11, outline: 'none',
                 }}
               />
               <button
@@ -724,7 +724,7 @@ function ProfileBack({
               </button>
             </div>
 
-            <div style={{ fontSize: 8, color: '#2d1f40', lineHeight: 1.4, fontStyle: 'italic' }}>
+            <div style={{ fontSize: 8, color: '#6b5a80', lineHeight: 1.4, fontStyle: 'italic' }}>
               {contractLive
                 ? 'Your offer will be submitted on-chain. The owner can accept and the NFT will transfer automatically.'
                 : 'Interest registered. No funds taken until the contract is live.'}

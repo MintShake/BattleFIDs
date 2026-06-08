@@ -156,7 +156,7 @@ function AppInner({
               <a
                 href="/admin/editions"
                 style={{
-                  fontSize: 16, lineHeight: 1, color: '#4a3d5c',
+                  fontSize: 16, lineHeight: 1, color: '#a08cc0',
                   textDecoration: 'none', minWidth: 44, minHeight: 44,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
@@ -172,7 +172,7 @@ function AppInner({
             border: '1px solid rgba(138,99,210,0.12)', borderTop: 'none', pointerEvents: 'none',
           }} />
 
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.4em', color: '#5c4070', textTransform: 'uppercase', margin: '0 0 3px' }}>
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.4em', color: '#a08cc0', textTransform: 'uppercase', margin: '0 0 3px' }}>
             {edition.theme.headerEra}
           </p>
 
@@ -210,12 +210,12 @@ function AppInner({
           {miniAppUser ? (
             <a
               href={`/profile/${miniAppUser.fid}`}
-              style={{ color: '#5c4d70', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, display: 'block', textDecoration: 'none' }}
+              style={{ color: '#a08cc0', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, display: 'block', textDecoration: 'none' }}
             >
               FID {miniAppUser.fid} · @{miniAppUser.username ?? miniAppUser.displayName}
             </a>
           ) : (
-            <p style={{ color: '#3d3050', fontSize: 9, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 4 }}>
+            <p style={{ color: '#7a6a90', fontSize: 9, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 4 }}>
               Farcaster Identity Battle Cards
             </p>
           )}
@@ -226,12 +226,12 @@ function AppInner({
         <div style={{ flex: 1, padding: '8px 16px 0' }}>
           {tab === 'browse' && (
             browseLoading ? (
-              <div style={{ textAlign: 'center', paddingTop: 60, color: '#3d3050', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
+              <div style={{ textAlign: 'center', paddingTop: 60, color: '#7a6a90', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
             ) : globalCards.length === 0 ? (
               <div style={{ textAlign: 'center', paddingTop: 80 }}>
                 <div style={{ fontSize: 32, marginBottom: 12 }}>🃏</div>
-                <p style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#5c4070' }}>No cards discovered yet</p>
-                <p style={{ fontSize: 10, color: '#3d3050', marginTop: 8 }}>Be the first — open a pack</p>
+                <p style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#a08cc0' }}>No cards discovered yet</p>
+                <p style={{ fontSize: 10, color: '#7a6a90', marginTop: 8 }}>Be the first — open a pack</p>
                 <button onClick={() => setTab('pack')} style={{ marginTop: 20, padding: '12px 28px', borderRadius: 99, border: '1px solid rgba(138,99,210,0.3)', background: 'transparent', color: '#8a63d2', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   Open a Pack
                 </button>
@@ -244,21 +244,21 @@ function AppInner({
                     value={browseSearch}
                     onChange={e => setBrowseSearch(e.target.value)}
                     placeholder="Search by name or FID…"
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(138,99,210,0.2)', background: 'rgba(138,99,210,0.06)', color: '#c4b5d8', fontSize: 12, outline: 'none', marginBottom: 8 }}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(138,99,210,0.2)', background: 'rgba(138,99,210,0.06)', color: '#e0d4f0', fontSize: 12, outline: 'none', marginBottom: 8 }}
                   />
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                     {(['recent', 'score', 'fid', 'name'] as BrowseSort[]).map(s => (
-                      <button key={s} onClick={() => setBrowseSort(s)} style={{ padding: '5px 12px', borderRadius: 99, border: browseSort === s ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: browseSort === s ? 'rgba(138,99,210,0.18)' : 'transparent', color: browseSort === s ? '#c4a4ff' : '#5c4070', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                      <button key={s} onClick={() => setBrowseSort(s)} style={{ padding: '5px 12px', borderRadius: 99, border: browseSort === s ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: browseSort === s ? 'rgba(138,99,210,0.18)' : 'transparent', color: browseSort === s ? '#c4a4ff' : '#a08cc0', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
                         {s === 'recent' ? 'NEW' : s === 'score' ? 'SCORE' : s === 'fid' ? 'FID' : 'A–Z'}
                       </button>
                     ))}
                   </div>
                 </div>
-                <p style={{ textAlign: 'center', fontSize: 9, color: '#3d3050', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
+                <p style={{ textAlign: 'center', fontSize: 9, color: '#7a6a90', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
                   {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation
                 </p>
                 {filteredBrowse.length === 0 && (
-                  <p style={{ textAlign: 'center', fontSize: 11, color: '#5c4070', marginTop: 40 }}>No cards match "{browseSearch}"</p>
+                  <p style={{ textAlign: 'center', fontSize: 11, color: '#a08cc0', marginTop: 40 }}>No cards match "{browseSearch}"</p>
                 )}
                 <div className="card-grid">
                   {filteredBrowse.map((gc, i) => (
@@ -282,7 +282,7 @@ function AppInner({
             <div>
               <div style={{ display: 'flex', gap: 6, marginBottom: 16, justifyContent: 'center' }}>
                 {(['progress', 'team', 'leaderboard'] as LeagueView[]).map(v => (
-                  <button key={v} onClick={() => setLeagueView(v)} style={{ padding: '6px 14px', borderRadius: 99, border: leagueView === v ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: leagueView === v ? 'rgba(138,99,210,0.18)' : 'transparent', color: leagueView === v ? '#c4a4ff' : '#5c4070', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  <button key={v} onClick={() => setLeagueView(v)} style={{ padding: '6px 14px', borderRadius: 99, border: leagueView === v ? '1px solid #8a63d2' : '1px solid rgba(138,99,210,0.2)', background: leagueView === v ? 'rgba(138,99,210,0.18)' : 'transparent', color: leagueView === v ? '#c4a4ff' : '#a08cc0', fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
                     {v === 'progress' ? 'My Week' : v === 'team' ? 'My Team' : 'Leaderboard'}
                   </button>
                 ))}
@@ -302,7 +302,7 @@ function AppInner({
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64 + safeAreaInsets.bottom, background: 'rgba(9,4,15,0.94)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(138,99,210,0.18)', zIndex: 100 }}>
         <div className="page-inner" style={{ height: '100%', paddingBottom: safeAreaInsets.bottom, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around' }}>
           {(['browse', 'pack', 'collection', 'league'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', color: tab === t ? '#8a63d2' : '#4a3d5c', transition: 'color 0.15s', minHeight: 44 }}>
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', color: tab === t ? '#8a63d2' : '#7a6a90', transition: 'color 0.15s', minHeight: 44 }}>
               <span style={{ fontSize: 20 }}>{TAB_ICONS[t]}</span>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                 {t === 'collection' && owned.length > 0 ? `${TAB_LABELS[t]} (${owned.length})` : TAB_LABELS[t]}

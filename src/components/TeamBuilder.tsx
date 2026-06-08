@@ -109,10 +109,10 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
   return (
     <div>
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: '#5c4070', textTransform: 'uppercase', marginBottom: 4 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: '#a08cc0', textTransform: 'uppercase', marginBottom: 4 }}>
           {weekId || 'Current Week'}
         </div>
-        <div style={{ fontSize: 11, color: '#4a3d5c' }}>
+        <div style={{ fontSize: 11, color: '#7a6a90' }}>
           Pick one card per slot · Captain multiplies your total score
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                     {score !== null && <span style={{ color, fontWeight: 700, marginLeft: 6 }}>{score} pts</span>}
                   </div>
                 ) : (
-                  <div style={{ fontSize: 9, color: '#3d3050' }}>
+                  <div style={{ fontSize: 9, color: '#7a6a90' }}>
                     {edition.league.cardTypeDescs[type]} · {eligible} eligible
                   </div>
                 )}
@@ -196,7 +196,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
             Choose {edition.league.cardTypeLabels[picking]}
           </div>
           {eligibleFor(picking).length === 0 ? (
-            <div style={{ fontSize: 11, color: '#3d3050', padding: '12px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#7a6a90', padding: '12px 0', textAlign: 'center' }}>
               {picking === 'CAPTAIN'
                 ? 'No cards in your collection yet'
                 : `No ${edition.league.cardTypeLabels[picking]} cards — open a pack or buy one from browse`}
@@ -218,8 +218,8 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                     <Image src={o.card.thumbUrl} alt={o.card.handle} fill style={{ objectFit: 'cover' }} unoptimized />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#c4b5d8' }}>@{o.card.handle}</div>
-                    <div style={{ fontSize: 8, color: '#5c4070' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#e0d4f0' }}>@{o.card.handle}</div>
+                    <div style={{ fontSize: 8, color: '#a08cc0' }}>
                       FID {o.card.fid} · {o.card.rarity}
                       {picking === 'CAPTAIN' && ` · ${edition.league.captainMult[o.card.rarity as RarityTier]}×`}
                     </div>
@@ -255,7 +255,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
       {/* Wager for Xplora credits */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: '#5c4070', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: '#a08cc0', textTransform: 'uppercase' }}>
             Stake USDC · Win Xplora Credits
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                   flex: 1, padding: '8px 4px', borderRadius: 8,
                   border: `1px solid ${active ? '#C9A84C' : 'rgba(201,168,76,0.2)'}`,
                   background: active ? 'rgba(201,168,76,0.15)' : 'transparent',
-                  color: active ? '#C9A84C' : '#5c4070',
+                  color: active ? '#C9A84C' : '#a08cc0',
                   fontSize: 9, fontWeight: 700, cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
                 }}
@@ -312,7 +312,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         style={{
           width: '100%', padding: '14px', borderRadius: 12,
           background: full ? 'linear-gradient(135deg, #8a63d2, #C9A84C)' : 'rgba(138,99,210,0.1)',
-          border: 'none', color: full ? '#fff' : '#3d3050',
+          border: 'none', color: full ? '#fff' : '#7a6a90',
           fontSize: 12, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase',
           cursor: full ? 'pointer' : 'default', transition: 'all 0.2s',
         }}

@@ -156,7 +156,7 @@ export default function PackOpener({
         <button
           onClick={() => setPhase('select')}
           style={{
-            background: 'none', border: 'none', color: '#5c4070',
+            background: 'none', border: 'none', color: '#a08cc0',
             fontSize: 10, fontWeight: 700, letterSpacing: '0.15em',
             cursor: 'pointer', marginBottom: 20, padding: 0,
             display: 'flex', alignItems: 'center', gap: 6,
@@ -178,13 +178,13 @@ export default function PackOpener({
                 <div style={{ fontSize: 18, fontWeight: 900, color: packDef.accentColor, letterSpacing: '0.1em' }}>
                   {packDef.name}
                 </div>
-                <div style={{ fontSize: 9, color: '#4a3d5c', marginTop: 1 }}>{packDef.subtitle} · 10 cards</div>
+                <div style={{ fontSize: 9, color: '#7a6a90', marginTop: 1 }}>{packDef.subtitle} · 10 cards</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 28, fontWeight: 900, color: packDef.accentColor, lineHeight: 1 }}>
                   ${packDef.priceUsdc}
                 </div>
-                <div style={{ fontSize: 8, color: '#3d2a50', marginTop: 1 }}>USDC</div>
+                <div style={{ fontSize: 8, color: '#6b5a80', marginTop: 1 }}>USDC</div>
               </div>
             </div>
 
@@ -237,7 +237,7 @@ export default function PackOpener({
         }}>
           <div style={{
             fontSize: 8, fontWeight: 900, letterSpacing: '0.25em',
-            color: '#3d2a50', textTransform: 'uppercase', marginBottom: 12,
+            color: '#6b5a80', textTransform: 'uppercase', marginBottom: 12,
           }}>
             Payment
           </div>
@@ -246,12 +246,12 @@ export default function PackOpener({
             /* Live contract — real payment flow */
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 10, color: '#5c4070' }}>Wallet</span>
+                <span style={{ fontSize: 10, color: '#a08cc0' }}>Wallet</span>
                 <WalletConnect compact />
               </div>
               {wallet.connected && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, color: '#5c4070' }}>You pay</span>
+                  <span style={{ fontSize: 10, color: '#a08cc0' }}>You pay</span>
                   <span style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>
                     ${packDef.priceUsdc} USDC
                   </span>
@@ -328,7 +328,7 @@ export default function PackOpener({
         </div>
 
         <p style={{
-          textAlign: 'center', fontSize: 8, color: '#2d1f40', fontStyle: 'italic',
+          textAlign: 'center', fontSize: 8, color: '#6b5a80', fontStyle: 'italic',
           letterSpacing: '0.05em', lineHeight: 1.5,
         }}>
           Cards minted as ERC-1155 on Base · {ROYALTY_PCT}% royalty on all secondary sales
@@ -356,7 +356,7 @@ export default function PackOpener({
         }}>
           Opening {packDef.name} Pack…
         </p>
-        <p style={{ color: '#3d2a50', fontSize: 9, marginTop: 6, letterSpacing: '0.15em' }}>
+        <p style={{ color: '#6b5a80', fontSize: 9, marginTop: 6, letterSpacing: '0.15em' }}>
           Top {packDef.scorePercentile}% score pool · {packDef.odds.slice(0, 3).map(o => o.label).join(', ')}…
         </p>
       </div>
@@ -379,10 +379,10 @@ export default function PackOpener({
         }}>
           Added to Collection
         </div>
-        <p style={{ color: '#4a3d5c', fontSize: 11, marginBottom: 8 }}>
+        <p style={{ color: '#7a6a90', fontSize: 11, marginBottom: 8 }}>
           {cards.length} cards from your {packDef.subtitle} saved.
         </p>
-        <p style={{ color: '#3d2a50', fontSize: 9, marginBottom: 28, fontStyle: 'italic' }}>
+        <p style={{ color: '#6b5a80', fontSize: 9, marginBottom: 28, fontStyle: 'italic' }}>
           {contractLive
             ? `${cards.length} NFTs minted to your wallet · ${ROYALTY_PCT}% royalty on resale`
             : `Cards will be minted as NFTs automatically when the contract deploys on Base.`}
@@ -422,7 +422,7 @@ export default function PackOpener({
           }}>
             {packDef.name} — {packDef.subtitle}
           </div>
-          <div style={{ fontSize: 8, color: '#3d2a50', letterSpacing: '0.15em', marginTop: 2 }}>
+          <div style={{ fontSize: 8, color: '#6b5a80', letterSpacing: '0.15em', marginTop: 2 }}>
             {revealed.size} / {cards.length} revealed
           </div>
         </div>
@@ -434,7 +434,7 @@ export default function PackOpener({
                 padding: '8px 16px', borderRadius: 99,
                 border: '1px solid rgba(138,99,210,0.2)',
                 cursor: 'pointer', background: 'transparent',
-                color: '#5c4070', fontSize: 9, fontWeight: 700,
+                color: '#a08cc0', fontSize: 9, fontWeight: 700,
                 letterSpacing: '0.1em', textTransform: 'uppercase',
               }}
             >
@@ -522,7 +522,7 @@ export default function PackOpener({
                     fontSize: 7, fontWeight: 900, letterSpacing: '0.3em',
                     color: packDef.accentColor, textTransform: 'uppercase', opacity: 0.7,
                   }}>{packDef.name}</div>
-                  <div style={{ fontSize: 7, color: '#3d2a50', letterSpacing: '0.1em' }}>Tap to reveal</div>
+                  <div style={{ fontSize: 7, color: '#6b5a80', letterSpacing: '0.1em' }}>Tap to reveal</div>
                 </div>
               </div>
             </div>
