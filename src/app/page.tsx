@@ -15,6 +15,7 @@ import EditionSelect from '@/components/EditionSelect';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { useMiniApp } from '@/hooks/useMiniApp';
 import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS } from '@/editions/context';
+import { isAdminAddress } from '@/lib/adminAuth';
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
 import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
@@ -100,19 +101,21 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
-          {/* Admin link — top-right corner */}
-          <a
-            href="/admin/editions"
-            style={{
-              position: 'absolute', top: 16, right: 16,
-              fontSize: 16, lineHeight: 1,
-              color: '#4a3d5c', textDecoration: 'none',
-              minWidth: 44, minHeight: 44,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            ⚙
-          </a>
+          {/* Admin link — only shown to authorised custody addresses */}
+          {isAdminAddress(miniAppUser?.custodyAddress) && (
+            <a
+              href="/admin/editions"
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                fontSize: 16, lineHeight: 1,
+                color: '#4a3d5c', textDecoration: 'none',
+                minWidth: 44, minHeight: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              ⚙
+            </a>
+          )}
           <div style={{
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
             width: 180, height: 28, borderRadius: '0 0 90px 90px',

@@ -7,6 +7,7 @@ export interface MiniAppUser {
   username?: string;
   displayName?: string;
   pfpUrl?: string;
+  custodyAddress?: string;
 }
 
 export interface SafeAreaInsets {
@@ -72,10 +73,12 @@ export function useMiniApp(): MiniAppState {
 
         if (ctx.user) {
           setUser({
-            fid: ctx.user.fid,
-            username: ctx.user.username,
-            displayName: ctx.user.displayName,
-            pfpUrl: ctx.user.pfpUrl,
+            fid:            ctx.user.fid,
+            username:       ctx.user.username,
+            displayName:    ctx.user.displayName,
+            pfpUrl:         ctx.user.pfpUrl,
+            // custody is the Ethereum address bound to this FID on the protocol
+            custodyAddress: (ctx.user as Record<string, unknown>).custody as string | undefined,
           });
         }
         if (ctx.client?.safeAreaInsets) setSafeAreaInsets(ctx.client.safeAreaInsets);
