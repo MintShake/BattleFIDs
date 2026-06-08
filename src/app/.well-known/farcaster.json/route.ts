@@ -2,15 +2,11 @@ import { NextResponse } from 'next/server';
 
 const BASE_URL = 'https://battle-fids.vercel.app';
 
-// ── Farcaster Mini App manifest ────────────────────────────────────────────────
-// accountAssociation: sign this payload with your Farcaster custody key via
-// https://warpcast.com/~/developers/mini-apps to get the header/signature.
-// Leave as-is until you sign — the frame block is still valid for embeds.
 const manifest = {
   accountAssociation: {
-    header:    process.env.FARCASTER_MANIFEST_HEADER    ?? '',
-    payload:   process.env.FARCASTER_MANIFEST_PAYLOAD   ?? '',
-    signature: process.env.FARCASTER_MANIFEST_SIGNATURE ?? '',
+    header:    'eyJmaWQiOjY3OTEwMywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUxZTgyNTRhMDkxMzE4RjdkZUREMDZmOEFlZDg4Yjg2MjBDNDc0RGYifQ',
+    payload:   'eyJkb21haW4iOiJiYXR0bGUtZmlkcy52ZXJjZWwuYXBwIn0',
+    signature: 'CNNP2FrqPKm0/kTiNeAaa6LiGzfyE3QDMEGnrxlOU7xs6cSGxa3D0TIjgLlb2/DsmUgfi4O2zjt4ytbrZGjF8xw=',
   },
   frame: {
     version: '1',
