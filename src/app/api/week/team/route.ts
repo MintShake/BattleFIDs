@@ -9,51 +9,54 @@ export async function GET(req: NextRequest) {
   const ownerDeviceId = searchParams.get('ownerDeviceId');
   const weekId        = searchParams.get('weekId') ?? currentWeekId();
 
-  const rows = ownerFid
-    ? await sql`
-        SELECT wt.*,
-          cap.*, cap.image_id AS cap_image_id, cap.card_type AS cap_type, cap.rarity AS cap_rarity,
-          bc.image_id AS bc_image_id, bc.handle AS bc_handle, bc.pfp_url AS bc_pfp, bc.rarity AS bc_rarity,
-          pc.image_id AS pc_image_id, pc.handle AS pc_handle, pc.pfp_url AS pc_pfp, pc.rarity AS pc_rarity,
-          ag.image_id AS ag_image_id, ag.handle AS ag_handle, ag.pfp_url AS ag_pfp, ag.rarity AS ag_rarity,
-          nc.image_id AS nc_image_id, nc.handle AS nc_handle, nc.pfp_url AS nc_pfp, nc.rarity AS nc_rarity
-        FROM weekly_teams wt
-        LEFT JOIN cards cap ON cap.image_id = wt.captain_image_id
-        LEFT JOIN cards bc  ON bc.image_id  = wt.broadcaster_image_id
-        LEFT JOIN cards pc  ON pc.image_id  = wt.publisher_image_id
-        LEFT JOIN cards ag  ON ag.image_id  = wt.agitator_image_id
-        LEFT JOIN cards nc  ON nc.image_id  = wt.networker_image_id
-        WHERE wt.week_id = ${weekId} AND wt.owner_fid = ${parseInt(ownerFid)}
-      `
-    : ownerDeviceId
-    ? await sql`
-        SELECT wt.*
-        FROM weekly_teams wt
-        WHERE wt.week_id = ${weekId} AND wt.owner_device_id = ${ownerDeviceId}
-      `
-    : [];
+  try {
+    const rows = ownerFid
+      ? await sql`
+          SELECT wt.*,
+            cap.handle AS cap_handle, cap.thumb_url AS cap_thumb, cap.rarity AS cap_rarity,
+            bc.handle  AS bc_handle,  bc.thumb_url  AS bc_thumb,  bc.rarity  AS bc_rarity,
+            pc.handle  AS pc_handle,  pc.thumb_url  AS pc_thumb,  pc.rarity  AS pc_rarity,
+            ag.handle  AS ag_handle,  ag.thumb_url  AS ag_thumb,  ag.rarity  AS ag_rarity,
+            nc.handle  AS nc_handle,  nc.thumb_url  AS nc_thumb,  nc.rarity  AS nc_rarity
+          FROM weekly_teams wt
+          LEFT JOIN cards cap ON cap.image_id = wt.captain_image_id
+          LEFT JOIN cards bc  ON bc.image_id  = wt.broadcaster_image_id
+          LEFT JOIN cards pc  ON pc.image_id  = wt.publisher_image_id
+          LEFT JOIN cards ag  ON ag.image_id  = wt.agitator_image_id
+          LEFT JOIN cards nc  ON nc.image_id  = wt.networker_image_id
+          WHERE wt.week_id = ${weekId} AND wt.owner_fid = ${parseInt(ownerFid)}
+        `
+      : ownerDeviceId
+      ? await sql`
+          SELECT wt.*
+          FROM weekly_teams wt
+          WHERE wt.week_id = ${weekId} AND wt.owner_device_id = ${ownerDeviceId}
+        `
+      : [];
 
-  const team = rows[0] ?? null;
+    const team = rows[0] ?? null;
 
-  // Also return current week scores for this team's cards
-  let scores: Record<string, number> = {};
-  if (team) {
-    const imageIds = [
-      team.captain_image_id, team.broadcaster_image_id,
-      team.publisher_image_id, team.agitator_image_id, team.networker_image_id,
-    ].filter(Boolean);
+    let scores: Record<string, number> = {};
+    if (team) {
+      const imageIds = [
+        team.captain_image_id, team.broadcaster_image_id,
+        team.publisher_image_id, team.agitator_image_id, team.networker_image_id,
+      ].filter(Boolean);
 
-    if (imageIds.length > 0) {
-      const scoreRows = await sql`
-        SELECT image_id, normalized_score
-        FROM weekly_card_scores
-        WHERE week_id = ${weekId} AND image_id = ANY(${imageIds}::text[])
-      `;
-      scores = Object.fromEntries(scoreRows.map(r => [r.image_id, Number(r.normalized_score)]));
+      if (imageIds.length > 0) {
+        const scoreRows = await sql`
+          SELECT image_id, normalized_score
+          FROM weekly_card_scores
+          WHERE week_id = ${weekId} AND image_id = ANY(${imageIds}::text[])
+        `;
+        scores = Object.fromEntries(scoreRows.map(r => [r.image_id, Number(r.normalized_score)]));
+      }
     }
-  }
 
-  return NextResponse.json({ team, scores, weekId });
+    return NextResponse.json({ team, scores, weekId });
+  } catch {
+    return NextResponse.json({ team: null, scores: {}, weekId });
+  }
 }
 
 // POST /api/week/team — save / update team for current week
