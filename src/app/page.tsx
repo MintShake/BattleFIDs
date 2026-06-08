@@ -14,6 +14,8 @@ import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { useMiniApp } from '@/hooks/useMiniApp';
+import { useWallet } from '@/hooks/useWallet';
+import { isAdminAddress } from '@/lib/adminAuth';
 import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS } from '@/editions/context';
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
@@ -40,10 +42,15 @@ function AppInner({
 }) {
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
+  const { address: walletAddress, fid: walletFid, connected: walletConnected, connecting, connect } = useWallet();
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Admin check — wallet address (direct) or FID (Neynar lookup via sessionStorage)
   useEffect(() => {
-    // Check admin status using the FID already stored by useMiniApp — no SDK init needed
+    // Direct wallet address check — no API call needed
+    if (walletAddress && isAdminAddress(walletAddress)) { setIsAdmin(true); return; }
+
+    // FID-based check (miniapp context or wallet-resolved FID)
     let fid: string | null = null;
     try { fid = sessionStorage.getItem('miniapp_fid'); } catch { /* noop */ }
     if (!fid) return;
@@ -51,7 +58,7 @@ function AppInner({
       .then(r => r.json())
       .then((d: { authorized: boolean }) => { if (d.authorized) setIsAdmin(true); })
       .catch(() => {});
-  }, []);
+  }, [walletAddress]);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const deviceId = typeof window !== 'undefined'
@@ -112,21 +119,52 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
-          {/* Admin link — only shown to authorised Farcaster accounts */}
-          {isAdmin && (
-            <a
-              href="/admin/editions"
-              style={{
-                position: 'absolute', top: 16, right: 16,
-                fontSize: 16, lineHeight: 1,
-                color: '#4a3d5c', textDecoration: 'none',
-                minWidth: 44, minHeight: 44,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              ⚙
-            </a>
-          )}
+          {/* Right controls: admin gear + wallet connect (browser only) */}
+          <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {!isInMiniApp && (
+              walletConnected ? (
+                <a
+                  href={walletFid ? `/profile/${walletFid}` : '#'}
+                  style={{
+                    fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
+                    padding: '5px 10px', borderRadius: 99,
+                    border: '1px solid rgba(201,168,76,0.35)',
+                    background: 'rgba(201,168,76,0.06)',
+                    color: '#C9A84C', textDecoration: 'none',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                  {walletFid ? `FID ${walletFid}` : 'Connected'}
+                </a>
+              ) : (
+                <button
+                  onClick={connect}
+                  disabled={connecting}
+                  style={{
+                    fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
+                    padding: '5px 10px', borderRadius: 99,
+                    border: '1px solid rgba(138,99,210,0.3)',
+                    background: 'transparent', color: '#8a63d2', cursor: 'pointer',
+                  }}
+                >
+                  {connecting ? '…' : '⬡ Connect'}
+                </button>
+              )
+            )}
+            {isAdmin && (
+              <a
+                href="/admin/editions"
+                style={{
+                  fontSize: 16, lineHeight: 1, color: '#4a3d5c',
+                  textDecoration: 'none', minWidth: 44, minHeight: 44,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                ⚙
+              </a>
+            )}
+          </div>
           <div style={{
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
             width: 180, height: 28, borderRadius: '0 0 90px 90px',
@@ -170,9 +208,12 @@ function AppInner({
           </div>
 
           {miniAppUser ? (
-            <p style={{ color: '#5c4d70', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4 }}>
+            <a
+              href={`/profile/${miniAppUser.fid}`}
+              style={{ color: '#5c4d70', fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: 4, display: 'block', textDecoration: 'none' }}
+            >
               FID {miniAppUser.fid} · @{miniAppUser.username ?? miniAppUser.displayName}
-            </p>
+            </a>
           ) : (
             <p style={{ color: '#3d3050', fontSize: 9, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 4 }}>
               Farcaster Identity Battle Cards

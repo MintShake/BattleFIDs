@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { DbEditionRow } from '@/lib/editionDb';
+import { isAdminAddress } from '@/lib/adminAuth';
 
 const FIELD_STYLE: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box',
@@ -61,12 +62,22 @@ export default function AdminEditionsPage() {
   const [msg, setMsg]               = useState('');
   const [section, setSection]       = useState<'basic' | 'theme' | 'rarity' | 'slots' | 'packs' | 'scoring'>('basic');
 
-  // Read FID stored by useMiniApp — no SDK needed here
+  // Auth check — tries wallet address first (no API call), then FID via Neynar
   useEffect(() => {
     async function check() {
+      // 1. Direct wallet address check (browser wallet connected)
+      let walletAddr: string | null = null;
+      try { walletAddr = sessionStorage.getItem('wallet_address'); } catch { /* noop */ }
+      if (walletAddr && isAdminAddress(walletAddr)) {
+        setCustody(walletAddr);
+        setAuthorized(true);
+        setLoading(false);
+        return;
+      }
+
+      // 2. FID-based check (Farcaster miniapp or wallet-resolved FID)
       let fid: string | null = null;
       try { fid = sessionStorage.getItem('miniapp_fid'); } catch { /* noop */ }
-
       if (!fid) { setLoading(false); return; }
 
       try {

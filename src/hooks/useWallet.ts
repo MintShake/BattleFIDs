@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 export interface WalletState {
   address: string | null;
   shortAddress: string | null;
+  fid: number | null;
   connected: boolean;
   connecting: boolean;
   connect: () => Promise<void>;
@@ -16,14 +17,17 @@ function shorten(addr: string): string {
 }
 
 export function useWallet(): WalletState {
-  const [address, setAddress] = useState<string | null>(null);
+  const [address, setAddress]   = useState<string | null>(null);
+  const [fid, setFid]           = useState<number | null>(null);
   const [connecting, setConnecting] = useState(false);
 
-  // Restore previously connected address from sessionStorage
+  // Restore previously connected address + fid from sessionStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const saved = sessionStorage.getItem('wallet_address');
+    const saved    = sessionStorage.getItem('wallet_address');
+    const savedFid = sessionStorage.getItem('wallet_fid');
     if (saved) setAddress(saved);
+    if (savedFid) setFid(parseInt(savedFid));
   }, []);
 
   const connect = useCallback(async () => {
@@ -37,9 +41,24 @@ export function useWallet(): WalletState {
     setConnecting(true);
     try {
       const accounts: string[] = await eth.request({ method: 'eth_requestAccounts' });
-      const addr = accounts[0] ?? null;
+      const addr = accounts[0]?.toLowerCase() ?? null;
       setAddress(addr);
       if (addr) sessionStorage.setItem('wallet_address', addr);
+
+      // Resolve Farcaster FID from the connected address
+      if (addr) {
+        fetch(`/api/neynar/address?address=${addr}`)
+          .then(r => r.json())
+          .then(({ user }) => {
+            if (user?.fid) {
+              setFid(user.fid);
+              sessionStorage.setItem('wallet_fid', String(user.fid));
+              // Share the FID with the miniapp FID slot so admin check works
+              sessionStorage.setItem('miniapp_fid', String(user.fid));
+            }
+          })
+          .catch(() => {});
+      }
 
       // Switch to Base if not already
       try {
@@ -48,8 +67,7 @@ export function useWallet(): WalletState {
           params: [{ chainId: '0x2105' }], // 8453 = Base
         });
       } catch {
-        // ignore chain-switch failures — just warn
-        console.warn('Could not switch to Base. Make sure your wallet supports Base mainnet.');
+        // ignore chain-switch failures
       }
     } catch {
       // user rejected
@@ -60,12 +78,15 @@ export function useWallet(): WalletState {
 
   const disconnect = useCallback(() => {
     setAddress(null);
+    setFid(null);
     sessionStorage.removeItem('wallet_address');
+    sessionStorage.removeItem('wallet_fid');
   }, []);
 
   return {
     address,
     shortAddress: address ? shorten(address) : null,
+    fid,
     connected: !!address,
     connecting,
     connect,
