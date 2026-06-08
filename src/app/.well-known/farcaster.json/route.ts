@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 
-const BASE_URL = 'https://the-protocol.vercel.app';
+const BASE_URL = 'https://the-protocol-xi.vercel.app';
 
-// TODO: re-sign accountAssociation for the-protocol.vercel.app at
-// https://farcaster.xyz/~/developers/mini-apps/manifest and replace these values.
 const manifest = {
   accountAssociation: {
-    header:    'eyJmaWQiOjY3OTEwMywidHlwZSI6ImF1dGgiLCJrZXkiOiIweGUxZTgyNTRhMDkxMzE4RjdkZUREMDZmOEFlZDg4Yjg2MjBDNDc0RGYifQ',
-    payload:   'eyJkb21haW4iOiJ0aGUtcHJvdG9jb2wudmVyY2VsLmFwcCJ9',
-    signature: 'NEEDS_RESIGN',
+    header:    'eyJmaWQiOjY3OTEwMywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDE1ODcyZDQ5RDkwNjM4YWU4Y2VkZDQxYkExMmU1MmU2RjRGMjZEODQifQ',
+    payload:   'eyJkb21haW4iOiJ0aGUtcHJvdG9jb2wteGkudmVyY2VsLmFwcCJ9',
+    signature: '3XK/hnomfCZ+omH+LO3fgoErb03HGn2T4GruDjgT8gZhii0zgvRPbOXeyRd3Ndr0Y76WnnEwUbgDCrivnWphwBs=',
   },
   miniapp: {
     version: '1',

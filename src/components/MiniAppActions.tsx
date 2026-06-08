@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-const APP_URL = 'https://the-protocol.vercel.app';
+const APP_URL = 'https://the-protocol-xi.vercel.app';
 
 const btnBase: React.CSSProperties = {
   padding: '10px 18px',
