@@ -16,7 +16,6 @@ import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
 import { useWallet } from '@/hooks/useWallet';
-import { isAdminAddress } from '@/lib/adminAuth';
 import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS } from '@/editions/context';
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
@@ -46,22 +45,6 @@ function AppInner({
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
   const { address: walletAddress, fid: walletFid, connected: walletConnected, connecting, connect } = useWallet();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Admin check — wallet address (direct) or FID (Neynar lookup via sessionStorage)
-  useEffect(() => {
-    // Direct wallet address check — no API call needed
-    if (walletAddress && isAdminAddress(walletAddress)) { setIsAdmin(true); return; }
-
-    // FID-based check (miniapp context or wallet-resolved FID)
-    let fid: string | null = null;
-    try { fid = sessionStorage.getItem('miniapp_fid'); } catch { /* noop */ }
-    if (!fid) return;
-    fetch(`/api/admin/check?fid=${fid}`)
-      .then(r => r.json())
-      .then((d: { authorized: boolean }) => { if (d.authorized) setIsAdmin(true); })
-      .catch(() => {});
-  }, [walletAddress]);
   const [isPro, setIsPro]           = useState(false);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
@@ -141,7 +124,7 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
-          {/* Right controls: admin gear + wallet connect (browser only) */}
+          {/* Right controls: wallet connect (browser only) */}
           <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
             {!isInMiniApp && (
               walletConnected ? (
@@ -173,18 +156,6 @@ function AppInner({
                   {connecting ? '…' : '⬡ Connect'}
                 </button>
               )
-            )}
-            {isAdmin && (
-              <a
-                href="/admin/editions"
-                style={{
-                  fontSize: 16, lineHeight: 1, color: '#a08cc0',
-                  textDecoration: 'none', minWidth: 44, minHeight: 44,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                ⚙
-              </a>
             )}
           </div>
           <div style={{
