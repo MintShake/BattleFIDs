@@ -190,13 +190,6 @@ export default function PackOpener({
 
             {/* Pack properties */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {packDef.guaranteeRarity && (
-                <div style={{
-                  fontSize: 8, padding: '3px 8px', borderRadius: 99, fontWeight: 700,
-                  background: `${packDef.accentColor}14`, border: `1px solid ${packDef.accentColor}40`,
-                  color: packDef.accentColor,
-                }}>★ {packDef.guaranteeRarity}+ guaranteed</div>
-              )}
               <div style={{
                 fontSize: 8, padding: '3px 8px', borderRadius: 99, fontWeight: 700,
                 background: 'rgba(138,99,210,0.08)', border: '1px solid rgba(138,99,210,0.2)',
@@ -463,23 +456,6 @@ export default function PackOpener({
           )}
         </div>
       </div>
-
-      {packDef.guaranteeRarity && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14,
-          padding: '5px 12px', borderRadius: 8,
-          background: `${packDef.accentColor}0c`,
-          border: `1px solid ${packDef.accentColor}25`,
-        }}>
-          <span style={{ fontSize: 9 }}>★</span>
-          <span style={{
-            fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
-            color: packDef.accentColor, textTransform: 'uppercase',
-          }}>
-            {packDef.guaranteeRarity}+ guaranteed · Top {packDef.scorePercentile}% score pool
-          </span>
-        </div>
-      )}
 
       <div className="card-grid">
         {cards.map((card, i) => {

@@ -266,25 +266,8 @@ function PackCard({ pack, onOpen }: { pack: PackDef; onOpen: () => void }) {
           <CardFan tier={pack.id} />
         </div>
 
-        {/* Guarantee + odds */}
+        {/* Odds */}
         <div style={{ padding: '0 14px 4px' }}>
-          {pack.guaranteeRarity && (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '3px 10px', borderRadius: 99, marginBottom: 8,
-              background: `${pack.accentColor}14`,
-              border: `1px solid ${pack.accentColor}40`,
-            }}>
-              <span style={{ fontSize: 9 }}>★</span>
-              <span style={{
-                fontSize: 8, fontWeight: 900, letterSpacing: '0.1em',
-                color: pack.accentColor, textTransform: 'uppercase',
-              }}>
-                {pack.guaranteeRarity}+ Guaranteed
-              </span>
-            </div>
-          )}
-
           {/* Odds pills row */}
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }}>
             {pack.odds.slice(0, 4).map(o => (
@@ -327,7 +310,6 @@ function PackCard({ pack, onOpen }: { pack: PackDef; onOpen: () => void }) {
               ))}
               <p style={{ fontSize: 7, color: '#6b5a80', margin: '4px 0 0', fontStyle: 'italic', lineHeight: 1.4 }}>
                 Per-card odds · 10 independent rolls
-                {pack.guaranteeRarity ? ` · worst slot upgraded to ${pack.guaranteeRarity} if none rolled` : ''}
               </p>
             </div>
           )}

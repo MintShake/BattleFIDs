@@ -7,7 +7,7 @@ import { BattleFIDCard, CardType, OwnedCard, rarityFromFid, RarityTier } from '@
 import { FidTimeline } from '@/types/faces';
 import {
   PACK_DEFS, PackTier, RARITY_ORDER,
-  rollRarities, applyGuarantees,
+  rollRarities,
 } from '@/lib/packTiers';
 
 const PACK_SIZE = 10;
@@ -32,8 +32,7 @@ export async function POST(req: NextRequest) {
     const packDef = PACK_DEFS.find(p => p.id === tierId) ?? PACK_DEFS[0];
 
     // Roll rarities for all 10 slots
-    const rawRarities = rollRarities(packDef.weights, PACK_SIZE);
-    const rarities = applyGuarantees(rawRarities, packDef.guaranteeRarity, packDef.guaranteeCount);
+    const rarities = rollRarities(packDef.weights, PACK_SIZE);
 
     const probe = await fetchFaces({ limit: 1, offset: 0, imagesPerFid: 1 });
     const total = probe.totalFids;
@@ -143,7 +142,8 @@ export async function POST(req: NextRequest) {
     // Assign serial numbers and create ownership records
     const owned: OwnedCard[] = [];
     for (const card of cards) {
-      const serialNumber = Math.floor(Math.random() * card.maxSupply) + 1;
+      const [countRow] = await sql`SELECT COUNT(*)::int AS cnt FROM owned_cards WHERE fid = ${card.fid}`;
+      const serialNumber = (countRow?.cnt ?? 0) + 1;
       const openedAt = new Date().toISOString();
       await sql`
         INSERT INTO owned_cards (pack_id, fid, owner_fid, owner_device_id, serial_number, opened_at)

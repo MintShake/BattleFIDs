@@ -13,8 +13,6 @@ export interface PackDef {
   borderGradient: string;
   glow: string;
   weights: Record<RarityTier, number>;
-  guaranteeRarity?: RarityTier;
-  guaranteeCount?: number;
   /** Top N% of each rarity pool by engagement score. 100 = full pool. */
   scorePercentile: number;
   odds: { label: string; pct: string; pctNum: number; color: string }[];
@@ -47,7 +45,7 @@ export const PACK_DEFS: PackDef[] = [
     id: 'tablet',
     name: 'TABLET',
     subtitle: 'Legionary Pack',
-    flavour: 'Soldiers of the Republic. One Elite or better — guaranteed.',
+    flavour: 'Soldiers of the Republic. Weighted toward Elite and above.',
     priceUsdc: 8,
     scorePercentile: 50,
     accentColor: '#a78bfa',
@@ -55,8 +53,6 @@ export const PACK_DEFS: PackDef[] = [
     borderGradient: 'linear-gradient(145deg, #7c3aed 0%, #4c1d95 50%, #a78bfa 100%)',
     glow: 'rgba(167,139,250,0.45)',
     weights: { Alpha: 0.03, Legendary: 0.12, Elite: 0.25, Rare: 0.40, Common: 0.20 },
-    guaranteeRarity: 'Elite',
-    guaranteeCount: 1,
     odds: [
       { label: 'Alpha (FID ≤10)', pct: '3%',  pctNum: 3,  color: '#C9A84C' },
       { label: 'Legendary',       pct: '12%', pctNum: 12, color: '#8a63d2' },
@@ -69,7 +65,7 @@ export const PACK_DEFS: PackDef[] = [
     id: 'codex',
     name: 'CODEX',
     subtitle: 'Senator Pack',
-    flavour: 'The inner sanctum. Legendary guaranteed. Real shiney chance.',
+    flavour: 'The inner sanctum. Deep odds for Legendary and above.',
     priceUsdc: 25,
     scorePercentile: 25,
     accentColor: '#C9A84C',
@@ -77,8 +73,6 @@ export const PACK_DEFS: PackDef[] = [
     borderGradient: 'linear-gradient(145deg, #C9A84C 0%, #8a1c3a 50%, #C9A84C 100%)',
     glow: 'rgba(201,168,76,0.6)',
     weights: { Alpha: 0.10, Legendary: 0.25, Elite: 0.30, Rare: 0.25, Common: 0.10 },
-    guaranteeRarity: 'Legendary',
-    guaranteeCount: 1,
     odds: [
       { label: 'Alpha (FID ≤10)', pct: '10%', pctNum: 10, color: '#C9A84C' },
       { label: 'Legendary',       pct: '25%', pctNum: 25, color: '#8a63d2' },
@@ -101,24 +95,3 @@ export function rollRarities(weights: Record<RarityTier, number>, count: number)
   });
 }
 
-export function applyGuarantees(
-  rarities: RarityTier[],
-  guaranteeRarity: RarityTier | undefined,
-  guaranteeCount: number | undefined,
-): RarityTier[] {
-  if (!guaranteeRarity || !guaranteeCount) return rarities;
-  const result = [...rarities];
-  const tierIdx = RARITY_ORDER.indexOf(guaranteeRarity);
-  const qualifying = result.filter(r => RARITY_ORDER.indexOf(r) <= tierIdx).length;
-  if (qualifying >= guaranteeCount) return result;
-
-  const needed = guaranteeCount - qualifying;
-  let upgraded = 0;
-  for (let i = result.length - 1; i >= 0 && upgraded < needed; i--) {
-    if (RARITY_ORDER.indexOf(result[i]) > tierIdx) {
-      result[i] = guaranteeRarity;
-      upgraded++;
-    }
-  }
-  return result;
-}
