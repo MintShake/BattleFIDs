@@ -47,9 +47,15 @@ export async function GET(req: NextRequest) {
       : await sql`SELECT protocol_points, tier, locked_to_pro, referral_code FROM players WHERE owner_device_id = ${device}`;
     const player = playerRows[0] ?? null;
 
-    return NextResponse.json({ team, weekId, player });
+    const { end } = weekBounds(weekId);
+    // Scoring fires at Sunday 23:00 UTC — end is the scoring deadline
+    const endsAt = new Date(
+      Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 0, 0)
+    ).toISOString();
+
+    return NextResponse.json({ team, weekId, endsAt, player });
   } catch {
-    return NextResponse.json({ team: null, weekId, player: null });
+    return NextResponse.json({ team: null, weekId, endsAt: null, player: null });
   }
 }
 
