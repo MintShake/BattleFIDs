@@ -1,11 +1,17 @@
 export type PackTier = 'scroll' | 'tablet' | 'codex';
 
 export interface SelectionBand {
-  /** Lower percentile of the scored pool, 0–100 */
+  /**
+   * Which pool to draw from:
+   *   'random'  — random sample spread across all FIDs, sorted by partial battle score
+   *   'premium' — top accounts by community likes, sorted by partial battle score
+   */
+  pool: 'random' | 'premium';
+  /** Lower percentile of the chosen pool (0–100) */
   pctFrom: number;
-  /** Upper percentile of the scored pool, 0–100 */
+  /** Upper percentile of the chosen pool (0–100) */
   pctTo: number;
-  /** Number of cards to draw from this band */
+  /** Cards to draw from this band */
   count: number;
 }
 
@@ -19,12 +25,6 @@ export interface PackDef {
   dimColor: string;
   borderGradient: string;
   glow: string;
-  /**
-   * Ordered selection bands. Pool is sorted by engagement score desc.
-   * Each band is a slice of that sorted pool [pctFrom, pctTo).
-   * Bands are processed in order — cards used in earlier bands are
-   * excluded from later bands.
-   */
   bands: SelectionBand[];
   odds: { label: string; pct: string; pctNum: number; color: string }[];
 }
@@ -37,7 +37,7 @@ export const PACK_DEFS: PackDef[] = [
     flavour: 'The gates are open to all. Ten random cards from the great registry.',
     priceUsdc: 3,
     bands: [
-      { pctFrom: 0, pctTo: 100, count: 10 },
+      { pool: 'random', pctFrom: 0, pctTo: 100, count: 10 },
     ],
     accentColor: '#8a7550',
     dimColor: '#3d3020',
@@ -51,12 +51,12 @@ export const PACK_DEFS: PackDef[] = [
     id: 'tablet',
     name: 'TABLET',
     subtitle: 'Legionary Pack',
-    flavour: 'Seven citizens, three from the upper half, two from the top quarter.',
+    flavour: 'Five citizens at random, three from the active upper half, two from the most engaged.',
     priceUsdc: 8,
     bands: [
-      { pctFrom: 0,  pctTo: 25,  count: 2 },
-      { pctFrom: 25, pctTo: 50,  count: 3 },
-      { pctFrom: 50, pctTo: 100, count: 5 },
+      { pool: 'premium', pctFrom: 0,  pctTo: 25,  count: 2 },
+      { pool: 'premium', pctFrom: 25, pctTo: 50,  count: 3 },
+      { pool: 'random',  pctFrom: 0,  pctTo: 100, count: 5 },
     ],
     accentColor: '#a78bfa',
     dimColor: '#2d1a50',
@@ -75,10 +75,10 @@ export const PACK_DEFS: PackDef[] = [
     flavour: 'Two citizens, five from the top quarter, two from the top tenth, one from the elite five percent.',
     priceUsdc: 25,
     bands: [
-      { pctFrom: 0,  pctTo: 5,   count: 1 },
-      { pctFrom: 5,  pctTo: 10,  count: 2 },
-      { pctFrom: 10, pctTo: 25,  count: 5 },
-      { pctFrom: 75, pctTo: 100, count: 2 },
+      { pool: 'premium', pctFrom: 0,  pctTo: 5,   count: 1 },
+      { pool: 'premium', pctFrom: 5,  pctTo: 10,  count: 2 },
+      { pool: 'premium', pctFrom: 10, pctTo: 25,  count: 5 },
+      { pool: 'random',  pctFrom: 0,  pctTo: 100, count: 2 },
     ],
     accentColor: '#C9A84C',
     dimColor: '#3d2500',

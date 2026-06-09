@@ -30,45 +30,45 @@ export async function POST(req: NextRequest) {
 
     const packDef = PACK_DEFS.find(p => p.id === tierId) ?? PACK_DEFS[0];
 
-    // ── Build a diverse random pool from 4 offsets spread across all FIDs ────
+    const hasPremiumBands = packDef.bands.some(b => b.pool === 'premium');
+
+    // ── Build random pool: 4 offsets spread across all FIDs ─────────────────
     const probe = await fetchFaces({ limit: 1, offset: 0, imagesPerFid: 1 });
     const total = probe.totalFids;
     const safeMax = Math.max(0, total - POOL_PER_FETCH);
 
     const offsets = [
-      randInt(0,                        Math.floor(safeMax * 0.25)),
+      randInt(0,                          Math.floor(safeMax * 0.25)),
       randInt(Math.floor(safeMax * 0.25), Math.floor(safeMax * 0.5)),
       randInt(Math.floor(safeMax * 0.5),  Math.floor(safeMax * 0.75)),
       randInt(Math.floor(safeMax * 0.75), safeMax),
     ];
 
-    const results = await Promise.all(
-      offsets.map(offset =>
+    const [randomResults, premiumResult] = await Promise.all([
+      Promise.all(offsets.map(offset =>
         fetchFaces({ limit: POOL_PER_FETCH, offset, imagesPerFid: 50, sort: 'fid', order: 'asc' })
-      )
-    );
+      )),
+      // Premium pool: top accounts by community likes — only fetched when needed
+      hasPremiumBands
+        ? fetchFaces({ limit: 200, offset: 0, imagesPerFid: 50, sort: 'likes', order: 'desc' })
+        : Promise.resolve(null),
+    ]);
 
-    // Deduplicate pool
-    const seenFids = new Set<number>();
-    const rawPool: FidTimeline[] = [];
-    for (const result of results) {
-      for (const tl of result.data) {
-        if (!seenFids.has(tl.fid)) {
-          seenFids.add(tl.fid);
-          rawPool.push(tl);
-        }
-      }
+    function dedup(timelines: FidTimeline[], exclude?: Set<number>): FidTimeline[] {
+      const seen = new Set<number>(exclude);
+      return timelines.filter(tl => !seen.has(tl.fid) && seen.add(tl.fid));
     }
 
-    // Fetch Neynar data for the full pool so we can score by partial battle score.
-    // castActivity (10% weight) requires per-FID calls — skip for pool scoring,
-    // fetch only for the final 10 selected cards.
-    const poolNeynarMap = await fetchNeynarUsersDirect(rawPool.map(tl => tl.fid));
+    const rawRandom  = dedup(randomResults.flatMap(r => r.data));
+    const rawPremium = premiumResult ? dedup(premiumResult.data) : [];
+
+    // Fetch Neynar in parallel for both pools (batched in chunks of 100)
+    const allFids = [...new Set([...rawRandom.map(t => t.fid), ...rawPremium.map(t => t.fid)])];
+    const poolNeynarMap = await fetchNeynarUsersDirect(allFids);
 
     function partialBattleScore(tl: FidTimeline): number {
       const u = poolNeynarMap.get(tl.fid);
       const storedAt = tl.images[0]?.storedAt ?? new Date().toISOString();
-
       const supplyRarity  = Math.max(0, Math.round(100 * (1 - Math.log10(Math.max(tl.fid, 1)) / 7)));
       const followers     = u?.follower_count ?? 0;
       const followerPower = Math.min(100, Math.round((Math.log10(followers + 1) / Math.log10(1_000_000)) * 100));
@@ -77,32 +77,24 @@ export async function POST(req: NextRequest) {
       const badgeSc       = Math.min(100, badge + Math.round((u?.score ?? 0) * 30) + Math.min(2, u?.verifications?.length ?? 0) * 10);
       const daysSince     = (Date.now() - new Date(storedAt).getTime()) / 86_400_000;
       const pfpFreshness  = Math.max(0, Math.round(100 * (1 - daysSince / 365)));
-
-      return Math.round(
-        supplyRarity  * 0.25 +
-        followerPower * 0.20 +
-        neynarForce   * 0.20 +
-        badgeSc       * 0.10 +
-        pfpFreshness  * 0.15,
-      );
+      return Math.round(supplyRarity*0.25 + followerPower*0.20 + neynarForce*0.20 + badgeSc*0.10 + pfpFreshness*0.15);
     }
 
-    const pool = rawPool.map(tl => ({ timeline: tl, score: partialBattleScore(tl) }));
+    // Sort both pools by partial battle score
+    const randomPool  = rawRandom.map(tl => ({ timeline: tl, score: partialBattleScore(tl) }))
+                                 .sort((a, b) => b.score - a.score);
+    const premiumPool = rawPremium.map(tl => ({ timeline: tl, score: partialBattleScore(tl) }))
+                                  .sort((a, b) => b.score - a.score);
 
-    // Sort pool by partial battle score so percentile bands are meaningful
-    pool.sort((a, b) => b.score - a.score);
-
-    // Select cards band by band — each band is a percentile slice of the scored pool.
-    // "Remaining" semantics: cards used in earlier bands are excluded from later ones.
+    // Select cards band by band
     const usedFids = new Set<number>();
     const selectedTimelines: FidTimeline[] = [];
 
     for (const band of packDef.bands) {
-      const lo = Math.floor(pool.length * band.pctFrom / 100);
-      const hi = Math.min(pool.length, Math.ceil(pool.length * band.pctTo / 100));
-      const candidates = shuffle(
-        pool.slice(lo, hi).filter(p => !usedFids.has(p.timeline.fid))
-      );
+      const src = band.pool === 'premium' ? premiumPool : randomPool;
+      const lo = Math.floor(src.length * band.pctFrom / 100);
+      const hi = Math.min(src.length, Math.ceil(src.length * band.pctTo / 100));
+      const candidates = shuffle(src.slice(lo, hi).filter(p => !usedFids.has(p.timeline.fid)));
       let picked = 0;
       for (const { timeline } of candidates) {
         if (picked >= band.count) break;
@@ -112,7 +104,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Re-use pool Neynar data for selected cards; fetch cast engagement only for final 10
+    // Re-use pool Neynar data; fetch cast engagement only for the final 10
     const selectedFids = selectedTimelines.map(t => t.fid);
     const [neynarMap, engagementMap] = await Promise.all([
       Promise.resolve(poolNeynarMap),
