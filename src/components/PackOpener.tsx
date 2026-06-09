@@ -195,7 +195,7 @@ export default function PackOpener({
                 background: 'rgba(138,99,210,0.08)', border: '1px solid rgba(138,99,210,0.2)',
                 color: '#8a63d2',
               }}>
-                {packDef.topCards > 0 ? `${packDef.topCards} from top ${Math.round(packDef.topFraction * 100)}% engaged` : 'Full random pool'}
+                {packDef.bands.length > 1 ? packDef.bands.filter(b => b.pctTo <= 50).map(b => `${b.count}× top ${b.pctTo}%`).join(' · ') : 'Full random pool'}
               </div>
               <div style={{
                 fontSize: 8, padding: '3px 8px', borderRadius: 99, fontWeight: 700,
@@ -350,7 +350,7 @@ export default function PackOpener({
           Opening {packDef.name} Pack…
         </p>
         <p style={{ color: '#6b5a80', fontSize: 9, marginTop: 6, letterSpacing: '0.15em' }}>
-          {packDef.topCards > 0 ? `${packDef.randomCards} random · ${packDef.topCards} top ${Math.round(packDef.topFraction * 100)}% engaged` : '10 random picks from 100k+ accounts'}
+          {packDef.bands.length > 1 ? packDef.bands.map(b => `${b.count}× ${b.pctTo <= 25 ? `top ${b.pctTo}%` : b.pctFrom >= 50 ? 'random' : `${b.pctFrom}–${b.pctTo}%`}`).join(' · ') : '10 random · full registry'}
         </p>
       </div>
     );

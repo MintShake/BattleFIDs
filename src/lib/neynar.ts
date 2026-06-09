@@ -9,19 +9,26 @@ function apiHeaders() {
   };
 }
 
-// Server-side: bulk user profiles
+// Server-side: bulk user profiles — handles any number of FIDs via batching
 export async function fetchNeynarUsersDirect(fids: number[]): Promise<Map<number, NeynarUser>> {
   if (fids.length === 0) return new Map();
   if (!process.env.NEYNAR_API_KEY) return new Map();
 
+  const BATCH = 100;
+  const batches: number[][] = [];
+  for (let i = 0; i < fids.length; i += BATCH) batches.push(fids.slice(i, i + BATCH));
+
   try {
-    const res = await fetch(
-      `${NEYNAR_BASE}/farcaster/user/bulk?fids=${fids.join(',')}`,
-      { headers: apiHeaders(), next: { revalidate: 300 } },
-    );
-    if (!res.ok) return new Map();
-    const data: NeynarBulkUsersResponse = await res.json();
-    return new Map(data.users.map((u) => [u.fid, u]));
+    const results = await Promise.all(batches.map(batch =>
+      fetch(
+        `${NEYNAR_BASE}/farcaster/user/bulk?fids=${batch.join(',')}`,
+        { headers: apiHeaders(), next: { revalidate: 300 } },
+      ).then(r => r.ok ? r.json() as Promise<NeynarBulkUsersResponse> : { users: [] })
+        .catch(() => ({ users: [] as NeynarUser[] }))
+    ));
+    const map = new Map<number, NeynarUser>();
+    for (const data of results) for (const u of data.users) map.set(u.fid, u);
+    return map;
   } catch {
     return new Map();
   }

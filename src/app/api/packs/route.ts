@@ -48,52 +48,75 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    // Deduplicate and score each FID by total PFP likes
+    // Deduplicate pool
     const seenFids = new Set<number>();
-    const pool: { timeline: FidTimeline; score: number }[] = [];
+    const rawPool: FidTimeline[] = [];
     for (const result of results) {
       for (const tl of result.data) {
         if (!seenFids.has(tl.fid)) {
           seenFids.add(tl.fid);
-          pool.push({
-            timeline: tl,
-            score: tl.images.reduce((s, img) => s + img.likeCount, 0),
-          });
+          rawPool.push(tl);
         }
       }
     }
 
-    // Top-engagement slice for the premium portion of the pack
+    // Fetch Neynar data for the full pool so we can score by partial battle score.
+    // castActivity (10% weight) requires per-FID calls — skip for pool scoring,
+    // fetch only for the final 10 selected cards.
+    const poolNeynarMap = await fetchNeynarUsersDirect(rawPool.map(tl => tl.fid));
+
+    function partialBattleScore(tl: FidTimeline): number {
+      const u = poolNeynarMap.get(tl.fid);
+      const storedAt = tl.images[0]?.storedAt ?? new Date().toISOString();
+
+      const supplyRarity  = Math.max(0, Math.round(100 * (1 - Math.log10(Math.max(tl.fid, 1)) / 7)));
+      const followers     = u?.follower_count ?? 0;
+      const followerPower = Math.min(100, Math.round((Math.log10(followers + 1) / Math.log10(1_000_000)) * 100));
+      const neynarForce   = Math.min(100, Math.round((u?.score ?? 0) * 100));
+      const badge         = (u?.power_badge || (u?.score ?? 0) >= 0.5) ? 40 : 0;
+      const badgeSc       = Math.min(100, badge + Math.round((u?.score ?? 0) * 30) + Math.min(2, u?.verifications?.length ?? 0) * 10);
+      const daysSince     = (Date.now() - new Date(storedAt).getTime()) / 86_400_000;
+      const pfpFreshness  = Math.max(0, Math.round(100 * (1 - daysSince / 365)));
+
+      return Math.round(
+        supplyRarity  * 0.25 +
+        followerPower * 0.20 +
+        neynarForce   * 0.20 +
+        badgeSc       * 0.10 +
+        pfpFreshness  * 0.15,
+      );
+    }
+
+    const pool = rawPool.map(tl => ({ timeline: tl, score: partialBattleScore(tl) }));
+
+    // Sort pool by partial battle score so percentile bands are meaningful
     pool.sort((a, b) => b.score - a.score);
-    const topSlice = pool.slice(0, Math.max(1, Math.ceil(pool.length * packDef.topFraction)));
 
-    // Shuffle independently so picks within each pool are random
-    const fullShuffled = shuffle([...pool]);
-    const topShuffled  = shuffle([...topSlice]);
-
-    // Select topCards from the top slice, then fill the rest from the full pool
+    // Select cards band by band — each band is a percentile slice of the scored pool.
+    // "Remaining" semantics: cards used in earlier bands are excluded from later ones.
     const usedFids = new Set<number>();
     const selectedTimelines: FidTimeline[] = [];
 
-    for (const { timeline } of topShuffled) {
-      if (selectedTimelines.length >= packDef.topCards) break;
-      if (!usedFids.has(timeline.fid)) {
+    for (const band of packDef.bands) {
+      const lo = Math.floor(pool.length * band.pctFrom / 100);
+      const hi = Math.min(pool.length, Math.ceil(pool.length * band.pctTo / 100));
+      const candidates = shuffle(
+        pool.slice(lo, hi).filter(p => !usedFids.has(p.timeline.fid))
+      );
+      let picked = 0;
+      for (const { timeline } of candidates) {
+        if (picked >= band.count) break;
         selectedTimelines.push(timeline);
         usedFids.add(timeline.fid);
-      }
-    }
-    for (const { timeline } of fullShuffled) {
-      if (selectedTimelines.length >= PACK_SIZE) break;
-      if (!usedFids.has(timeline.fid)) {
-        selectedTimelines.push(timeline);
-        usedFids.add(timeline.fid);
+        picked++;
       }
     }
 
-    // Enrich with Neynar data
+    // Re-use pool Neynar data for selected cards; fetch cast engagement only for final 10
+    const selectedFids = selectedTimelines.map(t => t.fid);
     const [neynarMap, engagementMap] = await Promise.all([
-      fetchNeynarUsersDirect(selectedTimelines.map(t => t.fid)),
-      fetchCastEngagements(selectedTimelines.map(t => t.fid)),
+      Promise.resolve(poolNeynarMap),
+      fetchCastEngagements(selectedFids),
     ]);
 
     const cards: BattleFIDCard[] = selectedTimelines.map(timeline =>
