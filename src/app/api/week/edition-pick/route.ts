@@ -85,7 +85,12 @@ export async function POST(req: NextRequest) {
 
     const weekId = currentWeekId();
 
+    // One edition per player per week — clear any picks from other editions first
     if (fid) {
+      await sql`
+        DELETE FROM weekly_edition_picks
+        WHERE week_id = ${weekId} AND owner_fid = ${fid} AND edition_id != ${editionId}
+      `;
       await sql`
         INSERT INTO weekly_edition_picks
           (week_id, edition_id, slot_key, owner_fid, card_fid, updated_at)
@@ -95,6 +100,10 @@ export async function POST(req: NextRequest) {
           DO UPDATE SET card_fid = EXCLUDED.card_fid, updated_at = NOW()
       `;
     } else {
+      await sql`
+        DELETE FROM weekly_edition_picks
+        WHERE week_id = ${weekId} AND owner_device_id = ${device} AND edition_id != ${editionId}
+      `;
       await sql`
         INSERT INTO weekly_edition_picks
           (week_id, edition_id, slot_key, owner_device_id, card_fid, updated_at)
