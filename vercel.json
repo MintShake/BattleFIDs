@@ -2,11 +2,11 @@
   "framework": "nextjs",
   "crons": [
     {
-      "path": "/api/cron/tier?secret=CRON_SECRET_PLACEHOLDER",
+      "path": "/api/cron/tier?secret=26b07f1012eaa3008b1a257c7ff270fd",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/score?secret=CRON_SECRET_PLACEHOLDER",
+      "path": "/api/cron/score?secret=26b07f1012eaa3008b1a257c7ff270fd",
       "schedule": "0 23 * * 0"
     }
   ],
