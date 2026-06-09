@@ -291,7 +291,7 @@ function AppInner({
               </div>
               {leagueView === 'progress'     && <WeekProgress ownerFid={miniAppUser?.fid} ownerDevice={deviceId} onGoToTeam={() => setLeagueView('team')} />}
               {leagueView === 'team'         && <TeamBuilder owned={owned} ownerFid={miniAppUser?.fid} ownerDevice={deviceId} />}
-              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} totalWageredUsdc={0} />}
+              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} />}
             </div>
           )}
         </div>
