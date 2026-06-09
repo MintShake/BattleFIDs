@@ -38,8 +38,10 @@ async function fetchGlobalCards(): Promise<GlobalCard[]> {
 // ── Inner app — wrapped by EditionProvider ────────────────────────────────────
 function AppInner({
   onChangeEdition,
+  onPlayerLoaded,
 }: {
   onChangeEdition: () => void;
+  onPlayerLoaded: (isPro: boolean) => void;
 }) {
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
@@ -60,6 +62,7 @@ function AppInner({
       .then((d: { authorized: boolean }) => { if (d.authorized) setIsAdmin(true); })
       .catch(() => {});
   }, [walletAddress]);
+  const [isPro, setIsPro]           = useState(false);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const deviceId = typeof window !== 'undefined'
@@ -71,6 +74,23 @@ function AppInner({
   const [browseSearch, setBrowseSearch]   = useState('');
   const [browseSort, setBrowseSort]       = useState<BrowseSort>('recent');
   const [modalCard, setModalCard]   = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
+
+  // Fetch player Pro status once identity is known — surface to parent for edition gate
+  useEffect(() => {
+    const fid    = miniAppUser?.fid;
+    const device = deviceId;
+    if (!fid && !device) return;
+    const param = fid ? `ownerFid=${fid}` : `ownerDeviceId=${device}`;
+    fetch(`/api/players?${param}`)
+      .then(r => r.json())
+      .then((data: { tier?: string; lockedToPro?: boolean }) => {
+        const pro = Boolean(data.lockedToPro) || data.tier === 'pro';
+        setIsPro(pro);
+        onPlayerLoaded(pro);
+      })
+      .catch(() => onPlayerLoaded(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [miniAppUser?.fid]);
 
   useEffect(() => {
     fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {});
@@ -199,13 +219,13 @@ function AppInner({
               style={{
                 fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase',
                 padding: '4px 12px', borderRadius: 99,
-                background: `${edition.theme.accentPrimary}12`,
-                border: `1px solid ${edition.theme.accentPrimary}35`,
-                color: edition.theme.accentPrimary,
+                background: isPro ? `${edition.theme.accentPrimary}12` : 'rgba(80,60,100,0.08)',
+                border: isPro ? `1px solid ${edition.theme.accentPrimary}35` : '1px solid rgba(138,99,210,0.2)',
+                color: isPro ? edition.theme.accentPrimary : '#4a3a60',
                 cursor: 'pointer',
               }}
             >
-              {edition.name} ↗
+              {isPro ? `${edition.name} ↗` : `🔒 ${edition.name}`}
             </button>
           </div>
 
@@ -323,6 +343,7 @@ export default function Home() {
   const [dbEditions, setDbEditions] = useState<Edition[]>([]);
   const [editionId, setEditionId]   = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [isPro, setIsPro]           = useState(false);
 
   useEffect(() => {
     fetch('/api/editions')
@@ -342,7 +363,17 @@ export default function Home() {
       });
   }, []);
 
+  function handlePlayerLoaded(pro: boolean) {
+    setIsPro(pro);
+    if (!pro) {
+      // Non-Pro players revert to base edition
+      writeEditionId('base');
+      setEditionId('base');
+    }
+  }
+
   function selectEdition(id: string) {
+    if (id !== 'base' && !isPro) return; // guard: ignore locked editions
     writeEditionId(id);
     setEditionId(id);
     setShowPicker(false);
@@ -362,13 +393,17 @@ export default function Home() {
         editions={allEditions}
         onSelect={selectEdition}
         currentId={editionId}
+        isPro={isPro}
       />
     );
   }
 
   return (
     <EditionProvider edition={resolvedEdition}>
-      <AppInner onChangeEdition={() => setShowPicker(true)} />
+      <AppInner
+        onChangeEdition={() => setShowPicker(true)}
+        onPlayerLoaded={handlePlayerLoaded}
+      />
     </EditionProvider>
   );
 }
