@@ -1,4 +1,4 @@
-export type FacesSortMode = 'count' | 'newest' | 'oldest' | 'fid' | 'likes';
+export type FacesSortMode = 'count' | 'newest' | 'oldest' | 'fid' | 'likes' | 'score';
 export type FacesOrder = 'asc' | 'desc';
 
 export interface FacesListResponse {

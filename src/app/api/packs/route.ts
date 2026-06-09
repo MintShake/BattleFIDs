@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       )),
       // Premium pool: top accounts by community likes — only fetched when needed
       hasPremiumBands
-        ? fetchFaces({ limit: 200, offset: 0, imagesPerFid: 50, sort: 'likes', order: 'desc' })
+        ? fetchFaces({ limit: 200, offset: 0, imagesPerFid: 50, sort: 'score', order: 'desc' })
         : Promise.resolve(null),
     ]);
 
