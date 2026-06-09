@@ -234,6 +234,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
 
   const scored      = team.slotPoints > 0 || team.rank != null;
   const hasPreview  = preview != null;
+  const isPro       = player?.lockedToPro || player?.tier === 'pro';
 
   const effectiveGroup = team.chosenTier === 'pro'
     ? 'pro'
@@ -400,8 +401,8 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
         })}
       </div>
 
-      {/* ── Edition bonus slots ── */}
-      {editionPicks.length > 0 && (
+      {/* ── Edition bonus slots (Pro only) ── */}
+      {isPro && editionPicks.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
