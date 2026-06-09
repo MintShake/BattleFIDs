@@ -3,21 +3,20 @@ import { sql } from '@/lib/db';
 import { fetchFaces } from '@/lib/faces';
 import { fetchNeynarUsersDirect, fetchCastEngagements } from '@/lib/neynar';
 import { buildCard } from '@/lib/cardBuilder';
-import { BattleFIDCard, CardType, OwnedCard, rarityFromFid, RarityTier } from '@/types/card';
+import { BattleFIDCard, CardType, OwnedCard } from '@/types/card';
 import { FidTimeline } from '@/types/faces';
-import {
-  PACK_DEFS, PackTier, RARITY_ORDER,
-  rollRarities,
-} from '@/lib/packTiers';
+import { PACK_DEFS, PackTier } from '@/lib/packTiers';
 
 const PACK_SIZE = 10;
-// Flat probability per pack of pulling an edition 1/1 as a bonus card
-const EDITION_1OF1_CHANCE = 0.015; // 1.5% per pack
-
-type Slot = { timeline: FidTimeline };
+const EDITION_1OF1_CHANCE = 0.015;
+const POOL_PER_FETCH = 65;
 
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  return arr.sort(() => Math.random() - 0.5);
 }
 
 // POST /api/packs
@@ -31,78 +30,73 @@ export async function POST(req: NextRequest) {
 
     const packDef = PACK_DEFS.find(p => p.id === tierId) ?? PACK_DEFS[0];
 
-    // Roll rarities for all 10 slots
-    const rarities = rollRarities(packDef.weights, PACK_SIZE);
-
+    // ── Build a diverse random pool from 4 offsets spread across all FIDs ────
     const probe = await fetchFaces({ limit: 1, offset: 0, imagesPerFid: 1 });
     const total = probe.totalFids;
+    const safeMax = Math.max(0, total - POOL_PER_FETCH);
 
-    const midOffset    = randInt(100, Math.min(5000, Math.max(101, Math.floor(total * 0.15))));
-    const commonOffset = randInt(Math.min(10000, Math.floor(total * 0.5)), Math.max(10001, total - 100));
+    const offsets = [
+      randInt(0,                        Math.floor(safeMax * 0.25)),
+      randInt(Math.floor(safeMax * 0.25), Math.floor(safeMax * 0.5)),
+      randInt(Math.floor(safeMax * 0.5),  Math.floor(safeMax * 0.75)),
+      randInt(Math.floor(safeMax * 0.75), safeMax),
+    ];
 
-    const [premiumResult, midResult, commonResult] = await Promise.all([
-      fetchFaces({ limit: 100, offset: 0,            imagesPerFid: 50, sort: 'fid', order: 'asc' }),
-      fetchFaces({ limit: 100, offset: midOffset,    imagesPerFid: 50, sort: 'fid', order: 'asc' }),
-      fetchFaces({ limit: 100, offset: commonOffset, imagesPerFid: 50, sort: 'fid', order: 'asc' }),
-    ]);
+    const results = await Promise.all(
+      offsets.map(offset =>
+        fetchFaces({ limit: POOL_PER_FETCH, offset, imagesPerFid: 50, sort: 'fid', order: 'asc' })
+      )
+    );
 
-    // Build per-rarity pools (one slot per FID — no duplicate FIDs)
-    const pools: Record<RarityTier, Slot[]> = {
-      Alpha: [], Legendary: [], Elite: [], Rare: [], Common: [],
-    };
-
-    for (const result of [premiumResult, midResult, commonResult]) {
+    // Deduplicate and score each FID by total PFP likes
+    const seenFids = new Set<number>();
+    const pool: { timeline: FidTimeline; score: number }[] = [];
+    for (const result of results) {
       for (const tl of result.data) {
-        const r = rarityFromFid(tl.fid);
-        pools[r].push({ timeline: tl });
-      }
-    }
-
-    // Sort by engagement, apply tier percentile filter, then shuffle
-    for (const r of RARITY_ORDER) {
-      const totalLikes = (slot: Slot) =>
-        slot.timeline.images.reduce((s, img) => s + img.likeCount, 0);
-      pools[r].sort((a, b) => totalLikes(b) - totalLikes(a));
-      const keep = Math.max(1, Math.ceil(pools[r].length * (packDef.scorePercentile / 100)));
-      pools[r] = pools[r].slice(0, keep);
-      pools[r].sort(() => Math.random() - 0.5);
-    }
-
-    // Fill each slot, one FID per slot (tracked by fid, not fid+imageIndex)
-    const usedFids = new Set<number>();
-    const selected: Slot[] = [];
-
-    for (const targetRarity of rarities) {
-      const targetIdx = RARITY_ORDER.indexOf(targetRarity);
-      const tryOrder: RarityTier[] = [
-        ...RARITY_ORDER.slice(targetIdx),
-        ...RARITY_ORDER.slice(0, targetIdx).reverse(),
-      ];
-
-      let picked = false;
-      for (const r of tryOrder) {
-        const slot = pools[r].find(s => !usedFids.has(s.timeline.fid));
-        if (slot) {
-          selected.push(slot);
-          usedFids.add(slot.timeline.fid);
-          picked = true;
-          break;
+        if (!seenFids.has(tl.fid)) {
+          seenFids.add(tl.fid);
+          pool.push({
+            timeline: tl,
+            score: tl.images.reduce((s, img) => s + img.likeCount, 0),
+          });
         }
       }
-      if (!picked) {
-        const any = [...pools.Common, ...pools.Rare, ...pools.Elite].find(s => !usedFids.has(s.timeline.fid));
-        if (any) { selected.push(any); usedFids.add(any.timeline.fid); }
+    }
+
+    // Top-engagement slice for the premium portion of the pack
+    pool.sort((a, b) => b.score - a.score);
+    const topSlice = pool.slice(0, Math.max(1, Math.ceil(pool.length * packDef.topFraction)));
+
+    // Shuffle independently so picks within each pool are random
+    const fullShuffled = shuffle([...pool]);
+    const topShuffled  = shuffle([...topSlice]);
+
+    // Select topCards from the top slice, then fill the rest from the full pool
+    const usedFids = new Set<number>();
+    const selectedTimelines: FidTimeline[] = [];
+
+    for (const { timeline } of topShuffled) {
+      if (selectedTimelines.length >= packDef.topCards) break;
+      if (!usedFids.has(timeline.fid)) {
+        selectedTimelines.push(timeline);
+        usedFids.add(timeline.fid);
+      }
+    }
+    for (const { timeline } of fullShuffled) {
+      if (selectedTimelines.length >= PACK_SIZE) break;
+      if (!usedFids.has(timeline.fid)) {
+        selectedTimelines.push(timeline);
+        usedFids.add(timeline.fid);
       }
     }
 
     // Enrich with Neynar data
-    const uniqueFids = selected.map(s => s.timeline.fid);
     const [neynarMap, engagementMap] = await Promise.all([
-      fetchNeynarUsersDirect(uniqueFids),
-      fetchCastEngagements(uniqueFids),
+      fetchNeynarUsersDirect(selectedTimelines.map(t => t.fid)),
+      fetchCastEngagements(selectedTimelines.map(t => t.fid)),
     ]);
 
-    const cards: BattleFIDCard[] = selected.map(({ timeline }) =>
+    const cards: BattleFIDCard[] = selectedTimelines.map(timeline =>
       buildCard(timeline, neynarMap.get(timeline.fid), engagementMap.get(timeline.fid)),
     );
 

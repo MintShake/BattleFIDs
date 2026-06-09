@@ -1,5 +1,3 @@
-import { RarityTier } from '@/types/card';
-
 export type PackTier = 'scroll' | 'tablet' | 'codex';
 
 export interface PackDef {
@@ -7,91 +5,72 @@ export interface PackDef {
   name: string;
   subtitle: string;
   flavour: string;
-  priceUsdc: number;         // primary price — paid in USDC on Base
+  priceUsdc: number;
   accentColor: string;
   dimColor: string;
   borderGradient: string;
   glow: string;
-  weights: Record<RarityTier, number>;
-  /** Top N% of each rarity pool by engagement score. 100 = full pool. */
-  scorePercentile: number;
+  /** Cards drawn at random from the full FID pool */
+  randomCards: number;
+  /** Cards drawn from the top-engagement slice of the pool */
+  topCards: number;
+  /** Fraction of the pool counted as "top" — 0.5 = top 50%, 0.2 = top 20% */
+  topFraction: number;
   odds: { label: string; pct: string; pctNum: number; color: string }[];
 }
-
-export const RARITY_ORDER: RarityTier[] = ['Alpha', 'Legendary', 'Elite', 'Rare', 'Common'];
 
 export const PACK_DEFS: PackDef[] = [
   {
     id: 'scroll',
     name: 'SCROLL',
     subtitle: 'Citizen Pack',
-    flavour: 'The gates are open to all. Ten cards from the great registry.',
+    flavour: 'The gates are open to all. Ten random cards from the great registry.',
     priceUsdc: 3,
-    scorePercentile: 100,
+    randomCards: 10,
+    topCards: 0,
+    topFraction: 1,
     accentColor: '#8a7550',
     dimColor: '#3d3020',
     borderGradient: 'linear-gradient(145deg, #6b5c3e 0%, #3a3020 50%, #8a7550 100%)',
     glow: 'rgba(138,117,80,0.35)',
-    weights: { Alpha: 0.01, Legendary: 0.04, Elite: 0.10, Rare: 0.25, Common: 0.60 },
     odds: [
-      { label: 'Alpha (FID ≤10)', pct: '1%',  pctNum: 1,  color: '#C9A84C' },
-      { label: 'Legendary',       pct: '4%',  pctNum: 4,  color: '#8a63d2' },
-      { label: 'Elite',           pct: '10%', pctNum: 10, color: '#cd7f32' },
-      { label: 'Rare',            pct: '25%', pctNum: 25, color: '#a78bfa' },
-      { label: 'Citizen',         pct: '60%', pctNum: 60, color: '#6b5c3e' },
+      { label: 'Random · full registry', pct: '10/10', pctNum: 100, color: '#8a7550' },
     ],
   },
   {
     id: 'tablet',
     name: 'TABLET',
     subtitle: 'Legionary Pack',
-    flavour: 'Soldiers of the Republic. Weighted toward Elite and above.',
+    flavour: 'Soldiers of the Republic. Seven random plus three from the top half.',
     priceUsdc: 8,
-    scorePercentile: 50,
+    randomCards: 7,
+    topCards: 3,
+    topFraction: 0.5,
     accentColor: '#a78bfa',
     dimColor: '#2d1a50',
     borderGradient: 'linear-gradient(145deg, #7c3aed 0%, #4c1d95 50%, #a78bfa 100%)',
     glow: 'rgba(167,139,250,0.45)',
-    weights: { Alpha: 0.03, Legendary: 0.12, Elite: 0.25, Rare: 0.40, Common: 0.20 },
     odds: [
-      { label: 'Alpha (FID ≤10)', pct: '3%',  pctNum: 3,  color: '#C9A84C' },
-      { label: 'Legendary',       pct: '12%', pctNum: 12, color: '#8a63d2' },
-      { label: 'Elite',           pct: '25%', pctNum: 25, color: '#cd7f32' },
-      { label: 'Rare',            pct: '40%', pctNum: 40, color: '#a78bfa' },
-      { label: 'Citizen',         pct: '20%', pctNum: 20, color: '#6b5c3e' },
+      { label: 'Random picks',     pct: '7/10', pctNum: 70, color: '#8a7550' },
+      { label: 'Top 50% engaged',  pct: '3/10', pctNum: 30, color: '#a78bfa' },
     ],
   },
   {
     id: 'codex',
     name: 'CODEX',
     subtitle: 'Senator Pack',
-    flavour: 'The inner sanctum. Deep odds for Legendary and above.',
+    flavour: 'The inner sanctum. Two random, eight from the most active accounts.',
     priceUsdc: 25,
-    scorePercentile: 25,
+    randomCards: 2,
+    topCards: 8,
+    topFraction: 0.2,
     accentColor: '#C9A84C',
     dimColor: '#3d2500',
     borderGradient: 'linear-gradient(145deg, #C9A84C 0%, #8a1c3a 50%, #C9A84C 100%)',
     glow: 'rgba(201,168,76,0.6)',
-    weights: { Alpha: 0.10, Legendary: 0.25, Elite: 0.30, Rare: 0.25, Common: 0.10 },
     odds: [
-      { label: 'Alpha (FID ≤10)', pct: '10%', pctNum: 10, color: '#C9A84C' },
-      { label: 'Legendary',       pct: '25%', pctNum: 25, color: '#8a63d2' },
-      { label: 'Elite',           pct: '30%', pctNum: 30, color: '#cd7f32' },
-      { label: 'Rare',            pct: '25%', pctNum: 25, color: '#a78bfa' },
-      { label: 'Citizen',         pct: '10%', pctNum: 10, color: '#6b5c3e' },
+      { label: 'Random picks',     pct: '2/10', pctNum: 20, color: '#8a7550' },
+      { label: 'Top 20% engaged',  pct: '8/10', pctNum: 80, color: '#C9A84C' },
     ],
   },
 ];
-
-export function rollRarities(weights: Record<RarityTier, number>, count: number): RarityTier[] {
-  return Array.from({ length: count }, () => {
-    const roll = Math.random();
-    let cum = 0;
-    for (const r of RARITY_ORDER) {
-      cum += weights[r];
-      if (roll <= cum) return r;
-    }
-    return 'Common';
-  });
-}
-

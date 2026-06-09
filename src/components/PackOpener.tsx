@@ -195,7 +195,7 @@ export default function PackOpener({
                 background: 'rgba(138,99,210,0.08)', border: '1px solid rgba(138,99,210,0.2)',
                 color: '#8a63d2',
               }}>
-                Top {packDef.scorePercentile}% scored pulls
+                {packDef.topCards > 0 ? `${packDef.topCards} from top ${Math.round(packDef.topFraction * 100)}% engaged` : 'Full random pool'}
               </div>
               <div style={{
                 fontSize: 8, padding: '3px 8px', borderRadius: 99, fontWeight: 700,
@@ -350,7 +350,7 @@ export default function PackOpener({
           Opening {packDef.name} Pack…
         </p>
         <p style={{ color: '#6b5a80', fontSize: 9, marginTop: 6, letterSpacing: '0.15em' }}>
-          Top {packDef.scorePercentile}% score pool · {packDef.odds.slice(0, 3).map(o => o.label).join(', ')}…
+          {packDef.topCards > 0 ? `${packDef.randomCards} random · ${packDef.topCards} top ${Math.round(packDef.topFraction * 100)}% engaged` : '10 random picks from 100k+ accounts'}
         </p>
       </div>
     );
