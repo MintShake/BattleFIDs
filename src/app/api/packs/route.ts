@@ -6,6 +6,7 @@ import { buildCard } from '@/lib/cardBuilder';
 import { BattleFIDCard, CardType, OwnedCard } from '@/types/card';
 import { FidTimeline } from '@/types/faces';
 import { PACK_DEFS, PackTier } from '@/lib/packTiers';
+import { upsertPlayer, awardPoints } from '@/lib/points';
 
 const PACK_SIZE = 10;
 const EDITION_1OF1_CHANCE = 0.015;
@@ -230,6 +231,10 @@ export async function POST(req: NextRequest) {
         console.error('[packs] edition 1/1 error:', e);
       }
     }
+
+    // Ensure player exists and award pack_open points
+    await upsertPlayer(ownerFid, ownerDeviceId);
+    await awardPoints(ownerFid, ownerDeviceId, 'pack_open');
 
     return NextResponse.json(owned);
   } catch (err) {
