@@ -127,6 +127,45 @@ export async function fetchCastCount(fid: number, since: Date): Promise<number> 
   }
 }
 
+// Fetch the appropriate metric for an edition bonus slot
+export async function fetchBonusMetric(fid: number, metricType: string, since: Date): Promise<number> {
+  switch (metricType) {
+    case 'neynar_total_reactions': {
+      const s = await fetchWeeklyStats(fid, since);
+      return s.likesReceived + s.recastsReceived;
+    }
+    case 'neynar_embed_casts':
+      return fetchEmbedCastCount(fid, since);
+    case 'neynar_casts':
+      return fetchCastCount(fid, since);
+    case 'neynar_likes':
+      return (await fetchWeeklyStats(fid, since)).likesReceived;
+    case 'neynar_replies':
+      return (await fetchWeeklyStats(fid, since)).repliesSent;
+    default:
+      return 0;
+  }
+}
+
+// Count casts that have at least one URL/frame embed (proxy for mini-app posts)
+async function fetchEmbedCastCount(fid: number, since: Date): Promise<number> {
+  if (!process.env.NEYNAR_API_KEY) return 0;
+  try {
+    const res = await fetch(
+      `${NEYNAR_BASE}/farcaster/feed/user/casts?fid=${fid}&limit=150&include_replies=false`,
+      { headers: apiHeaders() },
+    );
+    if (!res.ok) return 0;
+    const data = await res.json();
+    const sinceMs = since.getTime();
+    return (data.casts ?? []).filter((c: { timestamp: string; embeds?: unknown[] }) =>
+      new Date(c.timestamp).getTime() >= sinceMs && (c.embeds ?? []).length > 0,
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
 // Client-side: calls our proxy (keeps API key server-only)
 export async function fetchNeynarUsers(fids: number[]): Promise<Map<number, NeynarUser>> {
   if (fids.length === 0) return new Map();

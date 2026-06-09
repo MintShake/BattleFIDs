@@ -79,3 +79,23 @@ export interface WeeklyTeamSlots {
   score_rise_fid: number | null;
   likes_fid:      number | null;
 }
+
+// ── Edition bonus slots ───────────────────────────────────────────────────────
+
+export type EditionMetricType =
+  | 'neynar_total_reactions'   // likesReceived + recastsReceived
+  | 'neynar_embed_casts'       // casts with any link/frame embed
+  | 'neynar_casts'             // total non-reply casts
+  | 'neynar_likes'             // likes received
+  | 'neynar_replies';          // replies sent
+
+export interface EditionBonusSlotDef {
+  id:          string;   // '{editionId}:{slotKey}'
+  editionId:   string;
+  slotKey:     string;
+  label:       string;
+  emoji:       string;
+  description: string;
+  metricType:  EditionMetricType;
+  sortOrder:   number;
+}

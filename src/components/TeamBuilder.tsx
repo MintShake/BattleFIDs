@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { OwnedCard } from '@/types/card';
-import { SlotType, SLOT_TYPES, SLOT_LABELS, SLOT_DESC, SLOT_EMOJI, PlayerTier, TIER_LABELS, TIER_DESC } from '@/types/league';
+import { SlotType, SLOT_TYPES, SLOT_LABELS, SLOT_DESC, SLOT_EMOJI, PlayerTier, TIER_LABELS, TIER_DESC, type EditionBonusSlotDef } from '@/types/league';
 
 const SLOT_COLORS: Record<SlotType, string> = {
   casts:      '#8a63d2',
@@ -45,6 +45,15 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
   const [error, setError]       = useState('');
   const [weekId, setWeekId]     = useState('');
 
+  // Edition bonus slots (Pro only)
+  const [editionSlots, setEditionSlots]   = useState<{ editionId: string; slots: EditionBonusSlotDef[] }[]>([]);
+  const [activeEdition, setActiveEdition] = useState<string | null>(null);
+  const [editionCard, setEditionCard]     = useState<OwnedCard | null>(null);
+  const [editionPicking, setEditionPicking] = useState(false);
+  const [editionSaving, setEditionSaving] = useState(false);
+  const [editionSaved, setEditionSaved]   = useState(false);
+  const [editionError, setEditionError]   = useState('');
+
   // Load player + existing team
   useEffect(() => {
     const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
@@ -55,6 +64,27 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
       .then(data => {
         setPlayer(data);
         if (data.lockedToPro) setChosenTier('pro');
+      })
+      .catch(() => {});
+
+    // Fetch edition bonus slots (always — shown only for Pro)
+    fetch('/api/editions/slots')
+      .then(r => r.json())
+      .then(data => setEditionSlots(data.editions ?? []))
+      .catch(() => {});
+
+    // Fetch existing edition pick
+    fetch(`/api/week/edition-pick?${param}`)
+      .then(r => r.json())
+      .then(data => {
+        const picks = data.picks ?? [];
+        if (picks.length > 0) {
+          const p = picks[0];
+          setActiveEdition(p.editionId);
+          const card = owned.find(o => o.card.fid === p.cardFid) ?? null;
+          setEditionCard(card);
+          if (card) setEditionSaved(true);
+        }
       })
       .catch(() => {});
 
@@ -124,6 +154,39 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
   }
 
   const canChooseTier = player && !player.lockedToPro;
+  const isPro         = player?.lockedToPro || player?.tier === 'pro';
+
+  // Active bonus slot definition
+  const activeEditionGroup = editionSlots.find(e => e.editionId === activeEdition);
+  const activeBonusSlot    = activeEditionGroup?.slots[0] ?? null;
+
+  async function saveEditionPick(card: OwnedCard) {
+    if (!activeBonusSlot) return;
+    setEditionCard(card);
+    setEditionPicking(false);
+    setEditionSaving(true);
+    setEditionError('');
+    try {
+      const res = await fetch('/api/week/edition-pick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerFid,
+          ownerDeviceId: ownerFid ? undefined : ownerDevice,
+          editionId: activeBonusSlot.editionId,
+          slotKey:   activeBonusSlot.slotKey,
+          cardFid:   card.card.fid,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to save edition pick');
+      setEditionSaved(true);
+    } catch (e) {
+      setEditionError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setEditionSaving(false);
+    }
+  }
 
   return (
     <div>
@@ -324,6 +387,123 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         >
           {saving ? 'Locking…' : full ? `Lock In · ${TIER_LABELS[chosenTier]}` : `${SLOT_TYPES.filter(s => !slots[s]).length} Slots Empty`}
         </button>
+      )}
+
+      {/* ── Edition Bonus Slots (Pro only) ── */}
+      {isPro && editionSlots.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase' }}>
+              ★ Edition Bonus Slot
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
+          </div>
+
+          <div style={{ fontSize: 9, color: '#7a6a90', marginBottom: 10, lineHeight: 1.5 }}>
+            Pro exclusive. Pick an edition and assign a 6th card — compete for bonus points against other Pros playing the same edition slot.
+          </div>
+
+          {/* Edition selector */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {editionSlots.map(eg => (
+              <button
+                key={eg.editionId}
+                onClick={() => { setActiveEdition(eg.editionId); setEditionCard(null); setEditionSaved(false); }}
+                style={{
+                  padding: '6px 14px', borderRadius: 99,
+                  border: activeEdition === eg.editionId ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
+                  background: activeEdition === eg.editionId ? 'rgba(201,168,76,0.1)' : 'transparent',
+                  color: activeEdition === eg.editionId ? '#C9A84C' : '#7a6a90',
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
+                }}
+              >
+                {eg.editionId === '2026-rome' ? '2026 Edition' : eg.editionId === 'builders' ? 'Builders' : eg.editionId}
+              </button>
+            ))}
+            {activeEdition && (
+              <button
+                onClick={() => { setActiveEdition(null); setEditionCard(null); setEditionSaved(false); }}
+                style={{ padding: '6px 10px', borderRadius: 99, border: '1px solid rgba(138,99,210,0.15)', background: 'transparent', color: '#5a4a70', fontSize: 9, cursor: 'pointer' }}
+              >
+                ✕ remove
+              </button>
+            )}
+          </div>
+
+          {/* Active bonus slot */}
+          {activeBonusSlot && (
+            <div>
+              {/* Slot row */}
+              <div
+                onClick={() => setEditionPicking(p => !p)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 14,
+                  background: editionPicking ? 'rgba(201,168,76,0.1)' : 'rgba(201,168,76,0.05)',
+                  border: `1px solid ${editionPicking ? '#C9A84C' : 'rgba(201,168,76,0.25)'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>
+                  {activeBonusSlot.emoji}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.12em', color: '#C9A84C', textTransform: 'uppercase' }}>
+                    {activeBonusSlot.label}
+                  </div>
+                  {editionCard ? (
+                    <div style={{ fontSize: 9, color: '#8a7fa0' }}>@{editionCard.card.handle} · {editionCard.card.rarity}</div>
+                  ) : (
+                    <div style={{ fontSize: 8, color: '#7a6a90' }}>{activeBonusSlot.description}</div>
+                  )}
+                </div>
+                {editionCard ? (
+                  <div style={{ position: 'relative', width: 36, height: 36, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(201,168,76,0.3)', flexShrink: 0 }}>
+                    <Image src={editionCard.card.thumbUrl} alt={editionCard.card.handle} fill style={{ objectFit: 'cover' }} unoptimized />
+                  </div>
+                ) : (
+                  <div style={{ width: 36, height: 36, borderRadius: 8, border: '1px dashed rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: 'rgba(201,168,76,0.4)', flexShrink: 0 }}>+</div>
+                )}
+              </div>
+
+              {/* Inline card picker */}
+              {editionPicking && (
+                <div style={{ marginTop: 6, paddingLeft: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
+                    {owned.map(o => (
+                      <div
+                        key={o.card.fid}
+                        onClick={() => saveEditionPick(o)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 10, background: 'rgba(201,168,76,0.05)', border: '1px solid rgba(201,168,76,0.15)', cursor: 'pointer' }}
+                      >
+                        <div style={{ position: 'relative', width: 30, height: 30, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
+                          <Image src={o.card.thumbUrl} alt={o.card.handle} fill style={{ objectFit: 'cover' }} unoptimized />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#e0d4f0' }}>@{o.card.handle}</div>
+                          <div style={{ fontSize: 8, color: '#a08cc0' }}>FID {o.card.fid} · {o.card.rarity}</div>
+                        </div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#C9A84C' }}>{o.card.battleScore}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {editionError && (
+                <div style={{ fontSize: 9, color: '#e63946', marginTop: 6 }}>{editionError}</div>
+              )}
+              {editionSaved && !editionSaving && (
+                <div style={{ fontSize: 9, color: '#22c55e', marginTop: 6, letterSpacing: '0.1em' }}>✓ Edition slot saved</div>
+              )}
+              {editionSaving && (
+                <div style={{ fontSize: 9, color: '#C9A84C', marginTop: 6 }}>Saving…</div>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

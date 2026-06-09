@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { SLOT_TYPES, SLOT_LABELS, SLOT_EMOJI, type SlotType } from '@/types/league';
+import { SLOT_TYPES, SLOT_LABELS, SLOT_EMOJI, type SlotType, type EditionBonusSlotDef } from '@/types/league';
 
 const SLOT_COLORS: Record<SlotType, string> = {
   casts:      '#8a63d2',
@@ -79,6 +79,22 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
   const [updateErr, setUpdateErr] = useState('');
   const [tick, setTick] = useState(0);
 
+  // Edition picks
+  interface EditionPick {
+    editionId:   string;
+    slotKey:     string;
+    cardFid:     number;
+    handle:      string | null;
+    thumb:       string | null;
+    label:       string;
+    emoji:       string;
+    slotPoints:  number;
+    rank:        number | null;
+    previewValue?: number | null;
+  }
+  const [editionPicks, setEditionPicks] = useState<EditionPick[]>([]);
+  const [editionPreviews, setEditionPreviews] = useState<Record<string, { value: number; beating: number; compared: number; totalOnSlot: number }>>({});
+
   // countdown ticker
   useEffect(() => {
     const iv = setInterval(() => setTick(t => t + 1), 60000);
@@ -136,6 +152,26 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    // Fetch edition picks
+    const editionParam = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
+    fetch(`/api/week/edition-pick?${editionParam}`)
+      .then(r => r.json())
+      .then(data => {
+        setEditionPicks((data.picks ?? []).map((p: { editionId: string; slotKey: string; cardFid: number; handle: string | null; thumb: string | null; label: string; emoji: string; slotPoints: number; rank: number | null; previewValue: number | null }) => ({
+          editionId:    p.editionId,
+          slotKey:      p.slotKey,
+          cardFid:      p.cardFid,
+          handle:       p.handle,
+          thumb:        p.thumb,
+          label:        p.label,
+          emoji:        p.emoji,
+          slotPoints:   p.slotPoints,
+          rank:         p.rank,
+          previewValue: p.previewValue,
+        })));
+      })
+      .catch(() => {});
   }, [ownerFid, ownerDevice]);
 
   const handleUpdate = useCallback(async () => {
@@ -143,17 +179,27 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
     setUpdating(true);
     setUpdateErr('');
     try {
-      const res = await fetch('/api/week/score/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ownerFid ? { ownerFid } : { ownerDeviceId: ownerDevice }),
-      });
-      const data = await res.json();
+      const body = JSON.stringify(ownerFid ? { ownerFid } : { ownerDeviceId: ownerDevice });
+      // Fetch base slot preview + edition pick preview in parallel
+      const [res, edRes] = await Promise.all([
+        fetch('/api/week/score/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+        fetch('/api/week/edition-pick/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
+      ]);
+      const data   = await res.json();
+      const edData = await edRes.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
       setPreview(data.slots);
       setMyGroup(data.myGroup);
       setTotalInGroup(data.totalInGroup);
       setUpdatedAt(data.updatedAt);
+      // Edition previews keyed by '{editionId}:{slotKey}'
+      if (edData.previews) {
+        const ep: Record<string, { value: number; beating: number; compared: number; totalOnSlot: number }> = {};
+        for (const p of edData.previews) {
+          ep[`${p.editionId}:${p.slotKey}`] = { value: p.value, beating: p.beating, compared: p.compared, totalOnSlot: p.totalOnSlot };
+        }
+        setEditionPreviews(ep);
+      }
     } catch (e) {
       setUpdateErr(e instanceof Error ? e.message : 'Update failed');
     } finally {
@@ -353,6 +399,81 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
           );
         })}
       </div>
+
+      {/* ── Edition bonus slots ── */}
+      {editionPicks.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
+            <div style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.25em', color: '#C9A84C', textTransform: 'uppercase' }}>
+              ★ Edition Bonus
+            </div>
+            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
+          </div>
+
+          {editionPicks.map(pick => {
+            const key  = `${pick.editionId}:${pick.slotKey}`;
+            const ep   = editionPreviews[key] ?? null;
+            const scoredEd = pick.slotPoints > 0 || pick.rank != null;
+
+            const leading  = ep && ep.compared > 0 && ep.beating === ep.compared - 1;
+            const winning  = ep && ep.compared > 0 && ep.beating > ep.compared / 2;
+            const barPct   = ep && ep.compared > 1 ? Math.round((ep.beating / (ep.compared - 1)) * 100) : ep ? 100 : 0;
+
+            let statusLabel = '';
+            let statusColor = '#5a4a70';
+            if (ep) {
+              if (ep.compared === 0)  { statusLabel = 'only you so far'; statusColor = '#5a4a70'; }
+              else if (leading)       { statusLabel = 'leading';          statusColor = '#22c55e'; }
+              else if (winning)       { statusLabel = `#${ep.compared - ep.beating} of ${ep.compared}`; statusColor = '#C9A84C'; }
+              else                    { statusLabel = `#${ep.compared - ep.beating} of ${ep.compared}`; statusColor = '#7a6a90'; }
+            }
+
+            return (
+              <div key={key} style={{ borderRadius: 12, overflow: 'hidden', background: winning ? 'rgba(201,168,76,0.08)' : 'rgba(201,168,76,0.04)', border: `1px solid ${winning ? 'rgba(201,168,76,0.35)' : 'rgba(201,168,76,0.18)'}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 16, flexShrink: 0, width: 24, textAlign: 'center' }}>{pick.emoji}</div>
+                  {pick.thumb ? (
+                    <div style={{ position: 'relative', width: 30, height: 30, borderRadius: 7, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(201,168,76,0.3)' }}>
+                      <Image src={pick.thumb} alt={pick.handle ?? 'card'} fill style={{ objectFit: 'cover' }} unoptimized />
+                    </div>
+                  ) : (
+                    <div style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(201,168,76,0.15)', flexShrink: 0 }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#e0d4f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {pick.handle ? `@${pick.handle}` : '—'}
+                    </div>
+                    <div style={{ fontSize: 8, color: '#C9A84C', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 1 }}>
+                      {pick.label}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    {scoredEd ? (
+                      <>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#C9A84C', lineHeight: 1 }}>{pick.slotPoints}</div>
+                        <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>ed pts{pick.rank ? ` · #${pick.rank}` : ''}</div>
+                      </>
+                    ) : ep ? (
+                      <>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: '#C9A84C', lineHeight: 1 }}>{ep.value}</div>
+                        <div style={{ fontSize: 8, fontWeight: 700, color: statusColor, marginTop: 1 }}>{statusLabel}</div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 9, color: '#5a4a70' }}>—</div>
+                    )}
+                  </div>
+                </div>
+                {ep && ep.compared > 0 && !scoredEd && (
+                  <div style={{ height: 3, background: 'rgba(201,168,76,0.12)', margin: '0 12px 10px' }}>
+                    <div style={{ height: '100%', width: `${barPct}%`, background: leading ? 'linear-gradient(90deg, #C9A84C, #22c55e)' : '#C9A84C', borderRadius: 99, transition: 'width 0.5s ease', minWidth: barPct > 0 ? 6 : 0 }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Update button ── */}
       {!scored && (

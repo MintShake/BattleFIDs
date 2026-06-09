@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount } from '@/lib/neynar';
+import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount, fetchBonusMetric } from '@/lib/neynar';
 import { currentWeekId, weekBounds } from '@/lib/weeklyScoring';
 import { awardPoints } from '@/lib/points';
 
@@ -169,6 +169,69 @@ export async function GET(req: NextRequest) {
 
   await sql`UPDATE weeks SET computed_at = NOW() WHERE id = ${weekId}`;
 
-  return NextResponse.json({ ok: true, weekId, teamsScored: teams.length });
+  // ── Score edition bonus slots ─────────────────────────────────────────────
+  // Find all distinct (edition_id, slot_key) combos for this week with ≥2 picks
+  const editionGroups = await sql`
+    SELECT edition_id, slot_key, COUNT(*) AS cnt
+    FROM weekly_edition_picks
+    WHERE week_id = ${weekId}
+    GROUP BY edition_id, slot_key
+    HAVING COUNT(*) >= 2
+  `;
+
+  let editionPicksScored = 0;
+
+  for (const eg of editionGroups) {
+    const editionId = eg.edition_id as string;
+    const slotKey   = eg.slot_key as string;
+
+    // Get metric_type for this slot
+    const slotDef = await sql`
+      SELECT metric_type FROM edition_bonus_slots
+      WHERE edition_id = ${editionId} AND slot_key = ${slotKey}
+    `;
+    if (!slotDef[0]) continue;
+    const metricType = slotDef[0].metric_type as string;
+
+    // Load all picks for this group
+    const picks = await sql`
+      SELECT id, owner_fid, owner_device_id, card_fid
+      FROM weekly_edition_picks
+      WHERE week_id = ${weekId} AND edition_id = ${editionId} AND slot_key = ${slotKey}
+    `;
+
+    // Fetch live metric for each pick's card
+    const values: { id: string; ownerFid: number | null; deviceId: string | null; value: number }[] = [];
+    for (const p of picks) {
+      const v = await fetchBonusMetric(Number(p.card_fid), metricType, start);
+      values.push({
+        id:       p.id as string,
+        ownerFid: p.owner_fid ? Number(p.owner_fid) : null,
+        deviceId: p.owner_device_id ?? null,
+        value:    v,
+      });
+    }
+
+    // Rank and award
+    values.sort((a, b) => b.value - a.value);
+    for (let i = 0; i < values.length; i++) {
+      const { id, ownerFid, deviceId, value } = values[i];
+      const rank    = i + 1;
+      const beating = values.filter(v => v.value < value).length;
+
+      await sql`
+        UPDATE weekly_edition_picks
+        SET score_value = ${value}, slot_points = ${beating}, rank = ${rank}
+        WHERE id = ${id}
+      `;
+
+      if (beating > 0) {
+        await awardPoints(ownerFid, deviceId, 'slot_beat', beating, { weekId, edition: editionId, slot: slotKey });
+      }
+      editionPicksScored++;
+    }
+  }
+
+  return NextResponse.json({ ok: true, weekId, teamsScored: teams.length, editionPicksScored });
 }
 
