@@ -108,6 +108,25 @@ export async function fetchWeeklyStats(fid: number, since: Date): Promise<{
   }
 }
 
+// Count non-reply casts published by a FID since a given date
+export async function fetchCastCount(fid: number, since: Date): Promise<number> {
+  if (!process.env.NEYNAR_API_KEY) return 0;
+  try {
+    const res = await fetch(
+      `${NEYNAR_BASE}/farcaster/feed/user/casts?fid=${fid}&limit=150&include_replies=false`,
+      { headers: apiHeaders() },
+    );
+    if (!res.ok) return 0;
+    const data = await res.json();
+    const sinceMs = since.getTime();
+    return (data.casts ?? []).filter((c: { timestamp: string }) =>
+      new Date(c.timestamp).getTime() >= sinceMs,
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
 // Client-side: calls our proxy (keeps API key server-only)
 export async function fetchNeynarUsers(fids: number[]): Promise<Map<number, NeynarUser>> {
   if (fids.length === 0) return new Map();

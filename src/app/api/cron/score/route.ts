@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { fetchNeynarUsersDirect, fetchWeeklyStats } from '@/lib/neynar';
+import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount } from '@/lib/neynar';
 import { currentWeekId, weekBounds } from '@/lib/weeklyScoring';
 import { awardPoints } from '@/lib/points';
 
@@ -172,21 +172,3 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, weekId, teamsScored: teams.length });
 }
 
-// Count casts published in the week window
-async function fetchCastCount(fid: number, since: Date): Promise<number> {
-  if (!process.env.NEYNAR_API_KEY) return 0;
-  try {
-    const res = await fetch(
-      `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${fid}&limit=150&include_replies=false`,
-      { headers: { 'x-api-key': process.env.NEYNAR_API_KEY, accept: 'application/json' } },
-    );
-    if (!res.ok) return 0;
-    const data = await res.json();
-    const sinceMs = since.getTime();
-    return (data.casts ?? []).filter((c: { timestamp: string }) =>
-      new Date(c.timestamp).getTime() >= sinceMs,
-    ).length;
-  } catch {
-    return 0;
-  }
-}
