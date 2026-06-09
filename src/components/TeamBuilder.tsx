@@ -45,14 +45,15 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
   const [error, setError]       = useState('');
   const [weekId, setWeekId]     = useState('');
 
-  // Edition bonus slots (Pro only)
-  const [editionSlots, setEditionSlots]   = useState<{ editionId: string; slots: EditionBonusSlotDef[] }[]>([]);
-  const [activeEdition, setActiveEdition] = useState<string | null>(null);
-  const [editionCard, setEditionCard]     = useState<OwnedCard | null>(null);
-  const [editionPicking, setEditionPicking] = useState(false);
-  const [editionSaving, setEditionSaving] = useState(false);
-  const [editionSaved, setEditionSaved]   = useState(false);
-  const [editionError, setEditionError]   = useState('');
+  // Edition bonus slots
+  const [editionSlots, setEditionSlots]       = useState<{ editionId: string; slots: EditionBonusSlotDef[] }[]>([]);
+  const [activeEdition, setActiveEdition]     = useState<string | null>(null);
+  const [activeEditionSlotKey, setActiveEditionSlotKey] = useState<string | null>(null);
+  const [editionCard, setEditionCard]         = useState<OwnedCard | null>(null);
+  const [editionPicking, setEditionPicking]   = useState(false);
+  const [editionSaving, setEditionSaving]     = useState(false);
+  const [editionSaved, setEditionSaved]       = useState(false);
+  const [editionError, setEditionError]       = useState('');
 
   // Load player + existing team
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         if (picks.length > 0) {
           const p = picks[0];
           setActiveEdition(p.editionId);
+          setActiveEditionSlotKey(p.slotKey);
           const card = owned.find(o => o.card.fid === p.cardFid) ?? null;
           setEditionCard(card);
           if (card) setEditionSaved(true);
@@ -158,7 +160,37 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
 
   // Active bonus slot definition
   const activeEditionGroup = editionSlots.find(e => e.editionId === activeEdition);
-  const activeBonusSlot    = activeEditionGroup?.slots[0] ?? null;
+  const activeBonusSlot    = activeEditionGroup
+    ? (activeEditionGroup.slots.find(s => s.slotKey === activeEditionSlotKey)
+        ?? (activeEditionGroup.slots.length === 1 ? activeEditionGroup.slots[0] : null))
+    : null;
+
+  // Auto-revert non-Pro players to Standard when player data loads
+  useEffect(() => {
+    if (!player) return;
+    const isNowPro = player.lockedToPro || player.tier === 'pro';
+    if (!isNowPro && activeEdition) {
+      const qs = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
+      fetch(`/api/week/edition-pick?${qs}&editionId=${activeEdition}&slotKey=${activeEditionSlotKey ?? ''}`, { method: 'DELETE' }).catch(() => {});
+      setActiveEdition(null);
+      setActiveEditionSlotKey(null);
+      setEditionCard(null);
+      setEditionSaved(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
+
+  async function clearEditionPick() {
+    if (activeEdition && activeBonusSlot) {
+      const qs = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
+      await fetch(`/api/week/edition-pick?${qs}&editionId=${activeEdition}&slotKey=${activeBonusSlot.slotKey}`, { method: 'DELETE' }).catch(() => {});
+    }
+    setActiveEdition(null);
+    setActiveEditionSlotKey(null);
+    setEditionCard(null);
+    setEditionSaved(false);
+    setEditionError('');
+  }
 
   async function saveEditionPick(card: OwnedCard) {
     if (!activeBonusSlot) return;
@@ -389,53 +421,96 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         </button>
       )}
 
-      {/* ── Edition Bonus Slots (Pro only) ── */}
-      {isPro && editionSlots.length > 0 && (
+      {/* ── Edition ── */}
+      {editionSlots.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
-            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase' }}>
-              ★ Edition Bonus Slot
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.12)' }} />
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase' }}>★ Edition</div>
+            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.12)' }} />
+          </div>
+
+          {/* Edition pills */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+            {/* Standard (base) pill */}
+            <button
+              onClick={clearEditionPick}
+              style={{
+                padding: '6px 14px', borderRadius: 99,
+                border: !activeEdition ? '1px solid rgba(180,160,210,0.5)' : '1px solid rgba(180,160,210,0.15)',
+                background: !activeEdition ? 'rgba(180,160,210,0.1)' : 'transparent',
+                color: !activeEdition ? '#c0b0d0' : '#4a3a60',
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
+              }}
+            >
+              Standard
+            </button>
+
+            {editionSlots.map(eg => {
+              const active = activeEdition === eg.editionId;
+              const label  = eg.editionId === '2026-rome' ? '2026 Edition'
+                           : eg.editionId === 'builders'  ? 'Builders'
+                           : eg.editionId;
+              return (
+                <button
+                  key={eg.editionId}
+                  onClick={() => {
+                    if (!isPro) return;
+                    setActiveEdition(eg.editionId);
+                    setActiveEditionSlotKey(eg.slots.length === 1 ? eg.slots[0].slotKey : null);
+                    setEditionCard(null);
+                    setEditionSaved(false);
+                    setEditionPicking(false);
+                    setEditionError('');
+                  }}
+                  disabled={!isPro}
+                  style={{
+                    padding: '6px 14px', borderRadius: 99,
+                    border: active ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
+                    background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
+                    color: active ? '#C9A84C' : isPro ? '#7a6a90' : '#3a2a50',
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    cursor: isPro ? 'pointer' : 'not-allowed',
+                    opacity: isPro ? 1 : 0.6,
+                  }}
+                >
+                  {isPro ? label : `🔒 ${label}`}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Non-Pro explanation */}
+          {!isPro && (
+            <div style={{ fontSize: 9, color: '#3a2a50', textAlign: 'center', marginBottom: 6 }}>
+              Editions unlock at Pro tier
             </div>
-            <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />
-          </div>
+          )}
 
-          <div style={{ fontSize: 9, color: '#7a6a90', marginBottom: 10, lineHeight: 1.5 }}>
-            Pro exclusive. Pick an edition and assign a 6th card — compete for bonus points against other Pros playing the same edition slot.
-          </div>
+          {/* Slot sub-selector (editions with multiple slots) */}
+          {isPro && activeEdition && activeEditionGroup && activeEditionGroup.slots.length > 1 && (
+            <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
+              {activeEditionGroup.slots.map(slot => (
+                <button
+                  key={slot.slotKey}
+                  onClick={() => { setActiveEditionSlotKey(slot.slotKey); setEditionCard(null); setEditionSaved(false); setEditionPicking(false); }}
+                  style={{
+                    padding: '5px 12px', borderRadius: 99,
+                    border: activeEditionSlotKey === slot.slotKey ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
+                    background: activeEditionSlotKey === slot.slotKey ? 'rgba(201,168,76,0.1)' : 'transparent',
+                    color: activeEditionSlotKey === slot.slotKey ? '#C9A84C' : '#5a4a70',
+                    fontSize: 9, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  {slot.emoji} {slot.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* Edition selector */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-            {editionSlots.map(eg => (
-              <button
-                key={eg.editionId}
-                onClick={() => { setActiveEdition(eg.editionId); setEditionCard(null); setEditionSaved(false); }}
-                style={{
-                  padding: '6px 14px', borderRadius: 99,
-                  border: activeEdition === eg.editionId ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
-                  background: activeEdition === eg.editionId ? 'rgba(201,168,76,0.1)' : 'transparent',
-                  color: activeEdition === eg.editionId ? '#C9A84C' : '#7a6a90',
-                  fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-                }}
-              >
-                {eg.editionId === '2026-rome' ? '2026 Edition' : eg.editionId === 'builders' ? 'Builders' : eg.editionId}
-              </button>
-            ))}
-            {activeEdition && (
-              <button
-                onClick={() => { setActiveEdition(null); setEditionCard(null); setEditionSaved(false); }}
-                style={{ padding: '6px 10px', borderRadius: 99, border: '1px solid rgba(138,99,210,0.15)', background: 'transparent', color: '#5a4a70', fontSize: 9, cursor: 'pointer' }}
-              >
-                ✕ remove
-              </button>
-            )}
-          </div>
-
-          {/* Active bonus slot */}
-          {activeBonusSlot && (
+          {/* 6th slot card row — Pro + active slot only */}
+          {isPro && activeBonusSlot && (
             <div>
-              {/* Slot row */}
               <div
                 onClick={() => setEditionPicking(p => !p)}
                 style={{
@@ -453,11 +528,10 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                   <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.12em', color: '#C9A84C', textTransform: 'uppercase' }}>
                     {activeBonusSlot.label}
                   </div>
-                  {editionCard ? (
-                    <div style={{ fontSize: 9, color: '#8a7fa0' }}>@{editionCard.card.handle} · {editionCard.card.rarity}</div>
-                  ) : (
-                    <div style={{ fontSize: 8, color: '#7a6a90' }}>{activeBonusSlot.description}</div>
-                  )}
+                  {editionCard
+                    ? <div style={{ fontSize: 9, color: '#8a7fa0' }}>@{editionCard.card.handle} · {editionCard.card.rarity}</div>
+                    : <div style={{ fontSize: 8, color: '#7a6a90' }}>{activeBonusSlot.description}</div>
+                  }
                 </div>
                 {editionCard ? (
                   <div style={{ position: 'relative', width: 36, height: 36, borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(201,168,76,0.3)', flexShrink: 0 }}>
@@ -468,7 +542,6 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                 )}
               </div>
 
-              {/* Inline card picker */}
               {editionPicking && (
                 <div style={{ marginTop: 6, paddingLeft: 8 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
@@ -492,15 +565,9 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                 </div>
               )}
 
-              {editionError && (
-                <div style={{ fontSize: 9, color: '#e63946', marginTop: 6 }}>{editionError}</div>
-              )}
-              {editionSaved && !editionSaving && (
-                <div style={{ fontSize: 9, color: '#22c55e', marginTop: 6, letterSpacing: '0.1em' }}>✓ Edition slot saved</div>
-              )}
-              {editionSaving && (
-                <div style={{ fontSize: 9, color: '#C9A84C', marginTop: 6 }}>Saving…</div>
-              )}
+              {editionError && <div style={{ fontSize: 9, color: '#e63946', marginTop: 6 }}>{editionError}</div>}
+              {editionSaved && !editionSaving && <div style={{ fontSize: 9, color: '#22c55e', marginTop: 6, letterSpacing: '0.1em' }}>✓ Edition slot saved</div>}
+              {editionSaving && <div style={{ fontSize: 9, color: '#C9A84C', marginTop: 6 }}>Saving…</div>}
             </div>
           )}
         </div>
