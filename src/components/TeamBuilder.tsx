@@ -42,14 +42,14 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         setScores(data.scores ?? {});
         if (!data.team) return;
         const t = data.team;
-        // Rebuild slots from owned cards by image_id
-        const byId = new Map(owned.map(o => [o.card.imageId, o]));
+        // Rebuild slots from owned cards by fid
+        const byFid = new Map(owned.map(o => [o.card.fid, o]));
         setSlots({
-          CAPTAIN:     byId.get(t.captain_image_id)     ?? null,
-          BROADCASTER: byId.get(t.broadcaster_image_id) ?? null,
-          PUBLISHER:   byId.get(t.publisher_image_id)   ?? null,
-          AGITATOR:    byId.get(t.agitator_image_id)    ?? null,
-          NETWORKER:   byId.get(t.networker_image_id)   ?? null,
+          CAPTAIN:     byFid.get(t.captain_fid)     ?? null,
+          BROADCASTER: byFid.get(t.broadcaster_fid) ?? null,
+          PUBLISHER:   byFid.get(t.publisher_fid)   ?? null,
+          AGITATOR:    byFid.get(t.agitator_fid)    ?? null,
+          NETWORKER:   byFid.get(t.networker_fid)   ?? null,
         });
       })
       .catch(() => {});
@@ -68,11 +68,11 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         body: JSON.stringify({
           ownerFid,
           ownerDeviceId: ownerFid ? undefined : ownerDevice,
-          captainImageId:     slots.CAPTAIN!.card.imageId,
-          broadcasterImageId: slots.BROADCASTER!.card.imageId,
-          publisherImageId:   slots.PUBLISHER!.card.imageId,
-          agitatorImageId:    slots.AGITATOR!.card.imageId,
-          networkerImageId:   slots.NETWORKER!.card.imageId,
+          captainFid:     slots.CAPTAIN!.card.fid,
+          broadcasterFid: slots.BROADCASTER!.card.fid,
+          publisherFid:   slots.PUBLISHER!.card.fid,
+          agitatorFid:    slots.AGITATOR!.card.fid,
+          networkerFid:   slots.NETWORKER!.card.fid,
           wagerUsdc:          parseFloat(wager) || 0,
         }),
       });
@@ -92,9 +92,9 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
   // not the card. Place strategically based on each FID's actual activity.
   function eligibleFor(type: CardType): OwnedCard[] {
     const alreadyUsed = new Set(
-      SLOT_ORDER.filter(t => t !== type && slots[t]).map(t => slots[t]!.card.imageId)
+      SLOT_ORDER.filter(t => t !== type && slots[t]).map(t => slots[t]!.card.fid)
     );
-    return owned.filter(o => !alreadyUsed.has(o.card.imageId));
+    return owned.filter(o => !alreadyUsed.has(o.card.fid));
   }
 
   // Estimate team score for display
@@ -102,7 +102,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
   const captainMult   = edition.league.captainMult[captainRarity];
   const slotScores    = SLOT_ORDER
     .filter(t => t !== 'CAPTAIN')
-    .map(t => scores[slots[t]?.card.imageId ?? ''] ?? 0);
+    .map(t => scores[String(slots[t]?.card.fid ?? '')] ?? 0);
   const baseScore     = slotScores.reduce((a, b) => a + b, 0);
   const teamScore     = Math.round(baseScore * captainMult);
 
@@ -122,7 +122,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         {SLOT_ORDER.map(type => {
           const card    = slots[type];
           const color   = edition.cardSlots[type].color;
-          const score   = card ? (scores[card.card.imageId] ?? null) : null;
+          const score   = card ? (scores[String(card.card.fid)] ?? null) : null;
           const eligible = eligibleFor(type).length;
 
           return (
@@ -205,7 +205,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
               {eligibleFor(picking).map(o => (
                 <div
-                  key={o.card.imageId}
+                  key={o.card.fid}
                   onClick={(e) => { e.stopPropagation(); setSlots(s => ({ ...s, [picking]: o })); setPicking(null); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,

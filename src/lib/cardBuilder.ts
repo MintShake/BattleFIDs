@@ -5,7 +5,6 @@ import { NeynarUser, CastEngagement } from '@/types/neynar';
 // ── stat normalizers ──────────────────────────────────────────────────────────
 
 function supplyRarityScore(fid: number): number {
-  // /7 extends the scale to FID ~10M — ensures all current FIDs (even 3M+) get a non-zero score
   return Math.max(0, Math.round(100 * (1 - Math.log10(Math.max(fid, 1)) / 7)));
 }
 
@@ -13,8 +12,6 @@ function followerScore(count: number): number {
   return Math.min(100, Math.round((Math.log10(count + 1) / Math.log10(1_000_000)) * 100));
 }
 
-// replyCount = 0–50 from replies_and_recasts sample
-// Even 1 reply → 4 pts; 10 replies → 40 pts; 25+ replies → 100 pts
 function castActivityScore(eng?: CastEngagement): number {
   if (!eng) return 0;
   return Math.min(100, Math.round(eng.replyCount * 4));
@@ -22,13 +19,9 @@ function castActivityScore(eng?: CastEngagement): number {
 
 function badgeScore(user: NeynarUser | undefined): number {
   if (!user) return 0;
-  // power badge tier (score ≥ 0.5) = 40 pts
   const badge = (user.power_badge ?? (user.score >= 0.5)) ? 40 : 0;
-  // Neynar score 0–1 → up to 30 pts for everyone
   const scoreBonus = Math.round(user.score * 30);
-  // Verified addresses (ETH wallet etc.) → up to 20 pts
   const verif = Math.min(2, user.verifications?.length ?? 0) * 10;
-  // Following activity → up to 10 pts (following 100+ people = engaged user)
   const following = Math.min(10, Math.round((Math.log10(user.following_count + 1) / Math.log10(101)) * 10));
   return Math.min(100, badge + scoreBonus + verif + following);
 }
@@ -50,14 +43,6 @@ function computeBattleScore(stats: CardStats): number {
 }
 
 // ── type classifier ──────────────────────────────────────────────────────────
-// Assigns one of 5 league slot types based on the user's Neynar profile.
-// Priority order — first match wins.
-//   BROADCASTER: big reach, high Neynar score → likely to go viral
-//   PUBLISHER:   power badge + wallet verified → builder/creator energy
-//   NETWORKER:   high reply activity → lives in others' conversations
-//   AGITATOR:    established voice, generates discussion
-//   CAPTAIN:     never assigned here — any rarity card can captain
-// All cards are eligible for the CAPTAIN slot regardless of assigned type.
 
 export function classifyType(user: NeynarUser | undefined, engagement: CastEngagement | undefined): CardType {
   if (!user) return 'NETWORKER';
@@ -76,15 +61,19 @@ export function classifyType(user: NeynarUser | undefined, engagement: CastEngag
 }
 
 // ── builder ───────────────────────────────────────────────────────────────────
+// One card per FID. The card carries all historical PFP URLs for the cycling
+// animation. Latest image (index 0) is the primary display image.
 
 export function buildCard(
   timeline: FidTimeline,
-  imageIndex: number,
   neynarUser?: NeynarUser,
   engagement?: CastEngagement,
 ): BattleFIDCard {
-  const image = timeline.images[imageIndex] ?? timeline.images[0];
+  const latestImage = timeline.images[0] ?? { url: '', thumbUrl: '', storedAt: new Date().toISOString(), likeCount: 0 };
   const profile = timeline.profile ?? neynarUser;
+
+  const pfpUrls = timeline.images.map(img => img.mediumUrl ?? img.url);
+  const totalLikes = timeline.images.reduce((s, img) => s + (img.likeCount ?? 0), 0);
 
   const stats: CardStats = {
     supplyRarity:  supplyRarityScore(timeline.fid),
@@ -92,8 +81,8 @@ export function buildCard(
     neynarForce:   Math.min(100, Math.round((neynarUser?.score ?? 0) * 100)),
     castActivity:  castActivityScore(engagement),
     badgeScore:    badgeScore(neynarUser),
-    pfpFreshness:  pfpFreshnessScore(image.storedAt),
-    xploraXP:      0, // reserved — wired up when Xplora integration is ready
+    pfpFreshness:  pfpFreshnessScore(latestImage.storedAt),
+    xploraXP:      0,
   };
 
   const handle =
@@ -107,31 +96,22 @@ export function buildCard(
     handle;
 
   return {
-    fid:           timeline.fid,
-    imageId:       image.id,
-    pfpUrl:        image.mediumUrl ?? image.url,
-    thumbUrl:      image.thumbUrl ?? image.url,
+    fid:          timeline.fid,
+    pfpUrl:       latestImage.mediumUrl ?? latestImage.url,
+    pfpUrls,
+    pfpCount:     timeline.images.length,
+    thumbUrl:     latestImage.thumbUrl ?? latestImage.url,
     handle,
     displayName,
-    maxSupply:     timeline.fid,
-    variantIndex:  imageIndex,
-    totalVariants: timeline.imageCount,
-    rarity:        rarityFromFid(timeline.fid),
+    maxSupply:    timeline.fid,
+    rarity:       rarityFromFid(timeline.fid),
     stats,
-    battleScore:   computeBattleScore(stats),
-    cardType:      classifyType(neynarUser, engagement),
-    wins:          0,
-    losses:        0,
-    storedAt:      image.storedAt,
-    likeCount:     image.likeCount ?? 0,
-    hasBadge:      neynarUser ? (neynarUser.power_badge ?? (neynarUser.score >= 0.5)) : false,
+    battleScore:  computeBattleScore(stats),
+    cardType:     classifyType(neynarUser, engagement),
+    wins:         0,
+    losses:       0,
+    storedAt:     latestImage.storedAt,
+    likeCount:    totalLikes,
+    hasBadge:     neynarUser ? (neynarUser.power_badge ?? (neynarUser.score >= 0.5)) : false,
   };
-}
-
-export function buildAllVariants(
-  timeline: FidTimeline,
-  neynarUser?: NeynarUser,
-  engagement?: CastEngagement,
-): BattleFIDCard[] {
-  return timeline.images.map((_, i) => buildCard(timeline, i, neynarUser, engagement));
 }

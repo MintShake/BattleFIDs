@@ -12,11 +12,10 @@ export async function GET(
 
   const [rows, neynarMap] = await Promise.all([
     sql`
-      SELECT image_id, pfp_url, thumb_url, variant_index, stored_at,
+      SELECT pfp_url, pfp_urls, thumb_url, stored_at,
              like_count, has_badge, battle_score, rarity, display_name, handle
       FROM cards
       WHERE fid = ${fid}
-      ORDER BY variant_index ASC
     `,
     fetchNeynarUsersDirect([fid]),
   ]);

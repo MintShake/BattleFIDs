@@ -30,15 +30,13 @@ export function rarityFromFid(fid: number): RarityTier {
 }
 
 // All stats normalized 0–100.
-// supplyRarity and pfpFreshness are the only variant-level differentiators;
-// the rest are owner-level (same across all variants of one FID).
 export interface CardStats {
   supplyRarity: number;  // FID-based: lower FID → higher score (fixed)
   followerPower: number; // Neynar follower_count normalized
   neynarForce: number;   // Neynar score × 100
   castActivity: number;  // Neynar: blend of reply interactivity + cast volume (30d)
   badgeScore: number;    // power badge (score≥0.5) + verified addresses
-  pfpFreshness: number;  // storedAt recency — variant differentiator
+  pfpFreshness: number;  // latest PFP recency
   xploraXP: number;      // Xplora XP — reserved, always 0 until wired
 }
 
@@ -65,18 +63,17 @@ export const STAT_ORDER: StatKey[] = [
 ];
 
 export interface BattleFIDCard {
-  // Identity
+  // Identity — card key is fid (one card per person, ever)
   fid: number;
-  imageId: string;       // unique Faces image ID
-  pfpUrl: string;
+  pfpUrl: string;        // current / latest PFP
+  pfpUrls: string[];     // all historical PFPs, newest first (for cycling animation)
+  pfpCount: number;      // total PFP count
   thumbUrl: string;
   handle: string;
   displayName: string;
 
-  // Supply mechanics
-  maxSupply: number;     // = fid (copies of this variant that can ever exist)
-  variantIndex: number;  // 0 = newest PFP, n-1 = oldest
-  totalVariants: number; // total PFP images for this FID in Faces
+  // Supply mechanics — maxSupply = fid, globally across all editions
+  maxSupply: number;
 
   // Rarity
   rarity: RarityTier;
@@ -93,13 +90,19 @@ export interface BattleFIDCard {
   losses: number;
 
   // Metadata
-  storedAt: string;    // ISO date the PFP was captured
-  likeCount: number;   // raw Faces like count for this image
+  storedAt: string;    // ISO date of latest PFP capture
+  likeCount: number;   // total Faces like count across all PFPs
   hasBadge: boolean;   // Neynar score ≥ 0.5 (power badge tier)
+
+  // Edition 1/1 — special pack pull, themed to one edition
+  isEdition1of1?: boolean;
+  edition1of1Id?: string;
 }
 
 export interface OwnedCard {
   card: BattleFIDCard;
   serialNumber: number; // which copy (1 … fid)
   openedAt: string;     // ISO date
+  isEdition1of1?: boolean;
+  edition1of1Id?: string;
 }

@@ -10,10 +10,9 @@ import type { BattleFIDCard, OwnedCard } from '@/types/card';
 import type { NeynarUser } from '@/types/neynar';
 
 interface ProfileCard {
-  image_id: string;
   pfp_url: string;
+  pfp_urls: string[];
   thumb_url: string;
-  variant_index: number;
   stored_at: string;
   like_count: number;
   has_badge: boolean;
@@ -76,22 +75,21 @@ export default function ProfilePage() {
   function toCard(pc: ProfileCard): BattleFIDCard {
     return {
       fid,
-      imageId:      pc.image_id,
-      pfpUrl:       pc.pfp_url,
-      thumbUrl:     pc.thumb_url,
+      pfpUrl:   pc.pfp_url,
+      pfpUrls:  pc.pfp_urls ?? [],
+      pfpCount: (pc.pfp_urls ?? []).length,
+      thumbUrl: pc.thumb_url,
       handle,
       displayName,
-      maxSupply:    fid,
-      variantIndex: pc.variant_index,
-      totalVariants: profileCards.length,
-      rarity:       pc.rarity as BattleFIDCard['rarity'],
+      maxSupply: fid,
+      rarity:    pc.rarity as BattleFIDCard['rarity'],
       stats: { supplyRarity: 0, followerPower: 0, neynarForce: 0, castActivity: 0, badgeScore: 0, pfpFreshness: 0, xploraXP: 0 },
-      battleScore:  pc.battle_score,
-      cardType:     'NETWORKER',
+      battleScore: pc.battle_score,
+      cardType:    'NETWORKER',
       wins: 0, losses: 0,
-      storedAt:     pc.stored_at,
-      likeCount:    pc.like_count,
-      hasBadge:     pc.has_badge,
+      storedAt:  pc.stored_at,
+      likeCount: pc.like_count,
+      hasBadge:  pc.has_badge,
     };
   }
 
@@ -149,7 +147,7 @@ export default function ProfilePage() {
             {profileCards.map(pc => {
               const card = toCard(pc);
               return (
-                <div key={pc.image_id} style={{ position: 'relative' }}>
+                <div key={fid} style={{ position: 'relative' }}>
                   <BattleCard
                     card={card}
                     onClick={() => setModal({ card })}
@@ -186,7 +184,7 @@ export default function ProfilePage() {
           <div className="card-grid">
             {ownedCards.map((oc, i) => (
               <BattleCard
-                key={`${oc.card.imageId}-${i}`}
+                key={`${oc.card.fid}-${i}`}
                 card={oc.card}
                 serialNumber={oc.serialNumber}
                 onClick={() => setModal({ card: oc.card, serialNumber: oc.serialNumber })}

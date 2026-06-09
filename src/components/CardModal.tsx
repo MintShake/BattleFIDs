@@ -19,19 +19,7 @@ const STAT_INFO: Record<StatKey, string> = {
   xploraXP:      'Xplora XP — cross-app experience points. Coming soon: earn XP by playing The Protocol and other Xplora-integrated mini apps.',
 };
 
-interface ProfileRow {
-  image_id: string;
-  pfp_url: string;
-  thumb_url: string;
-  variant_index: number;
-  stored_at: string;
-  like_count: number;
-  battle_score: number;
-  rarity: string;
-}
-
 interface ProfileData {
-  cards: ProfileRow[];
   neynarUser: {
     username: string;
     display_name: string;
@@ -349,7 +337,7 @@ function ProfileBack({
   const followers = profile?.neynarUser?.follower_count ?? 0;
   const following = profile?.neynarUser?.following_count ?? 0;
   const verifications = profile?.neynarUser?.verifications ?? [];
-  const pfpHistory = profile?.cards ?? [];
+  const pfpHistory = card.pfpUrls?.length > 0 ? card.pfpUrls : [card.pfpUrl];
 
   const RARITY_ACCENT: Record<string, string> = {
     Alpha: '#C9A84C', Legendary: '#8a63d2', Elite: '#cd7f32', Rare: '#a78bfa', Common: '#8a7550',
@@ -480,7 +468,7 @@ function ProfileBack({
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#8a63d2' }}>🖼</div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>{card.totalVariants}</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>{card.pfpCount}</div>
             <div style={{ fontSize: 7, color: '#6b5a80', letterSpacing: '0.15em', textTransform: 'uppercase' }}>PFPs</div>
           </div>
           <div style={{ flex: 1, fontSize: 9, color: '#7a6a90', lineHeight: 1.5 }}>
@@ -494,31 +482,27 @@ function ProfileBack({
         <div style={{ marginBottom: 16 }}>
           {section(`PFP History · ${pfpHistory.length} discovered`)}
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-            {pfpHistory.map((row, i) => (
-              <div key={row.image_id} style={{ flexShrink: 0, position: 'relative' }}>
+            {pfpHistory.map((url, i) => (
+              <div key={i} style={{ flexShrink: 0, position: 'relative' }}>
                 <div style={{
                   width: 60, height: 60, borderRadius: 10, overflow: 'hidden',
-                  border: row.variant_index === card.variantIndex
-                    ? `2px solid ${accent}` : '2px solid rgba(138,99,210,0.2)',
+                  border: i === 0 ? `2px solid ${accent}` : '2px solid rgba(138,99,210,0.2)',
                 }}>
-                  <Image src={row.pfp_url} alt={`v${i}`} width={60} height={60}
+                  <Image src={url} alt={`pfp-${i}`} width={60} height={60}
                     style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
                 </div>
-                {row.variant_index === 0 && (
+                {i === 0 && (
                   <div style={{ position: 'absolute', bottom: -2, right: -2,
                     fontSize: 8, background: accent, color: '#000', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
                     NOW
                   </div>
                 )}
-                {row.variant_index === pfpHistory.length - 1 && pfpHistory.length > 1 && (
+                {i === pfpHistory.length - 1 && pfpHistory.length > 1 && (
                   <div style={{ position: 'absolute', bottom: -2, left: -2,
                     fontSize: 8, background: '#6b5a80', color: '#8a63d2', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
                     OG
                   </div>
                 )}
-                <div style={{ fontSize: 7, color: '#6b5a80', textAlign: 'center', marginTop: 2 }}>
-                  ❤ {row.like_count}
-                </div>
               </div>
             ))}
           </div>

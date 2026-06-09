@@ -56,27 +56,21 @@ export function computeBadges(card: BattleFIDCard): CardBadge[] {
   }
 
   // ── PFP history ───────────────────────────────────────────────────────────
-  if (card.totalVariants >= 10) {
+  if (card.pfpCount >= 10) {
     badges.push({
       id: 'shapeshifter', emoji: '🦋', name: 'SHAPE SHIFTER',
-      description: `${card.totalVariants} profile pictures — a true identity explorer.`,
+      description: `${card.pfpCount} profile pictures — a true identity explorer.`,
       rarity: 'epic',
     });
-  } else if (card.totalVariants >= 4) {
+  } else if (card.pfpCount >= 4) {
     badges.push({
       id: 'multiform', emoji: '🖼', name: 'MULTIFORM',
-      description: `${card.totalVariants} distinct PFPs captured by Faces.`,
+      description: `${card.pfpCount} distinct PFPs captured by Faces.`,
       rarity: 'rare',
     });
   }
 
-  // ── Variant-specific ──────────────────────────────────────────────────────
-  if (card.variantIndex === card.totalVariants - 1 && card.totalVariants > 1) {
-    badges.push({
-      id: 'genesis', emoji: '🌱', name: 'GENESIS',
-      description: 'Their very first profile picture — the origin.',
-      rarity: 'epic',
-    });
+  if (false) { // genesis badge retired — no longer variant-specific
   }
 
   // ── Freshness ─────────────────────────────────────────────────────────────

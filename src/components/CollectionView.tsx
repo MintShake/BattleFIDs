@@ -108,7 +108,7 @@ export default function CollectionView({ owned }: Props) {
       <div className="card-grid">
         {owned.map((oc, i) => (
           <BattleCard
-            key={`${oc.card.imageId}-${i}`}
+            key={`${oc.card.fid}-${i}`}
             card={oc.card}
             selected={selected.includes(oc)}
             serialNumber={oc.serialNumber}

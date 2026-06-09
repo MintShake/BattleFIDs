@@ -265,7 +265,7 @@ function AppInner({
                 <div className="card-grid">
                   {filteredBrowse.map((gc, i) => (
                     <BattleCard
-                      key={`${gc.ownedCard.card.imageId}-${i}`}
+                      key={`${gc.ownedCard.card.fid}-${i}`}
                       card={gc.ownedCard.card}
                       serialNumber={gc.ownedCard.serialNumber}
                       ownerHandle={gc.ownerHandle}

@@ -56,10 +56,10 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
 
         const slots: SlotResult[] = [
           { type: 'CAPTAIN',     handle: t.cap_handle ?? '—', thumb: t.cap_thumb ?? '', score: 0 },
-          { type: 'BROADCASTER', handle: t.bc_handle  ?? '—', thumb: t.bc_thumb  ?? '', score: scoreMap[t.broadcaster_image_id] ?? 0 },
-          { type: 'PUBLISHER',   handle: t.pc_handle  ?? '—', thumb: t.pc_thumb  ?? '', score: scoreMap[t.publisher_image_id]   ?? 0 },
-          { type: 'AGITATOR',    handle: t.ag_handle  ?? '—', thumb: t.ag_thumb  ?? '', score: scoreMap[t.agitator_image_id]    ?? 0 },
-          { type: 'NETWORKER',   handle: t.nc_handle  ?? '—', thumb: t.nc_thumb  ?? '', score: scoreMap[t.networker_image_id]   ?? 0 },
+          { type: 'BROADCASTER', handle: t.bc_handle  ?? '—', thumb: t.bc_thumb  ?? '', score: scoreMap[String(t.broadcaster_fid)] ?? 0 },
+          { type: 'PUBLISHER',   handle: t.pc_handle  ?? '—', thumb: t.pc_thumb  ?? '', score: scoreMap[String(t.publisher_fid)]   ?? 0 },
+          { type: 'AGITATOR',    handle: t.ag_handle  ?? '—', thumb: t.ag_thumb  ?? '', score: scoreMap[String(t.agitator_fid)]    ?? 0 },
+          { type: 'NETWORKER',   handle: t.nc_handle  ?? '—', thumb: t.nc_thumb  ?? '', score: scoreMap[String(t.networker_fid)]   ?? 0 },
         ];
 
         setData({

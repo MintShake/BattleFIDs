@@ -19,11 +19,11 @@ export async function GET(req: NextRequest) {
             ag.handle  AS ag_handle,  ag.thumb_url  AS ag_thumb,  ag.rarity  AS ag_rarity,
             nc.handle  AS nc_handle,  nc.thumb_url  AS nc_thumb,  nc.rarity  AS nc_rarity
           FROM weekly_teams wt
-          LEFT JOIN cards cap ON cap.image_id = wt.captain_image_id
-          LEFT JOIN cards bc  ON bc.image_id  = wt.broadcaster_image_id
-          LEFT JOIN cards pc  ON pc.image_id  = wt.publisher_image_id
-          LEFT JOIN cards ag  ON ag.image_id  = wt.agitator_image_id
-          LEFT JOIN cards nc  ON nc.image_id  = wt.networker_image_id
+          LEFT JOIN cards cap ON cap.fid = wt.captain_fid
+          LEFT JOIN cards bc  ON bc.fid  = wt.broadcaster_fid
+          LEFT JOIN cards pc  ON pc.fid  = wt.publisher_fid
+          LEFT JOIN cards ag  ON ag.fid  = wt.agitator_fid
+          LEFT JOIN cards nc  ON nc.fid  = wt.networker_fid
           WHERE wt.week_id = ${weekId} AND wt.owner_fid = ${parseInt(ownerFid)}
         `
       : ownerDeviceId
@@ -38,18 +38,18 @@ export async function GET(req: NextRequest) {
 
     let scores: Record<string, number> = {};
     if (team) {
-      const imageIds = [
-        team.captain_image_id, team.broadcaster_image_id,
-        team.publisher_image_id, team.agitator_image_id, team.networker_image_id,
-      ].filter(Boolean);
+      const fids = [
+        team.captain_fid, team.broadcaster_fid,
+        team.publisher_fid, team.agitator_fid, team.networker_fid,
+      ].filter(Boolean) as number[];
 
-      if (imageIds.length > 0) {
+      if (fids.length > 0) {
         const scoreRows = await sql`
-          SELECT image_id, normalized_score
+          SELECT fid, normalized_score
           FROM weekly_card_scores
-          WHERE week_id = ${weekId} AND image_id = ANY(${imageIds}::text[])
+          WHERE week_id = ${weekId} AND fid = ANY(${fids}::int[])
         `;
-        scores = Object.fromEntries(scoreRows.map(r => [r.image_id, Number(r.normalized_score)]));
+        scores = Object.fromEntries(scoreRows.map(r => [String(r.fid), Number(r.normalized_score)]));
       }
     }
 
@@ -59,22 +59,21 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/week/team — save / update team for current week
-// Body: { ownerFid?, ownerDeviceId?, captainImageId, broadcasterImageId, publisherImageId, agitatorImageId, networkerImageId }
+// POST /api/week/team
+// Body: { ownerFid?, ownerDeviceId?, captainFid, broadcasterFid, publisherFid, agitatorFid, networkerFid, wagerUsdc? }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { ownerFid, ownerDeviceId, captainImageId, broadcasterImageId, publisherImageId, agitatorImageId, networkerImageId, wagerUsdc = 0 } = body;
+    const { ownerFid, ownerDeviceId, captainFid, broadcasterFid, publisherFid, agitatorFid, networkerFid, wagerUsdc = 0 } = body;
 
     if (!ownerFid && !ownerDeviceId) return NextResponse.json({ error: 'owner required' }, { status: 400 });
-    if (!captainImageId || !broadcasterImageId || !publisherImageId || !agitatorImageId || !networkerImageId) {
+    if (!captainFid || !broadcasterFid || !publisherFid || !agitatorFid || !networkerFid) {
       return NextResponse.json({ error: 'all 5 slots required' }, { status: 400 });
     }
 
     const weekId = currentWeekId();
     const { start, end } = weekBounds(weekId);
 
-    // Ensure week row exists
     await sql`
       INSERT INTO weeks (id, starts_at, ends_at)
       VALUES (${weekId}, ${start.toISOString()}, ${end.toISOString()})
@@ -82,47 +81,46 @@ export async function POST(req: NextRequest) {
     `;
 
     // Verify caller owns all 5 cards
-    const imageIds = [captainImageId, broadcasterImageId, publisherImageId, agitatorImageId, networkerImageId];
+    const fids = [captainFid, broadcasterFid, publisherFid, agitatorFid, networkerFid] as number[];
     const owned = ownerFid
       ? await sql`
-          SELECT DISTINCT image_id FROM owned_cards
-          WHERE owner_fid = ${ownerFid} AND image_id = ANY(${imageIds}::text[])
+          SELECT DISTINCT fid FROM owned_cards
+          WHERE owner_fid = ${ownerFid} AND fid = ANY(${fids}::int[])
         `
       : await sql`
-          SELECT DISTINCT image_id FROM owned_cards
-          WHERE owner_device_id = ${ownerDeviceId} AND image_id = ANY(${imageIds}::text[])
+          SELECT DISTINCT fid FROM owned_cards
+          WHERE owner_device_id = ${ownerDeviceId} AND fid = ANY(${fids}::int[])
         `;
 
-    const ownedIds = new Set(owned.map(r => r.image_id));
-    const missing = imageIds.filter(id => !ownedIds.has(id));
+    const ownedFids = new Set(owned.map(r => Number(r.fid)));
+    const missing = fids.filter(f => !ownedFids.has(f));
     if (missing.length > 0) return NextResponse.json({ error: 'you do not own all selected cards' }, { status: 403 });
 
-    // Upsert team
     if (ownerFid) {
       await sql`
-        INSERT INTO weekly_teams (week_id, owner_fid, captain_image_id, broadcaster_image_id, publisher_image_id, agitator_image_id, networker_image_id, updated_at)
-        VALUES (${weekId}, ${ownerFid}, ${captainImageId}, ${broadcasterImageId}, ${publisherImageId}, ${agitatorImageId}, ${networkerImageId}, NOW())
+        INSERT INTO weekly_teams (week_id, owner_fid, captain_fid, broadcaster_fid, publisher_fid, agitator_fid, networker_fid, wager_usdc, updated_at)
+        VALUES (${weekId}, ${ownerFid}, ${captainFid}, ${broadcasterFid}, ${publisherFid}, ${agitatorFid}, ${networkerFid}, ${wagerUsdc}, NOW())
         ON CONFLICT (week_id, owner_fid) DO UPDATE SET
-          captain_image_id     = EXCLUDED.captain_image_id,
-          broadcaster_image_id = EXCLUDED.broadcaster_image_id,
-          publisher_image_id   = EXCLUDED.publisher_image_id,
-          agitator_image_id    = EXCLUDED.agitator_image_id,
-          networker_image_id   = EXCLUDED.networker_image_id,
-          wager_usdc           = EXCLUDED.wager_usdc,
-          updated_at           = NOW()
+          captain_fid     = EXCLUDED.captain_fid,
+          broadcaster_fid = EXCLUDED.broadcaster_fid,
+          publisher_fid   = EXCLUDED.publisher_fid,
+          agitator_fid    = EXCLUDED.agitator_fid,
+          networker_fid   = EXCLUDED.networker_fid,
+          wager_usdc      = EXCLUDED.wager_usdc,
+          updated_at      = NOW()
       `;
     } else {
       await sql`
-        INSERT INTO weekly_teams (week_id, owner_device_id, captain_image_id, broadcaster_image_id, publisher_image_id, agitator_image_id, networker_image_id, wager_usdc, updated_at)
-        VALUES (${weekId}, ${ownerDeviceId}, ${captainImageId}, ${broadcasterImageId}, ${publisherImageId}, ${agitatorImageId}, ${networkerImageId}, ${wagerUsdc}, NOW())
+        INSERT INTO weekly_teams (week_id, owner_device_id, captain_fid, broadcaster_fid, publisher_fid, agitator_fid, networker_fid, wager_usdc, updated_at)
+        VALUES (${weekId}, ${ownerDeviceId}, ${captainFid}, ${broadcasterFid}, ${publisherFid}, ${agitatorFid}, ${networkerFid}, ${wagerUsdc}, NOW())
         ON CONFLICT (week_id, owner_device_id) DO UPDATE SET
-          captain_image_id     = EXCLUDED.captain_image_id,
-          broadcaster_image_id = EXCLUDED.broadcaster_image_id,
-          publisher_image_id   = EXCLUDED.publisher_image_id,
-          agitator_image_id    = EXCLUDED.agitator_image_id,
-          networker_image_id   = EXCLUDED.networker_image_id,
-          wager_usdc           = EXCLUDED.wager_usdc,
-          updated_at           = NOW()
+          captain_fid     = EXCLUDED.captain_fid,
+          broadcaster_fid = EXCLUDED.broadcaster_fid,
+          publisher_fid   = EXCLUDED.publisher_fid,
+          agitator_fid    = EXCLUDED.agitator_fid,
+          networker_fid   = EXCLUDED.networker_fid,
+          wager_usdc      = EXCLUDED.wager_usdc,
+          updated_at      = NOW()
       `;
     }
 

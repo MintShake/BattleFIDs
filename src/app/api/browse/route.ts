@@ -17,14 +17,15 @@ export async function GET() {
       oc.opened_at,
       oc.owner_fid,
       oc.owner_device_id,
+      oc.is_edition_1of1,
+      oc.edition_id,
       c.*
     FROM owned_cards oc
-    JOIN cards c ON c.image_id = oc.image_id
+    JOIN cards c ON c.fid = oc.fid
     ORDER BY oc.opened_at DESC
     LIMIT 200
   `;
 
-  // Resolve owner FIDs → Farcaster handles in one batch call
   const uniqueFids = [...new Set(
     rows.map(r => r.owner_fid).filter((f): f is number => !!f),
   )];
@@ -36,32 +37,34 @@ export async function GET() {
   const result: GlobalCard[] = rows.map((row) => {
     const fid: number | null = row.owner_fid ?? null;
     const neynar = fid ? neynarMap.get(fid) : undefined;
-    const ownerHandle = neynar?.username
-      ?? (fid ? `fid${fid}` : 'anon');
+    const ownerHandle = neynar?.username ?? (fid ? `fid${fid}` : 'anon');
 
     return {
       ownedCard: {
         serialNumber: row.serial_number,
         openedAt: row.opened_at,
+        isEdition1of1: row.is_edition_1of1 ?? false,
+        edition1of1Id: row.edition_id ?? undefined,
         card: {
-          fid: row.fid,
-          imageId: row.image_id,
-          pfpUrl: row.pfp_url,
-          thumbUrl: row.thumb_url,
-          handle: row.handle,
-          displayName: row.display_name,
-          maxSupply: row.max_supply,
-          variantIndex: row.variant_index,
-          totalVariants: row.total_variants,
-          rarity:    row.rarity,
-          cardType:  (row.card_type ?? 'NETWORKER') as CardType,
-          wins:      row.wins   ?? 0,
-          losses:    row.losses ?? 0,
-          stats:     row.stats,
-          battleScore: row.battle_score,
-          storedAt:  row.stored_at,
-          likeCount: row.like_count ?? 0,
-          hasBadge:  row.has_badge ?? false,
+          fid:          row.fid,
+          pfpUrl:       row.pfp_url,
+          pfpUrls:      row.pfp_urls ?? [],
+          pfpCount:     (row.pfp_urls ?? []).length,
+          thumbUrl:     row.thumb_url,
+          handle:       row.handle,
+          displayName:  row.display_name,
+          maxSupply:    row.max_supply,
+          rarity:       row.rarity,
+          cardType:     (row.card_type ?? 'NETWORKER') as CardType,
+          wins:         row.wins   ?? 0,
+          losses:       row.losses ?? 0,
+          stats:        row.stats,
+          battleScore:  row.battle_score,
+          storedAt:     row.stored_at,
+          likeCount:    row.like_count ?? 0,
+          hasBadge:     row.has_badge ?? false,
+          isEdition1of1: row.is_edition_1of1 ?? false,
+          edition1of1Id: row.edition_id ?? undefined,
         },
       },
       ownerHandle,

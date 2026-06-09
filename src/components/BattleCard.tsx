@@ -1,18 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey, RarityTier } from '@/types/card';
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
 import { cardValue } from '@/lib/valuation';
 import { useEdition } from '@/editions/context';
-
-function variantLabel(variantIndex: number, totalVariants: number): string {
-  if (totalVariants <= 1) return '';
-  if (variantIndex === 0) return 'CURRENT';
-  if (variantIndex === totalVariants - 1) return 'GENESIS';
-  return `v${variantIndex + 1}`;
-}
 
 function formatSupply(fid: number): string {
   if (fid === 1) return '1 OF 1';
@@ -30,7 +24,7 @@ interface Props {
   onClick?: () => void;
   serialNumber?: number;
   ownerHandle?: string;
-  showFollow?: boolean; // renders follow + W/L — omit for NFT image-only contexts
+  showFollow?: boolean;
 }
 
 export default function BattleCard({
@@ -45,7 +39,16 @@ export default function BattleCard({
 }: Props) {
   const edition = useEdition();
   const cfg = edition.rarity[card.rarity as RarityTier];
-  const vLabel = variantLabel(card.variantIndex, card.totalVariants);
+
+  // PFP cycling — crossfade through historical profile photos
+  const [pfpIdx, setPfpIdx] = useState(0);
+  const urls = card.pfpUrls?.length > 0 ? card.pfpUrls : [card.pfpUrl];
+  useEffect(() => {
+    if (urls.length <= 1) return;
+    const t = setInterval(() => setPfpIdx(i => (i + 1) % urls.length), 2500);
+    return () => clearInterval(t);
+  }, [urls.length]);
+  const activePfp = urls[pfpIdx] ?? card.pfpUrl;
 
   return (
     <div
@@ -76,10 +79,10 @@ export default function BattleCard({
           }}
         >
           <Image
-            src={card.pfpUrl}
+            src={activePfp}
             alt={card.displayName}
             fill
-            style={{ objectFit: 'cover', opacity: 0.9 }}
+            style={{ objectFit: 'cover', opacity: 0.9, transition: 'opacity 0.6s ease' }}
             sizes="(max-width: 600px) 50vw, (max-width: 1024px) 33vw, 300px"
             unoptimized
           />
@@ -127,6 +130,21 @@ export default function BattleCard({
             FID #{card.fid}
           </div>
 
+          {/* Edition 1/1 badge */}
+          {card.isEdition1of1 && (
+            <div style={{
+              position: 'absolute', bottom: 48, left: '50%', transform: 'translateX(-50%)',
+              fontSize: 7, fontWeight: 900, letterSpacing: '0.2em',
+              padding: '3px 10px', borderRadius: 99,
+              background: 'rgba(201,168,76,0.9)',
+              color: '#09040f',
+              border: '1px solid #C9A84C',
+              whiteSpace: 'nowrap',
+            }}>
+              ✦ EDITION 1/1
+            </div>
+          )}
+
           {/* Bottom overlay: name + rarity */}
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -140,26 +158,13 @@ export default function BattleCard({
                 </div>
                 <div style={{ color: '#a08cc0', fontSize: 9, marginTop: 1 }}>@{card.handle}</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                {vLabel && (
-                  <div style={{
-                    fontSize: 7, fontWeight: 900, letterSpacing: '0.15em',
-                    padding: '2px 6px', borderRadius: 4,
-                    background: `${cfg.accent}20`,
-                    color: cfg.accent,
-                    border: `1px solid ${cfg.accent}40`,
-                  }}>
-                    {vLabel}
-                  </div>
-                )}
-                <div style={{
-                  fontSize: 7, fontWeight: 900, letterSpacing: '0.2em',
-                  padding: '2px 7px', borderRadius: 99,
-                  textTransform: 'uppercase',
-                  ...cfg.badge,
-                }}>
-                  {cfg.tier}
-                </div>
+              <div style={{
+                fontSize: 7, fontWeight: 900, letterSpacing: '0.2em',
+                padding: '2px 7px', borderRadius: 99,
+                textTransform: 'uppercase',
+                ...cfg.badge,
+              }}>
+                {cfg.tier}
               </div>
             </div>
           </div>
@@ -198,7 +203,6 @@ export default function BattleCard({
 
         {/* Badges + community meta */}
         <div style={{ padding: '4px 12px 6px' }}>
-          {/* Badge chips */}
           {(() => {
             const badges = computeBadges(card);
             return badges.length > 0 ? (
@@ -223,7 +227,7 @@ export default function BattleCard({
           {/* Faces community row */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <span style={{ fontSize: 9, color: '#7a6a90' }}>❤ {card.likeCount.toLocaleString()}</span>
-            <span style={{ fontSize: 9, color: '#7a6a90' }}>🖼 {card.totalVariants} PFP{card.totalVariants !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 9, color: '#7a6a90' }}>🖼 {card.pfpCount} PFP{card.pfpCount !== 1 ? 's' : ''}</span>
             <span style={{
               fontSize: 7, color: '#8a63d2', marginLeft: 'auto',
               fontWeight: 700, letterSpacing: '0.08em',
@@ -239,7 +243,6 @@ export default function BattleCard({
         {/* Battle score + est. value footer */}
         <div style={{ padding: '0 10px 10px' }}>
 
-          {/* Owner chip — shown on browse view */}
           {ownerHandle && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 5,
@@ -281,7 +284,6 @@ export default function BattleCard({
             </span>
           </div>
 
-          {/* Estimated value strip */}
           <div style={{
             marginTop: 5, borderRadius: 8, padding: '5px 10px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -296,10 +298,8 @@ export default function BattleCard({
             </div>
           </div>
 
-          {/* Type badge + W/L + Follow — shown in app, not in NFT metadata */}
           {showFollow && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
-              {/* Card type */}
               <div style={{
                 fontSize: 7, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase',
                 padding: '2px 7px', borderRadius: 99,
@@ -308,7 +308,6 @@ export default function BattleCard({
                 {edition.league.cardTypeLabels[card.cardType]}
               </div>
 
-              {/* W/L record */}
               {(card.wins > 0 || card.losses > 0) && (
                 <div style={{
                   fontSize: 7, fontWeight: 700, letterSpacing: '0.1em',
@@ -320,7 +319,6 @@ export default function BattleCard({
                 </div>
               )}
 
-              {/* Follow button — links to Warpcast profile */}
               <a
                 href={`https://warpcast.com/${card.handle}`}
                 target="_blank"
