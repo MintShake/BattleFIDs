@@ -150,10 +150,10 @@ export function dbToEdition(row: DbEditionRow): Edition {
 export const EDITION_SEEDS = [
   {
     id: 'base',
-    name: 'Base Protocol',
+    name: 'The Protocol',
     is_default: true,
     sort_order: 0,
-    header_era: 'FARCASTER · BASE PROTOCOL',
+    header_era: 'FARCASTER',
     bg_image: '/editions/base-bg.jpg',
     accent_primary: '#8a63d2',
     accent_secondary: '#3a9bdc',
@@ -168,7 +168,7 @@ export const EDITION_SEEDS = [
     pack_names: JSON.stringify({ scroll: { name: 'SCROLL', subtitle: 'Common to Elite', flavour: '3 cards — common weighted' }, tablet: { name: 'TABLET', subtitle: 'Rare & above', flavour: '5 cards — no common' }, codex: { name: 'CODEX', subtitle: 'Legendary & above', flavour: '10 cards — rare minimum' } }),
     captain_mults: JSON.stringify({ Alpha: 1.50, Legendary: 1.30, Elite: 1.15, Rare: 1.05, Common: 1.00 }),
     log_maxes: JSON.stringify({ BROADCASTER: Math.log10(5001), PUBLISHER: Math.log10(2001), AGITATOR: Math.log10(1001), NETWORKER: Math.log10(201) }),
-    season_label: 'Base Protocol Season',
+    season_label: 'The Protocol — Base Season',
     rules: "Pick 5 cards from your collection — one per role. Your Captain's rarity multiplies the team total. Scores update live based on real Farcaster activity.",
   },
   {
