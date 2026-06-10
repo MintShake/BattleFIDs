@@ -183,7 +183,7 @@ function MysteryCard({ rarity }: { rarity: RarityTier }) {
             background: `${cfg.accent}0c`, border: `1px solid ${cfg.accent}22`,
           }}>
             <div style={{ fontSize: 5, fontWeight: 700, letterSpacing: '0.2em', color: '#3d2050', textTransform: 'uppercase' }}>
-              Battle Score
+              Protocol Score
             </div>
             <span style={{ fontSize: 18, fontWeight: 900, color: cfg.accent }}>??</span>
           </div>

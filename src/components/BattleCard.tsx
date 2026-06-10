@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { BattleFIDCard, STAT_LABELS, STAT_ORDER, StatKey, RarityTier } from '@/types/card';
 import { computeBadges } from '@/lib/badges';
 import { BADGE_COLORS, BadgeRarity } from '@/types/badge';
-import { cardValue } from '@/lib/valuation';
 import { useEdition } from '@/editions/context';
 
 function formatSupply(fid: number): string {
@@ -226,8 +225,7 @@ export default function BattleCard({
           })()}
           {/* Faces community row */}
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <span style={{ fontSize: 9, color: '#7a6a90' }}>❤ {card.likeCount.toLocaleString()}</span>
-            <span style={{ fontSize: 9, color: '#7a6a90' }}>🖼 {card.pfpCount} PFP{card.pfpCount !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 9, color: '#7a6a90' }}>{card.pfpCount} PFP{card.pfpCount !== 1 ? 's' : ''}</span>
             <span style={{
               fontSize: 7, color: '#8a63d2', marginLeft: 'auto',
               fontWeight: 700, letterSpacing: '0.08em',
@@ -271,7 +269,7 @@ export default function BattleCard({
           }}>
             <div>
               <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#7a6a90', textTransform: 'uppercase' }}>
-                Battle Score
+                Protocol Score
               </div>
               {serialNumber !== undefined && (
                 <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
@@ -284,19 +282,6 @@ export default function BattleCard({
             </span>
           </div>
 
-          <div style={{
-            marginTop: 5, borderRadius: 8, padding: '5px 10px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'rgba(201,168,76,0.06)',
-            border: '1px solid rgba(201,168,76,0.2)',
-          }}>
-            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.2em', color: '#5c4030', textTransform: 'uppercase' }}>
-              Est. Value
-            </div>
-            <div style={{ fontSize: compact ? 11 : 13, fontWeight: 900, color: '#C9A84C', letterSpacing: '0.05em' }}>
-              {cardValue(card, serialNumber)}
-            </div>
-          </div>
 
           {showFollow && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>

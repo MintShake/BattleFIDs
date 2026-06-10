@@ -71,7 +71,7 @@ export default function CardModal({ card, serialNumber, ownerHandle, onClose }: 
   }, [onClose]);
 
   const handleShare = useCallback(async () => {
-    const text = `Check out ${card.displayName} (@${card.handle}) — Battle Score ${card.battleScore} | FID #${card.fid} | The Protocol 2026`;
+    const text = `Check out ${card.displayName} (@${card.handle}) — Protocol Score ${card.battleScore} | FID #${card.fid} | The Protocol 2026`;
     if (navigator.share) {
       await navigator.share({ text, url: 'https://the-protocol-xi.vercel.app' }).catch(() => {});
     } else {
@@ -292,7 +292,7 @@ function CardFace({ card, serialNumber, ownerHandle, badges }: {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#7a6a90', textTransform: 'uppercase' }}>Battle Score</div>
+            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: '0.25em', color: '#7a6a90', textTransform: 'uppercase' }}>Protocol Score</div>
             {serialNumber !== undefined && (
               <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
                 #{serialNumber} / {card.fid.toLocaleString()}
@@ -396,7 +396,7 @@ function ProfileBack({
         {[
           { label: 'FOLLOWERS', value: followers.toLocaleString() },
           { label: 'FOLLOWING', value: following.toLocaleString() },
-          { label: 'BATTLE', value: String(card.battleScore) },
+          { label: 'PROTOCOL', value: String(card.battleScore) },
           { label: 'VERIFIED', value: verifications.length > 0 ? '✓' : '—' },
         ].map(({ label, value }) => (
           <div key={label} style={{ textAlign: 'center' }}>
