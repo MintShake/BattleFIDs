@@ -53,7 +53,7 @@ function generateRarityConfig(
 }
 
 const DEFAULT_RARITY_NAMES: Record<RarityTier, string> = {
-  Alpha: 'GENESIS', Legendary: 'ORACLE', Elite: 'NODE', Rare: 'VALIDATOR', Common: 'USER',
+  Alpha: 'GENESIS', Legendary: 'ORACLE', Elite: 'NODE', Rare: 'VALIDATOR', Common: 'CASTER',
 };
 const DEFAULT_CAPTAIN_MULTS: Record<RarityTier, number> = {
   Alpha: 1.50, Legendary: 1.30, Elite: 1.15, Rare: 1.05, Common: 1.00,

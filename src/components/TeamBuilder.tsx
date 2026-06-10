@@ -29,12 +29,11 @@ interface PlayerInfo {
 }
 
 interface Props {
-  owned:       OwnedCard[];
-  ownerFid?:   number;
-  ownerDevice: string;
+  owned:     OwnedCard[];
+  ownerFid?: number;
 }
 
-export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
+export default function TeamBuilder({ owned, ownerFid }: Props) {
   const [slots, setSlots]       = useState<TeamSlots>({ casts: null, replies: null, followers: null, score_rise: null, likes: null });
   const [picking, setPicking]   = useState<SlotType | null>(null);
   const [chosenTier, setChosenTier] = useState<PlayerTier>('beginner');
@@ -57,7 +56,8 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
 
   // Load player + existing team
   useEffect(() => {
-    const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
+    if (!ownerFid) return;
+    const param = `ownerFid=${ownerFid}`;
 
     // Fetch player info
     fetch(`/api/players?${param}`)
@@ -110,7 +110,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         if (t.assigned_group || t.slot_points > 0) setLocked(true);
       })
       .catch(() => {});
-  }, [ownerFid, ownerDevice, owned]);
+  }, [ownerFid, owned]);
 
   const full = SLOT_TYPES.every(s => slots[s] !== null);
 
@@ -131,7 +131,6 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerFid,
-          ownerDeviceId: ownerFid ? undefined : ownerDevice,
           castsFid:      slots.casts!.card.fid,
           repliesFid:    slots.replies!.card.fid,
           followersFid:  slots.followers!.card.fid,
@@ -146,8 +145,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
       setSaved(true);
       setLocked(true);
       // Refresh player points
-      const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
-      fetch(`/api/players?${param}`).then(r => r.json()).then(setPlayer).catch(() => {});
+      if (ownerFid) fetch(`/api/players?ownerFid=${ownerFid}`).then(r => r.json()).then(setPlayer).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
@@ -155,8 +153,7 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
     }
   }
 
-  const canChooseTier = player && !player.lockedToPro;
-  const isPro         = player?.lockedToPro || player?.tier === 'pro';
+  const canChooseTier = !!(player && !player.lockedToPro);
 
   // Active bonus slot definition
   const activeEditionGroup = editionSlots.find(e => e.editionId === activeEdition);
@@ -165,25 +162,12 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         ?? (activeEditionGroup.slots.length === 1 ? activeEditionGroup.slots[0] : null))
     : null;
 
-  // Auto-revert non-Pro players to Standard when player data loads
-  useEffect(() => {
-    if (!player) return;
-    const isNowPro = player.lockedToPro || player.tier === 'pro';
-    if (!isNowPro && activeEdition) {
-      const qs = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
-      fetch(`/api/week/edition-pick?${qs}&editionId=${activeEdition}&slotKey=${activeEditionSlotKey ?? ''}`, { method: 'DELETE' }).catch(() => {});
-      setActiveEdition(null);
-      setActiveEditionSlotKey(null);
-      setEditionCard(null);
-      setEditionSaved(false);
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player]);
+  // (auto-revert for Pro-only removed — all editions now open)
 
   async function clearEditionPick() {
-    if (activeEdition && activeBonusSlot) {
-      const qs = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
-      await fetch(`/api/week/edition-pick?${qs}&editionId=${activeEdition}&slotKey=${activeBonusSlot.slotKey}`, { method: 'DELETE' }).catch(() => {});
+    if (activeEdition && activeBonusSlot && ownerFid) {
+      await fetch(`/api/week/edition-pick?ownerFid=${ownerFid}&editionId=${activeEdition}&slotKey=${activeBonusSlot.slotKey}`, { method: 'DELETE' }).catch(() => {});
     }
     setActiveEdition(null);
     setActiveEditionSlotKey(null);
@@ -204,7 +188,6 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerFid,
-          ownerDeviceId: ownerFid ? undefined : ownerDevice,
           editionId: activeBonusSlot.editionId,
           slotKey:   activeBonusSlot.slotKey,
           cardFid:   card.card.fid,
@@ -455,7 +438,6 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                 <button
                   key={eg.editionId}
                   onClick={() => {
-                    if (!isPro) return;
                     setActiveEdition(eg.editionId);
                     setActiveEditionSlotKey(eg.slots.length === 1 ? eg.slots[0].slotKey : null);
                     setEditionCard(null);
@@ -463,32 +445,23 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
                     setEditionPicking(false);
                     setEditionError('');
                   }}
-                  disabled={!isPro}
                   style={{
                     padding: '6px 14px', borderRadius: 99,
                     border: active ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
                     background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
-                    color: active ? '#C9A84C' : isPro ? '#7a6a90' : '#3a2a50',
+                    color: active ? '#C9A84C' : '#7a6a90',
                     fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                    cursor: isPro ? 'pointer' : 'not-allowed',
-                    opacity: isPro ? 1 : 0.6,
+                    cursor: 'pointer',
                   }}
                 >
-                  {isPro ? label : `🔒 ${label}`}
+                  {label}
                 </button>
               );
             })}
           </div>
 
-          {/* Non-Pro explanation */}
-          {!isPro && (
-            <div style={{ fontSize: 9, color: '#3a2a50', textAlign: 'center', marginBottom: 6 }}>
-              Editions unlock at Pro tier
-            </div>
-          )}
-
           {/* Slot sub-selector (editions with multiple slots) */}
-          {isPro && activeEdition && activeEditionGroup && activeEditionGroup.slots.length > 1 && (
+          {activeEdition && activeEditionGroup && activeEditionGroup.slots.length > 1 && (
             <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
               {activeEditionGroup.slots.map(slot => (
                 <button
@@ -508,8 +481,8 @@ export default function TeamBuilder({ owned, ownerFid, ownerDevice }: Props) {
             </div>
           )}
 
-          {/* 6th slot card row — Pro + active slot only */}
-          {isPro && activeBonusSlot && (
+          {/* Edition bonus slot card */}
+          {activeBonusSlot && (
             <div>
               <div
                 onClick={() => setEditionPicking(p => !p)}

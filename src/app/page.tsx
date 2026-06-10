@@ -49,9 +49,6 @@ function AppInner({
   const [playerData, setPlayerData] = useState<{ protocolPoints: number; tier: string; lockedToPro: boolean; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
-  const deviceId = typeof window !== 'undefined'
-    ? (localStorage.getItem('deviceId') ?? (() => { const id = crypto.randomUUID(); localStorage.setItem('deviceId', id); return id; })())
-    : '';
   const [owned, setOwned]           = useState<OwnedCard[]>([]);
   const [globalCards, setGlobalCards]   = useState<GlobalCard[]>([]);
   const [browseTotal, setBrowseTotal]   = useState(0);
@@ -65,11 +62,9 @@ function AppInner({
 
   // Fetch player Pro status once identity is known — surface to parent for edition gate
   useEffect(() => {
-    const fid    = miniAppUser?.fid;
-    const device = deviceId;
-    if (!fid && !device) return;
-    const param = fid ? `ownerFid=${fid}` : `ownerDeviceId=${device}`;
-    fetch(`/api/players?${param}`)
+    const fid = miniAppUser?.fid;
+    if (!fid) return;
+    fetch(`/api/players?ownerFid=${fid}`)
       .then(r => r.json())
       .then((data: { tier?: string; lockedToPro?: boolean; protocolPoints?: number; totalWins?: number; totalLosses?: number; referralCode?: string }) => {
         const pro = Boolean(data.lockedToPro) || data.tier === 'pro';
@@ -344,8 +339,8 @@ function AppInner({
                   </button>
                 ))}
               </div>
-              {leagueView === 'progress'     && <WeekProgress ownerFid={miniAppUser?.fid} ownerDevice={deviceId} onGoToTeam={() => setLeagueView('team')} />}
-              {leagueView === 'team'         && <TeamBuilder owned={owned} ownerFid={miniAppUser?.fid} ownerDevice={deviceId} />}
+              {leagueView === 'progress'     && <WeekProgress ownerFid={miniAppUser?.fid} onGoToTeam={() => setLeagueView('team')} />}
+              {leagueView === 'team'         && <TeamBuilder owned={owned} ownerFid={miniAppUser?.fid} />}
               {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} />}
             </div>
           )}

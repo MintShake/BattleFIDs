@@ -40,9 +40,8 @@ interface PlayerState {
 }
 
 interface Props {
-  ownerFid?:   number;
-  ownerDevice: string;
-  onGoToTeam:  () => void;
+  ownerFid?:  number;
+  onGoToTeam: () => void;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -67,7 +66,7 @@ function timeAgo(iso: string): string {
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Props) {
+export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
   const [team, setTeam]       = useState<TeamState | null>(null);
   const [player, setPlayer]   = useState<PlayerState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,7 +101,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
   }, []);
 
   useEffect(() => {
-    const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
+    const param = ownerFid ? `ownerFid=${ownerFid}` : '';
     fetch(`/api/week/team?${param}`)
       .then(r => r.json())
       .then(res => {
@@ -154,7 +153,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
       .catch(() => setLoading(false));
 
     // Fetch edition picks
-    const editionParam = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${ownerDevice}`;
+    const editionParam = ownerFid ? `ownerFid=${ownerFid}` : '';
     fetch(`/api/week/edition-pick?${editionParam}`)
       .then(r => r.json())
       .then(data => {
@@ -172,14 +171,14 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
         })));
       })
       .catch(() => {});
-  }, [ownerFid, ownerDevice]);
+  }, [ownerFid]);
 
   const handleUpdate = useCallback(async () => {
     if (updating) return;
     setUpdating(true);
     setUpdateErr('');
     try {
-      const body = JSON.stringify(ownerFid ? { ownerFid } : { ownerDeviceId: ownerDevice });
+      const body = JSON.stringify({ ownerFid });
       // Fetch base slot preview + edition pick preview in parallel
       const [res, edRes] = await Promise.all([
         fetch('/api/week/score/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }),
@@ -205,7 +204,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
     } finally {
       setUpdating(false);
     }
-  }, [updating, ownerFid, ownerDevice]);
+  }, [updating, ownerFid]);
 
   // ── loading / no team ─────────────────────────────────────────────────────
 
@@ -234,7 +233,6 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
 
   const scored      = team.slotPoints > 0 || team.rank != null;
   const hasPreview  = preview != null;
-  const isPro       = player?.lockedToPro || player?.tier === 'pro';
 
   const effectiveGroup = team.chosenTier === 'pro'
     ? 'pro'
@@ -402,7 +400,7 @@ export default function WeekProgress({ ownerFid, ownerDevice, onGoToTeam }: Prop
       </div>
 
       {/* ── Edition bonus slots (Pro only) ── */}
-      {isPro && editionPicks.length > 0 && (
+      {editionPicks.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.2)' }} />

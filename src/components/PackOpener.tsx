@@ -5,11 +5,8 @@ import { BattleFIDCard, OwnedCard } from '@/types/card';
 import { openPackRemote } from '@/lib/collection';
 import { PackTier, PACK_DEFS } from '@/lib/packTiers';
 import { estimateValue } from '@/lib/valuation';
-import { isContractDeployed, ROYALTY_PCT } from '@/lib/contract';
-import { useWallet } from '@/hooks/useWallet';
 import BattleCard from './BattleCard';
 import PackSelect from './PackSelect';
-import WalletConnect from './WalletConnect';
 
 type Phase = 'select' | 'payment' | 'opening' | 'revealing' | 'done';
 
@@ -28,12 +25,9 @@ export default function PackOpener({
   const [revealed, setRevealed]   = useState<Set<number>>(new Set());
   const [error, setError]         = useState<string | null>(null);
   const [revealAll, setRevealAll] = useState(false);
-  const [payError, setPayError]   = useState<string | null>(null);
 
-  const wallet = useWallet();
   const cards: BattleFIDCard[] = owned.map((o) => o.card);
   const packDef = PACK_DEFS.find(p => p.id === chosenTier) ?? PACK_DEFS[0];
-  const contractLive = isContractDeployed();
 
   // ── Step 1: pack selected → go to payment gate ───────────────────────────
 
@@ -61,18 +55,6 @@ export default function PackOpener({
   }
 
   async function handlePayAndOpen() {
-    setPayError(null);
-    if (!contractLive) {
-      // Demo mode — no payment taken
-      await processOpen();
-      return;
-    }
-    if (!wallet.connected) {
-      setPayError('Connect your wallet first.');
-      return;
-    }
-    // TODO: approve USDC spend + call buyPackOnChain() here
-    // For now fall through to demo mode even when contract is live
     await processOpen();
   }
 
@@ -197,13 +179,6 @@ export default function PackOpener({
               }}>
                 {packDef.bands.length > 1 ? packDef.bands.filter(b => b.pctTo <= 50).map(b => `${b.count}× top ${b.pctTo}%`).join(' · ') : 'Full random pool'}
               </div>
-              <div style={{
-                fontSize: 8, padding: '3px 8px', borderRadius: 99, fontWeight: 700,
-                background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)',
-                color: '#C9A84C',
-              }}>
-                {ROYALTY_PCT}% creator royalty on resale
-              </div>
             </div>
 
             {/* Odds summary */}
@@ -221,111 +196,23 @@ export default function PackOpener({
           </div>
         </div>
 
-        {/* Wallet + payment section */}
-        <div style={{
-          borderRadius: 14, padding: '16px',
-          background: 'rgba(138,99,210,0.04)',
-          border: '1px solid rgba(138,99,210,0.15)',
-          marginBottom: 14,
-        }}>
-          <div style={{
-            fontSize: 8, fontWeight: 900, letterSpacing: '0.25em',
-            color: '#6b5a80', textTransform: 'uppercase', marginBottom: 12,
-          }}>
-            Payment
-          </div>
-
-          {contractLive ? (
-            /* Live contract — real payment flow */
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 10, color: '#a08cc0' }}>Wallet</span>
-                <WalletConnect compact />
-              </div>
-              {wallet.connected && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, color: '#a08cc0' }}>You pay</span>
-                  <span style={{ fontSize: 14, fontWeight: 900, color: '#f0eaf8' }}>
-                    ${packDef.priceUsdc} USDC
-                  </span>
-                </div>
-              )}
-              {payError && (
-                <p style={{ fontSize: 9, color: '#ef4444', margin: '0 0 10px' }}>{payError}</p>
-              )}
-              <button
-                onClick={handlePayAndOpen}
-                disabled={!wallet.connected}
-                style={{
-                  width: '100%', padding: '13px 0', borderRadius: 10, border: 'none',
-                  background: wallet.connected
-                    ? isCodex
-                      ? 'linear-gradient(90deg, #C9A84C, #8a1c3a, #C9A84C)'
-                      : isTablet
-                        ? 'linear-gradient(90deg, #7c3aed, #a78bfa)'
-                        : 'linear-gradient(90deg, #4a3f2c, #8a7550)'
-                    : '#1a0f26',
-                  color: isCodex && wallet.connected ? '#000' : '#fff',
-                  fontSize: 12, fontWeight: 900, letterSpacing: '0.15em',
-                  textTransform: 'uppercase', cursor: wallet.connected ? 'pointer' : 'default',
-                  opacity: wallet.connected ? 1 : 0.5,
-                }}
-              >
-                {wallet.connected
-                  ? `Pay $${packDef.priceUsdc} USDC · Open ${packDef.name}`
-                  : 'Connect wallet to pay'}
-              </button>
-            </>
-          ) : (
-            /* Pre-launch — demo mode */
-            <>
-              <div style={{
-                display: 'flex', gap: 10, alignItems: 'flex-start',
-                padding: '10px 12px', borderRadius: 10, marginBottom: 12,
-                background: 'rgba(201,168,76,0.06)',
-                border: '1px solid rgba(201,168,76,0.2)',
-              }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>⚠</span>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C', marginBottom: 2 }}>
-                    Smart contract coming soon
-                  </div>
-                  <div style={{ fontSize: 9, color: '#5c4d50', lineHeight: 1.5 }}>
-                    Pack opens are free in demo mode. USDC payment (${packDef.priceUsdc}) will be required
-                    once the contract deploys on Base. NFT cards will be mintable at that point.
-                  </div>
-                </div>
-              </div>
-              {payError && (
-                <p style={{ fontSize: 9, color: '#ef4444', margin: '0 0 10px' }}>{payError}</p>
-              )}
-              <button
-                onClick={handlePayAndOpen}
-                style={{
-                  width: '100%', padding: '13px 0', borderRadius: 10, border: 'none',
-                  background: isCodex
-                    ? 'linear-gradient(90deg, #C9A84C, #8a1c3a, #C9A84C)'
-                    : isTablet
-                      ? 'linear-gradient(90deg, #7c3aed, #a78bfa)'
-                      : 'linear-gradient(90deg, #4a3f2c, #8a7550)',
-                  color: isCodex ? '#000' : '#fff',
-                  fontSize: 12, fontWeight: 900, letterSpacing: '0.15em',
-                  textTransform: 'uppercase', cursor: 'pointer',
-                  boxShadow: `0 0 20px ${packDef.glow}`,
-                }}
-              >
-                Open {packDef.name} · Demo
-              </button>
-            </>
-          )}
-        </div>
-
-        <p style={{
-          textAlign: 'center', fontSize: 8, color: '#6b5a80', fontStyle: 'italic',
-          letterSpacing: '0.05em', lineHeight: 1.5,
-        }}>
-          Cards minted as ERC-1155 on Base · {ROYALTY_PCT}% royalty on all secondary sales
-        </p>
+        <button
+          onClick={handlePayAndOpen}
+          style={{
+            width: '100%', padding: '13px 0', borderRadius: 10, border: 'none',
+            background: isCodex
+              ? 'linear-gradient(90deg, #C9A84C, #8a1c3a, #C9A84C)'
+              : isTablet
+                ? 'linear-gradient(90deg, #7c3aed, #a78bfa)'
+                : 'linear-gradient(90deg, #4a3f2c, #8a7550)',
+            color: isCodex ? '#000' : '#fff',
+            fontSize: 12, fontWeight: 900, letterSpacing: '0.15em',
+            textTransform: 'uppercase', cursor: 'pointer',
+            boxShadow: `0 0 20px ${packDef.glow}`,
+          }}
+        >
+          Open {packDef.name}
+        </button>
       </div>
     );
   }
@@ -376,9 +263,7 @@ export default function PackOpener({
           {cards.length} cards from your {packDef.subtitle} saved.
         </p>
         <p style={{ color: '#6b5a80', fontSize: 9, marginBottom: 28, fontStyle: 'italic' }}>
-          {contractLive
-            ? `${cards.length} NFTs minted to your wallet · ${ROYALTY_PCT}% royalty on resale`
-            : `Cards will be minted as NFTs automatically when the contract deploys on Base.`}
+          {cards.length} cards added to your collection
         </p>
         <button
           onClick={handleAgain}
