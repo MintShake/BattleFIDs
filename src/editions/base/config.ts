@@ -2,11 +2,11 @@ import type { Edition } from '../types';
 
 const config: Edition = {
   id:   'base',
-  name: 'Base Edition',
+  name: 'The Protocol',
 
   theme: {
     bgClass:      'bg-grid',
-    headerEra:    'THE PROTOCOL',
+    headerEra:    'FARCASTER',
     bgImage:      '/editions/base-bg.jpg',
     accentPrimary: '#8a63d2',
     accentSecondary: '#3a9bdc',
@@ -87,7 +87,7 @@ const config: Edition = {
   },
 
   league: {
-    seasonLabel: 'Base Edition Season',
+    seasonLabel: 'The Protocol — Base Season',
 
     cardTypeLabels: {
       CAPTAIN:     'Captain',

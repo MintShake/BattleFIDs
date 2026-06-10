@@ -154,13 +154,13 @@ function AppInner({
               style={{
                 fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase',
                 padding: '4px 12px', borderRadius: 99,
-                background: isPro ? `${edition.theme.accentPrimary}12` : 'rgba(80,60,100,0.08)',
-                border: isPro ? `1px solid ${edition.theme.accentPrimary}35` : '1px solid rgba(138,99,210,0.2)',
-                color: isPro ? edition.theme.accentPrimary : '#4a3a60',
+                background: `${edition.theme.accentPrimary}12`,
+                border: `1px solid ${edition.theme.accentPrimary}35`,
+                color: edition.theme.accentPrimary,
                 cursor: 'pointer',
               }}
             >
-              {isPro ? `${edition.name} ↗` : `🔒 ${edition.name}`}
+              {edition.id === 'base' ? 'Choose Edition ↗' : `${edition.name} ↗`}
             </button>
           </div>
 
