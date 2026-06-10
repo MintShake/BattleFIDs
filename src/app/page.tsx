@@ -15,7 +15,6 @@ import EditionSelect from '@/components/EditionSelect';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
-import { useWallet } from '@/hooks/useWallet';
 import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS } from '@/editions/context';
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
@@ -44,7 +43,6 @@ function AppInner({
 }) {
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
-  const { address: walletAddress, fid: walletFid, connected: walletConnected, connecting, connect } = useWallet();
   const [isPro, setIsPro]           = useState(false);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
@@ -124,40 +122,6 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
-          {/* Right controls: wallet connect (browser only) */}
-          <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            {!isInMiniApp && (
-              walletConnected ? (
-                <a
-                  href={walletFid ? `/profile/${walletFid}` : '#'}
-                  style={{
-                    fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
-                    padding: '5px 10px', borderRadius: 99,
-                    border: '1px solid rgba(201,168,76,0.35)',
-                    background: 'rgba(201,168,76,0.06)',
-                    color: '#C9A84C', textDecoration: 'none',
-                    display: 'flex', alignItems: 'center', gap: 5,
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-                  {walletFid ? `FID ${walletFid}` : 'Connected'}
-                </a>
-              ) : (
-                <button
-                  onClick={connect}
-                  disabled={connecting}
-                  style={{
-                    fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
-                    padding: '5px 10px', borderRadius: 99,
-                    border: '1px solid rgba(138,99,210,0.3)',
-                    background: 'transparent', color: '#8a63d2', cursor: 'pointer',
-                  }}
-                >
-                  {connecting ? '…' : '⬡ Connect'}
-                </button>
-              )
-            )}
-          </div>
           <div style={{
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
             width: 180, height: 28, borderRadius: '0 0 90px 90px',
@@ -209,7 +173,7 @@ function AppInner({
             </a>
           ) : (
             <p style={{ color: '#7a6a90', fontSize: 9, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 4 }}>
-              Farcaster Identity Battle Cards
+              Identity Battle Cards
             </p>
           )}
         </div>
@@ -248,7 +212,7 @@ function AppInner({
                   </div>
                 </div>
                 <p style={{ textAlign: 'center', fontSize: 9, color: '#7a6a90', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
-                  {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation
+                  {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation so far
                 </p>
                 {filteredBrowse.length === 0 && (
                   <p style={{ textAlign: 'center', fontSize: 11, color: '#a08cc0', marginTop: 40 }}>No cards match "{browseSearch}"</p>
