@@ -25,6 +25,19 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
   const wallet = useWallet();
   const [linkStatus, setLinkStatus] = useState<{ linkedFid?: number | null; mode?: string } | null>(null);
   const [linking, setLinking] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  function removeWallet() {
+    const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${encodeURIComponent(ownerDeviceId!)}`;
+    setRemoving(true);
+    fetch(`/api/players/link-wallet?${param}`, { method: 'DELETE' })
+      .then(() => {
+        wallet.disconnect();
+        setLinkStatus(null);
+      })
+      .catch(() => wallet.disconnect())
+      .finally(() => setRemoving(false));
+  }
 
   // On mount: check if DB already has a link (handles any-order linking)
   useEffect(() => {
@@ -142,55 +155,86 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
           Wallet
         </div>
 
-        <WalletConnect />
+        {wallet.connected ? (
+          <div>
+            {/* Address row with remove button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{
+                flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 12px', borderRadius: 99,
+                border: '1px solid rgba(201,168,76,0.35)',
+                background: 'rgba(201,168,76,0.06)',
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em' }}>
+                  {wallet.shortAddress}
+                </span>
+              </div>
+              <button
+                onClick={removeWallet}
+                disabled={removing}
+                style={{
+                  padding: '7px 12px', borderRadius: 99, flexShrink: 0,
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  background: 'transparent', color: '#ef4444',
+                  fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                  cursor: removing ? 'default' : 'pointer',
+                  opacity: removing ? 0.5 : 1,
+                }}
+              >
+                {removing ? '…' : 'REMOVE'}
+              </button>
+            </div>
 
-        {wallet.connected && (
-          <div style={{ marginTop: 12 }}>
+            {/* Link status */}
             {linking ? (
               <div style={{ fontSize: 9, color: '#7a6a90', letterSpacing: '0.1em' }}>Linking identities…</div>
             ) : isLinked ? (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', borderRadius: 10, marginTop: 4,
+                padding: '8px 12px', borderRadius: 10,
                 background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
               }}>
                 <span style={{ color: '#22c55e', fontSize: 14 }}>✓</span>
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>Identities linked</div>
                   <div style={{ fontSize: 8, color: '#6b7a6b', marginTop: 1 }}>
-                    Your standalone cards + FID #{linkStatus?.linkedFid} cards are now merged
+                    {isFidMode
+                      ? 'Your Farcaster and standalone collections are merged'
+                      : `FID #${linkStatus?.linkedFid} Farcaster cards are merged into this collection`}
                   </div>
                 </div>
               </div>
             ) : isFidMode ? (
               <div style={{
-                padding: '8px 12px', borderRadius: 10, marginTop: 4,
+                padding: '8px 12px', borderRadius: 10,
                 background: 'rgba(138,99,210,0.06)', border: '1px solid rgba(138,99,210,0.2)',
               }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a63d2' }}>Wallet saved to your profile</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a63d2' }}>Wallet saved</div>
                 <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
-                  Connect the same wallet from standalone to merge your card collections
+                  Connect the same wallet from standalone to merge collections
                 </div>
               </div>
             ) : (
               <div style={{
-                padding: '8px 12px', borderRadius: 10, marginTop: 4,
+                padding: '8px 12px', borderRadius: 10,
                 background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)',
               }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C' }}>No Farcaster account found</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C' }}>No Farcaster account found for this wallet</div>
                 <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
-                  Connect the same wallet in Farcaster to link your identities
+                  Make sure this wallet is a verified address on your Farcaster profile
                 </div>
               </div>
             )}
           </div>
-        )}
-
-        {!wallet.connected && (
-          <div style={{ fontSize: 9, color: '#6b5a80', marginTop: 10, lineHeight: 1.5 }}>
-            {isFidMode
-              ? 'Connect your wallet to link to standalone. Open packs from either — cards appear in both places.'
-              : 'Connect your wallet to link this device to your Farcaster identity and merge card collections.'}
+        ) : (
+          <div>
+            <WalletConnect />
+            <div style={{ fontSize: 9, color: '#6b5a80', marginTop: 10, lineHeight: 1.5 }}>
+              {isFidMode
+                ? 'Connect your wallet to link to standalone. Cards open from either place appear in both.'
+                : 'Connect your wallet to merge with your Farcaster identity and see all your cards here.'}
+            </div>
           </div>
         )}
       </div>

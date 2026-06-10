@@ -24,6 +24,36 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// DELETE /api/players/link-wallet?ownerFid=123 or ?ownerDeviceId=abc
+// Clears wallet_address and linked_fid from the player row
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const ownerFid      = searchParams.get('ownerFid');
+  const ownerDeviceId = searchParams.get('ownerDeviceId');
+
+  if (!ownerFid && !ownerDeviceId) {
+    return NextResponse.json({ error: 'identity required' }, { status: 400 });
+  }
+
+  try {
+    if (ownerFid) {
+      await sql`
+        UPDATE players SET wallet_address = NULL
+        WHERE owner_fid = ${parseInt(ownerFid)}
+      `;
+    } else {
+      await sql`
+        UPDATE players SET wallet_address = NULL, linked_fid = NULL
+        WHERE owner_device_id = ${ownerDeviceId}
+      `;
+    }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
 // POST /api/players/link-wallet
 // Body: { walletAddress, ownerFid?, ownerDeviceId?, resolvedFid? }
 // resolvedFid: FID already resolved by the client via Neynar address lookup (useWallet hook)
