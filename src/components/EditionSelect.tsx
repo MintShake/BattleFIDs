@@ -6,11 +6,12 @@ import { Edition } from '@/editions/types';
 interface Props {
   editions: Edition[];
   onSelect: (editionId: string) => void;
+  onClose:  () => void;
   currentId?: string;
   isPro?: boolean;
 }
 
-export default function EditionSelect({ editions, onSelect, currentId, isPro = false }: Props) {
+export default function EditionSelect({ editions, onSelect, onClose, currentId, isPro = false }: Props) {
   const list = editions.length > 0 ? editions : [];
 
   return (
@@ -20,7 +21,22 @@ export default function EditionSelect({ editions, onSelect, currentId, isPro = f
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
+      position: 'relative',
     }}>
+      {/* Back button */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute', top: 16, left: 16,
+          background: 'none', border: 'none',
+          color: '#7a6a90', fontSize: 22, cursor: 'pointer',
+          minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0,
+        }}
+      >
+        ←
+      </button>
+
       <div style={{ textAlign: 'center', padding: '32px 20px 20px' }}>
         <p style={{
           fontSize: 9, fontWeight: 700, letterSpacing: '0.45em',

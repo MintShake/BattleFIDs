@@ -327,6 +327,7 @@ export default function Home() {
       <EditionSelect
         editions={allEditions}
         onSelect={selectEdition}
+        onClose={() => setShowPicker(false)}
         currentId={editionId}
         isPro={isPro}
       />
