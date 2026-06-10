@@ -271,7 +271,7 @@ export async function GET(req: NextRequest) {
         SELECT linked_fid FROM player_wallets
         WHERE owner_device_id = ${ownerDeviceId} AND linked_fid IS NOT NULL
       `;
-      linkedFids = walletRows.map((r: { linked_fid: number }) => r.linked_fid);
+      linkedFids = walletRows.map((r: Record<string, unknown>) => r.linked_fid as number);
     } catch {
       // player_wallets may not exist yet — fall back to players.linked_fid
       const playerRows = await sql`
