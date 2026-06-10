@@ -12,6 +12,7 @@ import TeamBuilder from '@/components/TeamBuilder';
 import WeekProgress from '@/components/WeekProgress';
 import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
+import ProfileTab from '@/components/ProfileTab';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
@@ -21,7 +22,7 @@ import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
 import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
 import type { Edition } from '@/editions/types';
 
-type Tab = 'browse' | 'pack' | 'collection' | 'league';
+type Tab = 'browse' | 'pack' | 'collection' | 'league' | 'profile';
 type LeagueView = 'team' | 'progress' | 'leaderboard';
 type BrowseSort = 'recent' | 'score' | 'fid' | 'name';
 
@@ -45,6 +46,7 @@ function AppInner({
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
   const [isPro, setIsPro]           = useState(false);
+  const [playerData, setPlayerData] = useState<{ protocolPoints: number; tier: string; lockedToPro: boolean; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const deviceId = typeof window !== 'undefined'
@@ -69,9 +71,17 @@ function AppInner({
     const param = fid ? `ownerFid=${fid}` : `ownerDeviceId=${device}`;
     fetch(`/api/players?${param}`)
       .then(r => r.json())
-      .then((data: { tier?: string; lockedToPro?: boolean }) => {
+      .then((data: { tier?: string; lockedToPro?: boolean; protocolPoints?: number; totalWins?: number; totalLosses?: number; referralCode?: string }) => {
         const pro = Boolean(data.lockedToPro) || data.tier === 'pro';
         setIsPro(pro);
+        setPlayerData({
+          protocolPoints: data.protocolPoints ?? 0,
+          tier:           data.tier ?? 'beginner',
+          lockedToPro:    Boolean(data.lockedToPro),
+          totalWins:      data.totalWins ?? 0,
+          totalLosses:    data.totalLosses ?? 0,
+          referralCode:   data.referralCode ?? '',
+        });
         onPlayerLoaded(pro);
       })
       .catch(() => onPlayerLoaded(false));
@@ -135,8 +145,8 @@ function AppInner({
     return list;
   }, [globalCards, browseSearch, browseSort]);
 
-  const TAB_ICONS:  Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆' };
-  const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League' };
+  const TAB_ICONS:  Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆', profile: '◉' };
+  const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League', profile: 'Profile' };
 
   return (
     <>
@@ -297,6 +307,16 @@ function AppInner({
               {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} />}
             </div>
           )}
+
+          {tab === 'profile' && (
+            <ProfileTab
+              ownerFid={miniAppUser?.fid}
+              ownerDeviceId={deviceId}
+              handle={miniAppUser?.username}
+              playerData={playerData}
+              onCollectionRefresh={() => fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {})}
+            />
+          )}
         </div>
       </div>
 
@@ -306,7 +326,7 @@ function AppInner({
 
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64 + safeAreaInsets.bottom, background: 'rgba(9,4,15,0.94)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(138,99,210,0.18)', zIndex: 100 }}>
         <div className="page-inner" style={{ height: '100%', paddingBottom: safeAreaInsets.bottom, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around' }}>
-          {(['browse', 'pack', 'collection', 'league'] as Tab[]).map(t => (
+          {(['browse', 'pack', 'collection', 'league', 'profile'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ flex: 1, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', color: tab === t ? '#8a63d2' : '#7a6a90', transition: 'color 0.15s', minHeight: 44 }}>
               <span style={{ fontSize: 20 }}>{TAB_ICONS[t]}</span>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>

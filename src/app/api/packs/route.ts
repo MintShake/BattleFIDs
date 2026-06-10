@@ -254,21 +254,38 @@ export async function GET(req: NextRequest) {
     return NextResponse.json([], { status: 400 });
   }
 
-  const rows = ownerFid
-    ? await sql`
-        SELECT oc.serial_number, oc.opened_at, oc.is_edition_1of1, oc.edition_id, c.*
-        FROM owned_cards oc
-        JOIN cards c ON c.fid = oc.fid
-        WHERE oc.owner_fid = ${parseInt(ownerFid)}
-        ORDER BY oc.opened_at DESC
-      `
-    : await sql`
-        SELECT oc.serial_number, oc.opened_at, oc.is_edition_1of1, oc.edition_id, c.*
-        FROM owned_cards oc
-        JOIN cards c ON c.fid = oc.fid
-        WHERE oc.owner_device_id = ${ownerDeviceId}
-        ORDER BY oc.opened_at DESC
-      `;
+  let rows;
+  if (ownerFid) {
+    rows = await sql`
+      SELECT oc.serial_number, oc.opened_at, oc.is_edition_1of1, oc.edition_id, c.*
+      FROM owned_cards oc
+      JOIN cards c ON c.fid = oc.fid
+      WHERE oc.owner_fid = ${parseInt(ownerFid)}
+      ORDER BY oc.opened_at DESC
+    `;
+  } else {
+    // Check if device player has a linked FID — if so, merge both identities
+    const playerRows = await sql`
+      SELECT linked_fid FROM players WHERE owner_device_id = ${ownerDeviceId} LIMIT 1
+    `;
+    const linkedFid: number | null = playerRows[0]?.linked_fid ?? null;
+
+    rows = linkedFid
+      ? await sql`
+          SELECT oc.serial_number, oc.opened_at, oc.is_edition_1of1, oc.edition_id, c.*
+          FROM owned_cards oc
+          JOIN cards c ON c.fid = oc.fid
+          WHERE oc.owner_device_id = ${ownerDeviceId} OR oc.owner_fid = ${linkedFid}
+          ORDER BY oc.opened_at DESC
+        `
+      : await sql`
+          SELECT oc.serial_number, oc.opened_at, oc.is_edition_1of1, oc.edition_id, c.*
+          FROM owned_cards oc
+          JOIN cards c ON c.fid = oc.fid
+          WHERE oc.owner_device_id = ${ownerDeviceId}
+          ORDER BY oc.opened_at DESC
+        `;
+  }
 
   const owned: OwnedCard[] = rows.map((row) => ({
     serialNumber: row.serial_number,
