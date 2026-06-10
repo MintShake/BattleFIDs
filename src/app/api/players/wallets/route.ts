@@ -10,22 +10,30 @@ export async function GET(req: NextRequest) {
 
   if (!ownerFid && !ownerDeviceId) return NextResponse.json({ wallets: [], linkedFid: null });
 
+  // Always read from players table — authoritative for wallet_address + linked_fid
+  const playerRows = ownerFid
+    ? await sql`SELECT wallet_address, linked_fid FROM players WHERE owner_fid = ${parseInt(ownerFid)} LIMIT 1`
+    : await sql`SELECT wallet_address, linked_fid FROM players WHERE owner_device_id = ${ownerDeviceId} LIMIT 1`;
+
+  const linkedFid: number | null = playerRows[0]?.linked_fid ?? null;
+
+  // Try player_wallets table for the full list (may not exist yet)
   try {
     const rows = ownerFid
       ? await sql`SELECT wallet_address, linked_fid FROM player_wallets WHERE owner_fid = ${parseInt(ownerFid)} ORDER BY created_at ASC`
       : await sql`SELECT wallet_address, linked_fid FROM player_wallets WHERE owner_device_id = ${ownerDeviceId} ORDER BY created_at ASC`;
 
-    // Also return current linked_fid from players table (primary link used by collection query)
-    const playerRows = ownerFid
-      ? await sql`SELECT linked_fid FROM players WHERE owner_fid = ${parseInt(ownerFid)} LIMIT 1`
-      : await sql`SELECT linked_fid FROM players WHERE owner_device_id = ${ownerDeviceId} LIMIT 1`;
-
     return NextResponse.json({
       wallets: rows.map(r => ({ address: r.wallet_address, linkedFid: r.linked_fid ?? null })),
-      linkedFid: playerRows[0]?.linked_fid ?? null,
+      linkedFid,
     });
   } catch {
-    return NextResponse.json({ wallets: [], linkedFid: null });
+    // player_wallets not migrated yet — return single wallet from players row
+    const w = playerRows[0]?.wallet_address;
+    return NextResponse.json({
+      wallets: w ? [{ address: w, linkedFid }] : [],
+      linkedFid,
+    });
   }
 }
 
@@ -69,29 +77,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Upsert into player_wallets
-    if (ownerFid) {
-      await sql`
-        INSERT INTO player_wallets (owner_fid, wallet_address, linked_fid)
-        VALUES (${ownerFid}, ${wallet}, ${linkedFid})
-        ON CONFLICT (wallet_address) DO UPDATE
-          SET owner_fid = ${ownerFid}, linked_fid = COALESCE(EXCLUDED.linked_fid, player_wallets.linked_fid)
-      `;
-      // Store on players row too for backward compat with collection query
-      await sql`UPDATE players SET wallet_address = ${wallet} WHERE owner_fid = ${ownerFid}`;
-    } else {
-      await sql`
-        INSERT INTO player_wallets (owner_device_id, wallet_address, linked_fid)
-        VALUES (${ownerDeviceId}, ${wallet}, ${linkedFid})
-        ON CONFLICT (wallet_address) DO UPDATE
-          SET owner_device_id = ${ownerDeviceId}, linked_fid = COALESCE(EXCLUDED.linked_fid, player_wallets.linked_fid)
-      `;
-      // If we found a linked FID, set it on the players row
-      if (linkedFid) {
-        await sql`UPDATE players SET linked_fid = ${linkedFid}, wallet_address = ${wallet} WHERE owner_device_id = ${ownerDeviceId}`;
+    // Try to upsert into player_wallets (table may not exist yet — non-fatal)
+    try {
+      if (ownerFid) {
+        await sql`
+          INSERT INTO player_wallets (owner_fid, wallet_address, linked_fid)
+          VALUES (${ownerFid}, ${wallet}, ${linkedFid})
+          ON CONFLICT (wallet_address) DO UPDATE
+            SET owner_fid = ${ownerFid}, linked_fid = COALESCE(EXCLUDED.linked_fid, player_wallets.linked_fid)
+        `;
       } else {
-        await sql`UPDATE players SET wallet_address = ${wallet} WHERE owner_device_id = ${ownerDeviceId}`;
+        await sql`
+          INSERT INTO player_wallets (owner_device_id, wallet_address, linked_fid)
+          VALUES (${ownerDeviceId}, ${wallet}, ${linkedFid})
+          ON CONFLICT (wallet_address) DO UPDATE
+            SET owner_device_id = ${ownerDeviceId}, linked_fid = COALESCE(EXCLUDED.linked_fid, player_wallets.linked_fid)
+        `;
       }
+    } catch { /* player_wallets not migrated yet — fall through to players update */ }
+
+    // Always update the players row — this is the authoritative identity bridge
+    if (ownerFid) {
+      await sql`UPDATE players SET wallet_address = ${wallet} WHERE owner_fid = ${ownerFid}`;
+    } else if (linkedFid) {
+      await sql`UPDATE players SET linked_fid = ${linkedFid}, wallet_address = ${wallet} WHERE owner_device_id = ${ownerDeviceId}`;
+    } else {
+      await sql`UPDATE players SET wallet_address = ${wallet} WHERE owner_device_id = ${ownerDeviceId}`;
     }
 
     return NextResponse.json({ ok: true, linkedFid });
