@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 
+// GET /api/players/link-wallet?ownerFid=123 or ?ownerDeviceId=abc
+// Returns current linked_fid for a player without mutating anything
+export async function GET(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const ownerFid      = searchParams.get('ownerFid');
+  const ownerDeviceId = searchParams.get('ownerDeviceId');
+
+  if (!ownerFid && !ownerDeviceId) {
+    return NextResponse.json({ linkedFid: null });
+  }
+
+  try {
+    const rows = ownerFid
+      ? await sql`SELECT linked_fid, wallet_address FROM players WHERE owner_fid = ${parseInt(ownerFid)} LIMIT 1`
+      : await sql`SELECT linked_fid, wallet_address FROM players WHERE owner_device_id = ${ownerDeviceId} LIMIT 1`;
+
+    const row = rows[0];
+    return NextResponse.json({ linkedFid: row?.linked_fid ?? null, walletAddress: row?.wallet_address ?? null });
+  } catch {
+    return NextResponse.json({ linkedFid: null });
+  }
+}
+
 // POST /api/players/link-wallet
 // Body: { walletAddress, ownerFid?, ownerDeviceId? }
 // Stores wallet on the player row. For device players, also checks if a FID player
@@ -19,6 +42,13 @@ export async function POST(req: NextRequest) {
       await sql`
         UPDATE players SET wallet_address = ${wallet}
         WHERE owner_fid = ${ownerFid}
+      `;
+      // Retroactively link any device players who already stored this wallet
+      await sql`
+        UPDATE players SET linked_fid = ${ownerFid}
+        WHERE wallet_address = ${wallet}
+          AND owner_fid IS NULL
+          AND (linked_fid IS NULL OR linked_fid != ${ownerFid})
       `;
       return NextResponse.json({ ok: true, mode: 'fid' });
     }

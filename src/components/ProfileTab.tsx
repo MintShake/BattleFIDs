@@ -26,7 +26,23 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
   const [linkStatus, setLinkStatus] = useState<{ linkedFid?: number | null; mode?: string } | null>(null);
   const [linking, setLinking] = useState(false);
 
-  // When wallet connects, attempt to link identities
+  // On mount: check if DB already has a link (handles any-order linking)
+  useEffect(() => {
+    if (!ownerFid && !ownerDeviceId) return;
+    const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${encodeURIComponent(ownerDeviceId!)}`;
+    fetch(`/api/players/link-wallet?${param}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.linkedFid) {
+          setLinkStatus({ linkedFid: data.linkedFid, mode: 'device' });
+          onCollectionRefresh?.();
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownerFid, ownerDeviceId]);
+
+  // When wallet connects/changes, attempt to link identities
   useEffect(() => {
     if (!wallet.address) return;
     if (!ownerFid && !ownerDeviceId) return;
@@ -44,7 +60,6 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
       .then(r => r.json())
       .then(data => {
         setLinkStatus(data);
-        // If newly linked, refresh collection
         if (data.linkedFid) onCollectionRefresh?.();
       })
       .catch(() => {})
