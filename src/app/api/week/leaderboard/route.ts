@@ -7,7 +7,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const weekId = searchParams.get('weekId') ?? currentWeekId();
   const group  = searchParams.get('group'); // 'beginner' | 'pro' | null (all)
-  const limit  = Math.min(100, parseInt(searchParams.get('limit') ?? '50'));
+  const limit  = Math.min(50, parseInt(searchParams.get('limit') ?? '20'));
+  const page   = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
+  const offset = (page - 1) * limit;
 
   try {
     const rows = group
@@ -33,7 +35,7 @@ export async function GET(req: NextRequest) {
               OR (wt.chosen_tier = 'confident' AND wt.assigned_group = ${group})
             )
           ORDER BY wt.slot_points DESC, wt.avg_team_score DESC
-          LIMIT ${limit}
+          LIMIT ${limit} OFFSET ${offset}
         `
       : await sql`
           SELECT
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
           LEFT JOIN cards li ON li.fid = wt.likes_fid
           WHERE wt.week_id = ${weekId}
           ORDER BY wt.slot_points DESC, wt.avg_team_score DESC
-          LIMIT ${limit}
+          LIMIT ${limit} OFFSET ${offset}
         `;
 
     const leaderboard = rows.map((r, i) => ({
@@ -75,7 +77,15 @@ export async function GET(req: NextRequest) {
 
     const [{ count }] = await sql`SELECT COUNT(*) FROM weekly_teams WHERE week_id = ${weekId}`;
 
-    return NextResponse.json({ weekId, group: group ?? 'all', leaderboard, totalTeams: Number(count) });
+    return NextResponse.json({
+      weekId,
+      group:      group ?? 'all',
+      leaderboard,
+      totalTeams: Number(count),
+      page,
+      limit,
+      hasMore:    offset + limit < Number(count),
+    });
   } catch {
     return NextResponse.json({ weekId, group: group ?? 'all', leaderboard: [], totalTeams: 0 });
   }

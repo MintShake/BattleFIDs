@@ -162,7 +162,7 @@ export const EDITION_SEEDS = [
     tag_color: '#22c55e',
     embed_image_url: null,
     splash_image_url: null,
-    rarity_names: JSON.stringify({ Alpha: 'GENESIS', Legendary: 'ORACLE', Elite: 'NODE', Rare: 'VALIDATOR', Common: 'USER' }),
+    rarity_names: JSON.stringify({ Alpha: 'GENESIS', Legendary: 'ORACLE', Elite: 'NODE', Rare: 'VALIDATOR', Common: 'CASTER' }),
     slot_labels: JSON.stringify({ CAPTAIN: 'Captain', BROADCASTER: 'Broadcaster', PUBLISHER: 'Publisher', AGITATOR: 'Agitator', NETWORKER: 'Networker' }),
     slot_descs: JSON.stringify({ CAPTAIN: 'Any card · rarity multiplies team score', BROADCASTER: 'Viral reach · scored on recasts received', PUBLISHER: 'Content quality · scored on likes received', AGITATOR: 'Stirs debate · scored on replies received', NETWORKER: 'Builds alliances · scored on replies sent' }),
     pack_names: JSON.stringify({ scroll: { name: 'SCROLL', subtitle: 'Common to Elite', flavour: '3 cards — common weighted' }, tablet: { name: 'TABLET', subtitle: 'Rare & above', flavour: '5 cards — no common' }, codex: { name: 'CODEX', subtitle: 'Legendary & above', flavour: '10 cards — rare minimum' } }),

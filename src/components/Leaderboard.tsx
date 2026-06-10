@@ -34,25 +34,43 @@ interface Props {
   ownerFid?: number;
 }
 
+const PAGE_SIZE = 20;
+
 export default function Leaderboard({ ownerFid }: Props) {
   const [group, setGroup]       = useState<Group>('beginner');
   const [entries, setEntries]   = useState<LeaderboardEntry[]>([]);
   const [totalTeams, setTotal]  = useState(0);
   const [weekId, setWeekId]     = useState('');
   const [loading, setLoading]   = useState(true);
+  const [page, setPage]         = useState(1);
+  const [hasMore, setHasMore]   = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/week/leaderboard?group=${group}&limit=50`)
+    setPage(1);
+    fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=1`)
       .then(r => r.json())
       .then(data => {
         setEntries(data.leaderboard ?? []);
         setTotal(data.totalTeams ?? 0);
         setWeekId(data.weekId ?? '');
+        setHasMore(data.hasMore ?? false);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [group]);
+
+  function loadMore() {
+    const next = page + 1;
+    fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=${next}`)
+      .then(r => r.json())
+      .then(data => {
+        setEntries(prev => [...prev, ...(data.leaderboard ?? [])]);
+        setHasMore(data.hasMore ?? false);
+        setPage(next);
+      })
+      .catch(() => {});
+  }
 
   const maxPoints = entries[0]?.slotPoints ?? 1;
 
@@ -189,8 +207,24 @@ export default function Leaderboard({ ownerFid }: Props) {
         </div>
       )}
 
+      {hasMore && (
+        <button
+          onClick={loadMore}
+          style={{
+            display: 'block', width: '100%', marginTop: 12,
+            padding: '10px', borderRadius: 99,
+            border: '1px solid rgba(138,99,210,0.25)',
+            background: 'transparent', color: '#a08cc0',
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+            textTransform: 'uppercase', cursor: 'pointer',
+          }}
+        >
+          Load More
+        </button>
+      )}
+
       <p style={{ fontSize: 9, color: '#5a4a70', textAlign: 'center', marginTop: 14, lineHeight: 1.6 }}>
-        1 protocol point per opponent beaten per slot · updated end of week
+        {entries.length} of {totalTeams} · 1 point per opponent beaten per slot · updated end of week
       </p>
     </div>
   );

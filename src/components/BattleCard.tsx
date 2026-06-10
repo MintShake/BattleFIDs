@@ -300,14 +300,6 @@ export default function BattleCard({
 
           {showFollow && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
-              <div style={{
-                fontSize: 7, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase',
-                padding: '2px 7px', borderRadius: 99,
-                background: `${cfg.accent}15`, border: `1px solid ${cfg.accent}30`, color: cfg.accent,
-              }}>
-                {edition.league.cardTypeLabels[card.cardType]}
-              </div>
-
               {(card.wins > 0 || card.losses > 0) && (
                 <div style={{
                   fontSize: 7, fontWeight: 700, letterSpacing: '0.1em',

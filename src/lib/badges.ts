@@ -85,7 +85,7 @@ export function computeBadges(card: BattleFIDCard): CardBadge[] {
   // ── Neynar power ──────────────────────────────────────────────────────────
   if (card.hasBadge) {
     badges.push({
-      id: 'power', emoji: '⚡', name: 'POWER USER',
+      id: 'power', emoji: '⚡', name: 'POWER BADGE',
       description: 'Holds a Farcaster power badge — top engagement tier.',
       rarity: 'rare',
     });

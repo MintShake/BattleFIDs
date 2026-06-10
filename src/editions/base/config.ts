@@ -50,7 +50,7 @@ const config: Edition = {
       accent: '#a78bfa',
     },
     Common: {
-      tier:   'USER',
+      tier:   'CASTER',
       border: 'linear-gradient(135deg, #4a5568, #2d3748)',
       header: 'linear-gradient(160deg, #0a0a14, #12121e)',
       glow:   'none',

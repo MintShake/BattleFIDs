@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect } from '@/lib/neynar';
 import { CardType, OwnedCard } from '@/types/card';
@@ -9,22 +9,32 @@ interface GlobalCard {
   ownerFid?: number;
 }
 
-// GET /api/browse — all cards ever opened, newest first, with owner handle
-export async function GET() {
-  const rows = await sql`
-    SELECT
-      oc.serial_number,
-      oc.opened_at,
-      oc.owner_fid,
-      oc.owner_device_id,
-      oc.is_edition_1of1,
-      oc.edition_id,
-      c.*
-    FROM owned_cards oc
-    JOIN cards c ON c.fid = oc.fid
-    ORDER BY oc.opened_at DESC
-    LIMIT 200
-  `;
+const PAGE_SIZE = 24;
+
+// GET /api/browse?page=1&limit=24 — paginated cards, newest first, with owner handle
+export async function GET(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const page  = Math.max(1, parseInt(searchParams.get('page')  ?? '1'));
+  const limit = Math.min(48, parseInt(searchParams.get('limit') ?? String(PAGE_SIZE)));
+  const offset = (page - 1) * limit;
+
+  const [rows, [{ total }]] = await Promise.all([
+    sql`
+      SELECT
+        oc.serial_number,
+        oc.opened_at,
+        oc.owner_fid,
+        oc.owner_device_id,
+        oc.is_edition_1of1,
+        oc.edition_id,
+        c.*
+      FROM owned_cards oc
+      JOIN cards c ON c.fid = oc.fid
+      ORDER BY oc.opened_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `,
+    sql`SELECT COUNT(*) AS total FROM owned_cards`,
+  ]);
 
   const uniqueFids = [...new Set(
     rows.map(r => r.owner_fid).filter((f): f is number => !!f),
@@ -72,7 +82,13 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json(result, {
+  return NextResponse.json({
+    cards:   result,
+    page,
+    limit,
+    total:   Number(total),
+    hasMore: offset + limit < Number(total),
+  }, {
     headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
   });
 }

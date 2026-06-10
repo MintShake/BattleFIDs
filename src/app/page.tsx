@@ -26,10 +26,11 @@ type LeagueView = 'team' | 'progress' | 'leaderboard';
 type BrowseSort = 'recent' | 'score' | 'fid' | 'name';
 
 interface GlobalCard { ownedCard: OwnedCard; ownerHandle?: string; }
+interface BrowsePage { cards: GlobalCard[]; total: number; hasMore: boolean; }
 
-async function fetchGlobalCards(): Promise<GlobalCard[]> {
-  const res = await fetch('/api/browse');
-  if (!res.ok) return [];
+async function fetchBrowsePage(page: number): Promise<BrowsePage> {
+  const res = await fetch(`/api/browse?page=${page}&limit=24`);
+  if (!res.ok) return { cards: [], total: 0, hasMore: false };
   return res.json();
 }
 
@@ -50,8 +51,12 @@ function AppInner({
     ? (localStorage.getItem('deviceId') ?? (() => { const id = crypto.randomUUID(); localStorage.setItem('deviceId', id); return id; })())
     : '';
   const [owned, setOwned]           = useState<OwnedCard[]>([]);
-  const [globalCards, setGlobalCards] = useState<GlobalCard[]>([]);
+  const [globalCards, setGlobalCards]   = useState<GlobalCard[]>([]);
+  const [browseTotal, setBrowseTotal]   = useState(0);
+  const [browseHasMore, setBrowseHasMore] = useState(false);
+  const [browsePage, setBrowsePage]     = useState(1);
   const [browseLoading, setBrowseLoading] = useState(true);
+  const [browseLoadingMore, setBrowseLoadingMore] = useState(false);
   const [browseSearch, setBrowseSearch]   = useState('');
   const [browseSort, setBrowseSort]       = useState<BrowseSort>('recent');
   const [modalCard, setModalCard]   = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
@@ -78,13 +83,39 @@ function AppInner({
   }, [miniAppUser?.fid]);
 
   useEffect(() => {
-    fetchGlobalCards().then(cards => { setGlobalCards(cards); setBrowseLoading(false); })
+    fetchBrowsePage(1)
+      .then(({ cards, total, hasMore }) => {
+        setGlobalCards(cards);
+        setBrowseTotal(total);
+        setBrowseHasMore(hasMore);
+        setBrowsePage(1);
+        setBrowseLoading(false);
+      })
       .catch(() => setBrowseLoading(false));
   }, []);
 
+  function loadMoreCards() {
+    const next = browsePage + 1;
+    setBrowseLoadingMore(true);
+    fetchBrowsePage(next)
+      .then(({ cards, total, hasMore }) => {
+        setGlobalCards(prev => [...prev, ...cards]);
+        setBrowseTotal(total);
+        setBrowseHasMore(hasMore);
+        setBrowsePage(next);
+        setBrowseLoadingMore(false);
+      })
+      .catch(() => setBrowseLoadingMore(false));
+  }
+
   function handleCollected() {
     fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {});
-    fetchGlobalCards().then(setGlobalCards).catch(() => {});
+    fetchBrowsePage(1).then(({ cards, total, hasMore }) => {
+      setGlobalCards(cards);
+      setBrowseTotal(total);
+      setBrowseHasMore(hasMore);
+      setBrowsePage(1);
+    }).catch(() => {});
     setTab('collection');
   }
 
@@ -212,7 +243,7 @@ function AppInner({
                   </div>
                 </div>
                 <p style={{ textAlign: 'center', fontSize: 9, color: '#7a6a90', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 12 }}>
-                  {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} in circulation so far
+                  {filteredBrowse.length}{filteredBrowse.length !== globalCards.length ? ` of ${globalCards.length}` : ''} card{filteredBrowse.length !== 1 ? 's' : ''} shown · {browseTotal} in circulation so far
                 </p>
                 {filteredBrowse.length === 0 && (
                   <p style={{ textAlign: 'center', fontSize: 11, color: '#a08cc0', marginTop: 40 }}>No cards match "{browseSearch}"</p>
@@ -228,6 +259,23 @@ function AppInner({
                     />
                   ))}
                 </div>
+                {browseHasMore && !browseSearch && (
+                  <button
+                    onClick={loadMoreCards}
+                    disabled={browseLoadingMore}
+                    style={{
+                      display: 'block', width: '100%', marginTop: 16,
+                      padding: '10px', borderRadius: 99,
+                      border: '1px solid rgba(138,99,210,0.25)',
+                      background: 'transparent', color: '#a08cc0',
+                      fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+                      textTransform: 'uppercase', cursor: browseLoadingMore ? 'default' : 'pointer',
+                      opacity: browseLoadingMore ? 0.5 : 1,
+                    }}
+                  >
+                    {browseLoadingMore ? 'Loading…' : 'Load More'}
+                  </button>
+                )}
               </>
             )
           )}
