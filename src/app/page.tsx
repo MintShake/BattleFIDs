@@ -44,7 +44,7 @@ function AppInner({
   onPlayerLoaded: (isPro: boolean) => void;
 }) {
   const edition = useEdition();
-  const { user: miniAppUser, safeAreaInsets, isInMiniApp, added } = useMiniApp();
+  const { user: miniAppUser, safeAreaInsets, isInMiniApp, checked, added } = useMiniApp();
   const [isPro, setIsPro]           = useState(false);
   const [playerData, setPlayerData] = useState<{ protocolPoints: number; tier: string; lockedToPro: boolean; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
   const [tab, setTab]               = useState<Tab>('browse');
@@ -147,6 +147,48 @@ function AppInner({
 
   const TAB_ICONS:  Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆', profile: '◉' };
   const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League', profile: 'Profile' };
+
+  // Gate: show "head to Farcaster" once SDK check settles and we're not in a mini-app
+  if (checked && !isInMiniApp) {
+    return (
+      <div style={{
+        minHeight: '100dvh', background: '#07020e',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        padding: '32px 24px', textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.45em', color: '#6b5a80', textTransform: 'uppercase', marginBottom: 12 }}>
+          FARCASTER · THE PROTOCOL
+        </p>
+        <h1 style={{
+          fontSize: 'clamp(36px, 8vw, 72px)', fontWeight: 900, letterSpacing: '0.08em', lineHeight: 1,
+          background: 'linear-gradient(90deg, #8a63d2, #C9A84C, #8a63d2)',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text', margin: '0 0 20px',
+        }}>
+          THE<br />PROTOCOL
+        </h1>
+        <p style={{ fontSize: 13, color: '#7a6a90', maxWidth: 320, lineHeight: 1.6, margin: '0 0 32px' }}>
+          Collect Farcaster identity cards, build your team, and battle weekly — all inside the Farcaster app.
+        </p>
+        <a
+          href="https://warpcast.com/miniapps/launch?url=https%3A%2F%2Fthe-protocol-xi.vercel.app"
+          style={{
+            display: 'inline-block', padding: '14px 32px', borderRadius: 99,
+            background: 'linear-gradient(135deg, #8a63d2, #6a43b2)',
+            color: '#fff', fontSize: 13, fontWeight: 900, letterSpacing: '0.15em',
+            textTransform: 'uppercase', textDecoration: 'none',
+            boxShadow: '0 4px 24px rgba(138,99,210,0.4)',
+          }}
+        >
+          Open in Farcaster →
+        </a>
+        <p style={{ fontSize: 9, color: '#4a3a60', marginTop: 20, letterSpacing: '0.1em' }}>
+          Install Warpcast to play
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -311,10 +353,8 @@ function AppInner({
           {tab === 'profile' && (
             <ProfileTab
               ownerFid={miniAppUser?.fid}
-              ownerDeviceId={deviceId}
               handle={miniAppUser?.username}
               playerData={playerData}
-              onCollectionRefresh={() => fetchCollection(miniAppUser?.fid).then(setOwned).catch(() => {})}
             />
           )}
         </div>
@@ -368,15 +408,9 @@ export default function Home() {
 
   function handlePlayerLoaded(pro: boolean) {
     setIsPro(pro);
-    if (!pro) {
-      // Non-Pro players revert to base edition
-      writeEditionId('base');
-      setEditionId('base');
-    }
   }
 
   function selectEdition(id: string) {
-    if (id !== 'base' && !isPro) return; // guard: ignore locked editions
     writeEditionId(id);
     setEditionId(id);
     setShowPicker(false);
@@ -397,7 +431,6 @@ export default function Home() {
         onSelect={selectEdition}
         onClose={() => setShowPicker(false)}
         currentId={editionId}
-        isPro={isPro}
       />
     );
   }

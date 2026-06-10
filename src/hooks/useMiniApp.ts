@@ -20,6 +20,7 @@ export interface SafeAreaInsets {
 export interface MiniAppState {
   user: MiniAppUser | null;
   isInMiniApp: boolean;
+  checked: boolean;
   safeAreaInsets: SafeAreaInsets;
   added: boolean;
 }
@@ -29,6 +30,7 @@ const DEFAULT_INSETS: SafeAreaInsets = { top: 0, bottom: 0, left: 0, right: 0 };
 export function useMiniApp(): MiniAppState {
   const [user, setUser]               = useState<MiniAppUser | null>(null);
   const [isInMiniApp, setIsInMiniApp] = useState(false);
+  const [checked, setChecked]         = useState(false);
   const [safeAreaInsets, setSafeAreaInsets] = useState<SafeAreaInsets>(DEFAULT_INSETS);
   const [added, setAdded]             = useState(false);
 
@@ -81,11 +83,13 @@ export function useMiniApp(): MiniAppState {
         if (ctx.client?.safeAreaInsets) setSafeAreaInsets(ctx.client.safeAreaInsets);
         if (ctx.client) setAdded(ctx.client.added ?? false);
       } catch (e) { dlog(`useMiniApp: context error — ${e}`); }
+
+      if (active) setChecked(true);
     }
 
     init();
     return () => { active = false; };
   }, []);
 
-  return { user, isInMiniApp, safeAreaInsets, added };
+  return { user, isInMiniApp, checked, safeAreaInsets, added };
 }

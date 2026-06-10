@@ -8,10 +8,9 @@ interface Props {
   onSelect: (editionId: string) => void;
   onClose:  () => void;
   currentId?: string;
-  isPro?: boolean;
 }
 
-export default function EditionSelect({ editions, onSelect, onClose, currentId, isPro = false }: Props) {
+export default function EditionSelect({ editions, onSelect, onClose, currentId }: Props) {
   const list = editions.length > 0 ? editions : [];
 
   return (
@@ -64,7 +63,6 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId, 
       }}>
         {list.map(ed => {
           const isActive  = ed.id === currentId;
-          const locked    = ed.id !== 'base' && !isPro;
           const tagLabel  = ed.ui?.tagLabel  ?? 'LIVE';
           const tagColor  = ed.ui?.tagColor  ?? ed.theme.accentPrimary;
           const desc      = ed.ui?.description ?? ed.league.rules;
@@ -72,13 +70,12 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId, 
           return (
             <button
               key={ed.id}
-              onClick={() => !locked && onSelect(ed.id)}
+              onClick={() => onSelect(ed.id)}
               style={{
                 position: 'relative',
                 width: '100%', border: 'none', padding: 0,
                 borderRadius: 20, overflow: 'hidden',
-                cursor: locked ? 'not-allowed' : 'pointer',
-                opacity: locked ? 0.55 : 1,
+                cursor: 'pointer',
                 boxShadow: isActive
                   ? `0 0 0 2px ${ed.theme.accentPrimary}, 0 0 30px ${ed.theme.accentPrimary}40`
                   : '0 4px 24px rgba(0,0,0,0.5)',
@@ -112,7 +109,7 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId, 
                     {tagLabel}
                   </div>
 
-                  {isActive && !locked && (
+                  {isActive && (
                     <div style={{
                       position: 'absolute', top: 14, right: 18,
                       fontSize: 8, fontWeight: 900, letterSpacing: '0.2em',
@@ -122,18 +119,6 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId, 
                       color: ed.theme.accentPrimary,
                     }}>
                       ACTIVE
-                    </div>
-                  )}
-                  {locked && (
-                    <div style={{
-                      position: 'absolute', top: 14, right: 18,
-                      fontSize: 8, fontWeight: 900, letterSpacing: '0.2em',
-                      padding: '3px 10px', borderRadius: 99,
-                      background: 'rgba(80,60,100,0.5)',
-                      border: '1px solid rgba(138,99,210,0.3)',
-                      color: '#7a6a90',
-                    }}>
-                      🔒 PRO
                     </div>
                   )}
 
@@ -186,8 +171,8 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId, 
                 <span style={{ fontSize: 10, color: '#a08cc0', letterSpacing: '0.1em' }}>
                   {ed.league.seasonLabel}
                 </span>
-                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', color: locked ? '#4a3a60' : ed.theme.accentPrimary }}>
-                  {locked ? 'PRO ONLY' : isActive ? '◈ PLAYING' : 'ENTER →'}
+                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', color: ed.theme.accentPrimary }}>
+                  {isActive ? '◈ PLAYING' : 'ENTER →'}
                 </span>
               </div>
             </button>
