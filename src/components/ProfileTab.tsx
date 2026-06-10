@@ -42,7 +42,7 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerFid, ownerDeviceId]);
 
-  // When wallet connects/changes, attempt to link identities
+  // When wallet connects OR fid resolves from Neynar lookup, attempt to link identities
   useEffect(() => {
     if (!wallet.address) return;
     if (!ownerFid && !ownerDeviceId) return;
@@ -53,8 +53,9 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         walletAddress: wallet.address,
-        ownerFid: ownerFid ?? undefined,
+        ownerFid:      ownerFid ?? undefined,
         ownerDeviceId: ownerDeviceId ?? undefined,
+        resolvedFid:   wallet.fid ?? undefined,
       }),
     })
       .then(r => r.json())
@@ -64,7 +65,8 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
       })
       .catch(() => {})
       .finally(() => setLinking(false));
-  }, [wallet.address, ownerFid, ownerDeviceId]);
+  // wallet.fid is included so this re-fires when Neynar lookup resolves
+  }, [wallet.address, wallet.fid, ownerFid, ownerDeviceId]);
 
   const tier = playerData?.tier ?? 'beginner';
   const tierColor = tier === 'pro' ? '#C9A84C' : tier === 'confident' ? '#8a63d2' : '#22c55e';

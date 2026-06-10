@@ -25,11 +25,11 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/players/link-wallet
-// Body: { walletAddress, ownerFid?, ownerDeviceId? }
-// Stores wallet on the player row. For device players, also checks if a FID player
-// already has this wallet and sets linked_fid to merge the two identities.
+// Body: { walletAddress, ownerFid?, ownerDeviceId?, resolvedFid? }
+// resolvedFid: FID already resolved by the client via Neynar address lookup (useWallet hook)
 export async function POST(req: NextRequest) {
-  const { walletAddress, ownerFid, ownerDeviceId } = await req.json();
+  const body = await req.json();
+  const { walletAddress, ownerFid, ownerDeviceId, resolvedFid } = body;
 
   if (!walletAddress || (!ownerFid && !ownerDeviceId)) {
     return NextResponse.json({ error: 'walletAddress + identity required' }, { status: 400 });
@@ -53,14 +53,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, mode: 'fid' });
     }
 
-    // Device player — store wallet, then check if any FID player has the same wallet
+    // Device player — store wallet
     await sql`
       UPDATE players SET wallet_address = ${wallet}
       WHERE owner_device_id = ${ownerDeviceId}
     `;
 
+    // Priority 1: client already resolved FID from this wallet via Neynar
+    if (resolvedFid) {
+      await sql`
+        UPDATE players SET linked_fid = ${resolvedFid}
+        WHERE owner_device_id = ${ownerDeviceId}
+      `;
+      return NextResponse.json({ ok: true, mode: 'device', linkedFid: resolvedFid });
+    }
+
+    // Priority 2: a FID player row already has this wallet stored
     const fidRows = await sql`
-      SELECT owner_fid, wallet_address FROM players
+      SELECT owner_fid FROM players
       WHERE wallet_address = ${wallet} AND owner_fid IS NOT NULL
       LIMIT 1
     `;
@@ -73,6 +83,23 @@ export async function POST(req: NextRequest) {
       `;
       return NextResponse.json({ ok: true, mode: 'device', linkedFid });
     }
+
+    // Priority 3: look up Neynar server-side by wallet address
+    try {
+      const neynarRes = await fetch(
+        `https://api.neynar.com/v2/farcaster/user/bulk-by-address?addresses=${wallet}`,
+        { headers: { 'x-api-key': process.env.NEYNAR_API_KEY ?? '' } },
+      );
+      if (neynarRes.ok) {
+        const neynarData = await neynarRes.json();
+        const users = Object.values(neynarData) as { fid: number }[][];
+        const fid = users[0]?.[0]?.fid;
+        if (fid) {
+          await sql`UPDATE players SET linked_fid = ${fid} WHERE owner_device_id = ${ownerDeviceId}`;
+          return NextResponse.json({ ok: true, mode: 'device', linkedFid: fid });
+        }
+      }
+    } catch { /* ignore Neynar errors */ }
 
     return NextResponse.json({ ok: true, mode: 'device', linkedFid: null });
   } catch (err) {
