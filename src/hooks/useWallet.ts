@@ -40,6 +40,12 @@ export function useWallet(): WalletState {
     }
     setConnecting(true);
     try {
+      // wallet_requestPermissions forces the account picker even when already approved
+      await eth.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }],
+      }).catch(() => null); // not all wallets support this; ignore failures
+
       const accounts: string[] = await eth.request({ method: 'eth_requestAccounts' });
       const addr = accounts[0]?.toLowerCase() ?? null;
       setAddress(addr);

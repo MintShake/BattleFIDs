@@ -264,18 +264,28 @@ export async function GET(req: NextRequest) {
       ORDER BY oc.opened_at DESC
     `;
   } else {
-    // Check if device player has a linked FID — if so, merge both identities
-    const playerRows = await sql`
-      SELECT linked_fid FROM players WHERE owner_device_id = ${ownerDeviceId} LIMIT 1
-    `;
-    const linkedFid: number | null = playerRows[0]?.linked_fid ?? null;
+    // Collect all linked FIDs from player_wallets table (multiple wallets)
+    let linkedFids: number[] = [];
+    try {
+      const walletRows = await sql`
+        SELECT linked_fid FROM player_wallets
+        WHERE owner_device_id = ${ownerDeviceId} AND linked_fid IS NOT NULL
+      `;
+      linkedFids = walletRows.map((r: { linked_fid: number }) => r.linked_fid);
+    } catch {
+      // player_wallets may not exist yet — fall back to players.linked_fid
+      const playerRows = await sql`
+        SELECT linked_fid FROM players WHERE owner_device_id = ${ownerDeviceId} LIMIT 1
+      `;
+      if (playerRows[0]?.linked_fid) linkedFids = [playerRows[0].linked_fid];
+    }
 
-    rows = linkedFid
+    rows = linkedFids.length > 0
       ? await sql`
           SELECT oc.serial_number, oc.opened_at, oc.is_edition_1of1, oc.edition_id, c.*
           FROM owned_cards oc
           JOIN cards c ON c.fid = oc.fid
-          WHERE oc.owner_device_id = ${ownerDeviceId} OR oc.owner_fid = ${linkedFid}
+          WHERE oc.owner_device_id = ${ownerDeviceId} OR oc.owner_fid = ANY(${linkedFids}::int[])
           ORDER BY oc.opened_at DESC
         `
       : await sql`

@@ -13,6 +13,11 @@ interface PlayerData {
   referralCode: string;
 }
 
+interface StoredWallet {
+  address: string;
+  linkedFid: number | null;
+}
+
 interface Props {
   ownerFid?: number;
   ownerDeviceId?: string;
@@ -23,45 +28,46 @@ interface Props {
 
 export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData, onCollectionRefresh }: Props) {
   const wallet = useWallet();
-  const [linkStatus, setLinkStatus] = useState<{ linkedFid?: number | null; mode?: string } | null>(null);
+  const [storedWallets, setStoredWallets] = useState<StoredWallet[]>([]);
+  const [linkedFid, setLinkedFid] = useState<number | null>(null);
   const [linking, setLinking] = useState(false);
-  const [removing, setRemoving] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
-  function removeWallet() {
-    const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${encodeURIComponent(ownerDeviceId!)}`;
-    setRemoving(true);
-    fetch(`/api/players/link-wallet?${param}`, { method: 'DELETE' })
-      .then(() => {
-        wallet.disconnect();
-        setLinkStatus(null);
-      })
-      .catch(() => wallet.disconnect())
-      .finally(() => setRemoving(false));
-  }
+  const identityParam = ownerFid
+    ? `ownerFid=${ownerFid}`
+    : `ownerDeviceId=${encodeURIComponent(ownerDeviceId ?? '')}`;
 
-  // On mount: check if DB already has a link (handles any-order linking)
-  useEffect(() => {
+  function fetchWallets() {
     if (!ownerFid && !ownerDeviceId) return;
-    const param = ownerFid ? `ownerFid=${ownerFid}` : `ownerDeviceId=${encodeURIComponent(ownerDeviceId!)}`;
-    fetch(`/api/players/link-wallet?${param}`)
+    fetch(`/api/players/wallets?${identityParam}`)
       .then(r => r.json())
       .then(data => {
+        setStoredWallets(data.wallets ?? []);
         if (data.linkedFid) {
-          setLinkStatus({ linkedFid: data.linkedFid, mode: 'device' });
+          setLinkedFid(data.linkedFid);
           onCollectionRefresh?.();
         }
       })
       .catch(() => {});
+  }
+
+  // On mount: load existing wallets from DB
+  useEffect(() => {
+    fetchWallets();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerFid, ownerDeviceId]);
 
-  // When wallet connects OR fid resolves from Neynar lookup, attempt to link identities
+  // When wallet connects or FID resolves, add it
   useEffect(() => {
     if (!wallet.address) return;
     if (!ownerFid && !ownerDeviceId) return;
 
+    // Skip if this wallet is already in the list
+    const already = storedWallets.some(w => w.address === wallet.address);
+    if (already) return;
+
     setLinking(true);
-    fetch('/api/players/link-wallet', {
+    fetch('/api/players/wallets', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -73,19 +79,32 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
     })
       .then(r => r.json())
       .then(data => {
-        setLinkStatus(data);
-        if (data.linkedFid) onCollectionRefresh?.();
+        if (data.linkedFid) {
+          setLinkedFid(data.linkedFid);
+          onCollectionRefresh?.();
+        }
+        fetchWallets();
       })
       .catch(() => {})
       .finally(() => setLinking(false));
-  // wallet.fid is included so this re-fires when Neynar lookup resolves
-  }, [wallet.address, wallet.fid, ownerFid, ownerDeviceId]);
+  // wallet.fid included so this re-fires when Neynar lookup resolves with a new FID
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet.address, wallet.fid]);
+
+  function removeWallet(address: string) {
+    setRemoving(address);
+    fetch(`/api/players/wallets?wallet=${encodeURIComponent(address)}&${identityParam}`, { method: 'DELETE' })
+      .then(() => {
+        if (wallet.address === address) wallet.disconnect();
+        fetchWallets();
+      })
+      .catch(() => {})
+      .finally(() => setRemoving(null));
+  }
 
   const tier = playerData?.tier ?? 'beginner';
   const tierColor = tier === 'pro' ? '#C9A84C' : tier === 'confident' ? '#8a63d2' : '#22c55e';
   const tierLabel = tier === 'pro' ? '★ Pro' : tier === 'confident' ? '◈ Confident' : '◎ Beginner';
-
-  const isLinked = linkStatus?.linkedFid != null;
   const isFidMode = !!ownerFid;
   const shortDevice = ownerDeviceId ? `${ownerDeviceId.slice(0, 8)}…` : null;
 
@@ -142,9 +161,23 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
             }}>{tierLabel}</div>
           </div>
         )}
+
+        {/* Linked Farcaster identity badge (device mode) */}
+        {!isFidMode && linkedFid && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            marginTop: 10, padding: '6px 10px', borderRadius: 8,
+            background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
+          }}>
+            <span style={{ color: '#22c55e', fontSize: 12 }}>✓</span>
+            <div style={{ fontSize: 9, color: '#22c55e', fontWeight: 700 }}>
+              Linked to Farcaster FID #{linkedFid}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Wallet + linking */}
+      {/* Wallets */}
       <div style={{
         borderRadius: 16, padding: '16px',
         background: 'rgba(138,99,210,0.04)',
@@ -152,88 +185,63 @@ export default function ProfileTab({ ownerFid, ownerDeviceId, handle, playerData
         marginBottom: 12,
       }}>
         <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#6b5a80', textTransform: 'uppercase', marginBottom: 12 }}>
-          Wallet
+          Wallets
         </div>
 
-        {wallet.connected ? (
-          <div>
-            {/* Address row with remove button */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{
-                flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 12px', borderRadius: 99,
-                border: '1px solid rgba(201,168,76,0.35)',
-                background: 'rgba(201,168,76,0.06)',
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em' }}>
-                  {wallet.shortAddress}
-                </span>
-              </div>
-              <button
-                onClick={removeWallet}
-                disabled={removing}
-                style={{
-                  padding: '7px 12px', borderRadius: 99, flexShrink: 0,
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  background: 'transparent', color: '#ef4444',
-                  fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-                  cursor: removing ? 'default' : 'pointer',
-                  opacity: removing ? 0.5 : 1,
-                }}
-              >
-                {removing ? '…' : 'REMOVE'}
-              </button>
-            </div>
-
-            {/* Link status */}
-            {linking ? (
-              <div style={{ fontSize: 9, color: '#7a6a90', letterSpacing: '0.1em' }}>Linking identities…</div>
-            ) : isLinked ? (
-              <div style={{
+        {/* List of stored wallets */}
+        {storedWallets.length > 0 && (
+          <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {storedWallets.map(w => (
+              <div key={w.address} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 12px', borderRadius: 10,
-                background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
               }}>
-                <span style={{ color: '#22c55e', fontSize: 14 }}>✓</span>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>Identities linked</div>
-                  <div style={{ fontSize: 8, color: '#6b7a6b', marginTop: 1 }}>
-                    {isFidMode
-                      ? 'Your Farcaster and standalone collections are merged'
-                      : `FID #${linkStatus?.linkedFid} Farcaster cards are merged into this collection`}
-                  </div>
+                <div style={{
+                  flex: 1, display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 12px', borderRadius: 99,
+                  border: '1px solid rgba(201,168,76,0.35)',
+                  background: 'rgba(201,168,76,0.06)',
+                }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.05em', flex: 1 }}>
+                    {`${w.address.slice(0, 6)}…${w.address.slice(-4)}`}
+                  </span>
+                  {w.linkedFid && (
+                    <span style={{ fontSize: 8, color: '#22c55e', fontWeight: 700 }}>
+                      FID #{w.linkedFid}
+                    </span>
+                  )}
                 </div>
+                <button
+                  onClick={() => removeWallet(w.address)}
+                  disabled={removing === w.address}
+                  style={{
+                    padding: '7px 12px', borderRadius: 99, flexShrink: 0,
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    background: 'transparent', color: '#ef4444',
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                    cursor: removing === w.address ? 'default' : 'pointer',
+                    opacity: removing === w.address ? 0.5 : 1,
+                  }}
+                >
+                  {removing === w.address ? '…' : 'REMOVE'}
+                </button>
               </div>
-            ) : isFidMode ? (
-              <div style={{
-                padding: '8px 12px', borderRadius: 10,
-                background: 'rgba(138,99,210,0.06)', border: '1px solid rgba(138,99,210,0.2)',
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#8a63d2' }}>Wallet saved</div>
-                <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
-                  Connect the same wallet from standalone to merge collections
-                </div>
-              </div>
-            ) : (
-              <div style={{
-                padding: '8px 12px', borderRadius: 10,
-                background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)',
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#C9A84C' }}>No Farcaster account found for this wallet</div>
-                <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 1 }}>
-                  Make sure this wallet is a verified address on your Farcaster profile
-                </div>
-              </div>
-            )}
+            ))}
           </div>
+        )}
+
+        {/* Add wallet */}
+        {linking ? (
+          <div style={{ fontSize: 9, color: '#7a6a90', letterSpacing: '0.1em' }}>Linking…</div>
         ) : (
           <div>
             <WalletConnect />
             <div style={{ fontSize: 9, color: '#6b5a80', marginTop: 10, lineHeight: 1.5 }}>
-              {isFidMode
-                ? 'Connect your wallet to link to standalone. Cards open from either place appear in both.'
-                : 'Connect your wallet to merge with your Farcaster identity and see all your cards here.'}
+              {storedWallets.length > 0
+                ? 'Connect another wallet to add it to your profile.'
+                : isFidMode
+                  ? 'Connect a wallet to link to standalone. Cards from either appear together.'
+                  : 'Connect a wallet to merge with your Farcaster identity.'}
             </div>
           </div>
         )}
