@@ -14,11 +14,15 @@ interface SlotCard {
 interface LeaderboardEntry {
   rank:           number;
   slotPoints:     number;
+  finalSlotPoints?: number;
   protocolPoints: number;
   ownerFid:       number | null;
   chosenTier:     string;
   assignedGroup:  string | null;
   avgTeamScore:   number;
+  isLive?:         boolean;
+  previewUpdatedAt?: string | null;
+  preview?:        Record<SlotType, number>;
   slots: Record<SlotType, SlotCard>;
 }
 
@@ -81,24 +85,39 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
   const [totalTeams, setTotal]  = useState(0);
   const [weekId, setWeekId]     = useState('');
   const [loading, setLoading]   = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [page, setPage]         = useState(1);
   const [hasMore, setHasMore]   = useState(false);
   const isEditionBoard = editionId !== 'base';
 
   useEffect(() => {
     if (isEditionBoard) return;
-    setLoading(true);
-    setPage(1);
-    fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=1`)
-      .then(r => r.json())
-      .then(data => {
+    let cancelled = false;
+
+    async function load(showLoading: boolean) {
+      if (showLoading) setLoading(true);
+      try {
+        const res = await fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=1&live=1`);
+        const data = await res.json();
+        if (cancelled) return;
         setEntries(data.leaderboard ?? []);
         setTotal(data.totalTeams ?? 0);
         setWeekId(data.weekId ?? '');
         setHasMore(data.hasMore ?? false);
+        setLastUpdated(new Date().toISOString());
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    setPage(1);
+    load(true);
+    const iv = setInterval(() => load(false), 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(iv);
+    };
   }, [group, isEditionBoard]);
 
   useEffect(() => {
@@ -149,7 +168,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
 
   function loadMore() {
     const next = page + 1;
-    fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=${next}`)
+    fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=${next}&live=1`)
       .then(r => r.json())
       .then(data => {
         setEntries(prev => [...prev, ...(data.leaderboard ?? [])]);
@@ -289,7 +308,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
           {weekId || '…'}
         </div>
         <div style={{ fontSize: 10, color: '#7a6a90' }}>
-          {totalTeams} team{totalTeams !== 1 ? 's' : ''} · {group}
+          LIVE · {totalTeams} team{totalTeams !== 1 ? 's' : ''} · {group}
         </div>
       </div>
 
@@ -365,6 +384,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
             const badge  = RANK_BADGE[entry.rank];
             const isYou  = ownerFid != null && entry.ownerFid === ownerFid;
             const pct    = Math.min(100, entry.slotPoints / Math.max(maxPoints, 1) * 100);
+            const preview = entry.preview;
 
             return (
               <div
@@ -408,7 +428,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
                   {/* Slot points + protocol points */}
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 900, color: badge?.color ?? '#8a63d2' }}>
-                      {entry.slotPoints} <span style={{ fontSize: 9, fontWeight: 400, color: '#7a6a90' }}>pts</span>
+                      {entry.slotPoints} <span style={{ fontSize: 9, fontWeight: 400, color: '#7a6a90' }}>live</span>
                     </div>
                     <div style={{ fontSize: 8, color: '#C9A84C' }}>
                       ⬡ {entry.protocolPoints.toLocaleString()}
@@ -424,6 +444,25 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
                     borderRadius: 99, transition: 'width 0.4s ease',
                   }} />
                 </div>
+
+                {preview && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginTop: 7 }}>
+                    {SLOT_TYPES.map(slot => (
+                      <div key={slot} style={{
+                        borderRadius: 6,
+                        padding: '4px 2px',
+                        background: 'rgba(138,99,210,0.055)',
+                        border: '1px solid rgba(138,99,210,0.08)',
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: 10, lineHeight: 1 }}>{SLOT_EMOJI[slot]}</div>
+                        <div style={{ fontSize: 8, color: '#cbb7ea', fontWeight: 800, marginTop: 2 }}>
+                          {preview[slot] ?? 0}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {isYou && (
                   <div style={{ fontSize: 8, color: '#8a63d2', fontWeight: 700, letterSpacing: '0.15em', marginTop: 4 }}>
@@ -453,7 +492,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
       )}
 
       <p style={{ fontSize: 9, color: '#5a4a70', textAlign: 'center', marginTop: 14, lineHeight: 1.6 }}>
-        {entries.length} of {totalTeams} · Pts: 1/beat per slot · +50 overall win · +25 rare card (FID ≤100) · +20 entry · updated end of week
+        {entries.length} of {totalTeams} · live refresh every 30s{lastUpdated ? ` · checked ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''} · final rewards settle when the round ends
       </p>
     </div>
   );
