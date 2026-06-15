@@ -13,6 +13,7 @@ import WeekProgress from '@/components/WeekProgress';
 import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
 import ProfileTab from '@/components/ProfileTab';
+import HomePage from '@/components/HomePage';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
@@ -22,7 +23,7 @@ import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
 import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
 import type { Edition } from '@/editions/types';
 
-type Tab = 'browse' | 'pack' | 'collection' | 'league' | 'profile';
+type Tab = 'home' | 'browse' | 'pack' | 'collection' | 'league' | 'profile';
 type LeagueView = 'team' | 'progress' | 'leaderboard';
 type BrowseSort = 'recent' | 'score' | 'fid' | 'name';
 
@@ -48,7 +49,7 @@ function AppInner({
   const [isPro, setIsPro]           = useState(false);
   const [isAdmin, setIsAdmin]       = useState(false);
   const [playerData, setPlayerData] = useState<{ protocolPoints: number; tier: string; lockedToPro: boolean; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
-  const [tab, setTab]               = useState<Tab>('browse');
+  const [tab, setTab]               = useState<Tab>('home');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const [owned, setOwned]           = useState<OwnedCard[]>([]);
   const [globalCards, setGlobalCards]   = useState<GlobalCard[]>([]);
@@ -156,8 +157,8 @@ function AppInner({
     return list;
   }, [globalCards, browseSearch, browseSort]);
 
-  const TAB_ICONS:  Record<Tab, string> = { browse: '🃏', pack: '📦', collection: '⚔', league: '🏆', profile: '◉' };
-  const TAB_LABELS: Record<Tab, string> = { browse: 'Browse', pack: 'Open Pack', collection: 'My Cards', league: 'League', profile: 'Profile' };
+  const TAB_ICONS:  Record<Tab, string> = { home: '⌂', browse: '🃏', pack: '◆', collection: '⚔', league: '🏆', profile: '◉' };
+  const TAB_LABELS: Record<Tab, string> = { home: 'Home', browse: 'Browse', pack: 'Packs', collection: 'My Cards', league: 'League', profile: 'Profile' };
 
   // Gate: show "head to Farcaster" once SDK check settles and we're not in a mini-app
   if (checked && !isInMiniApp) {
@@ -290,6 +291,17 @@ function AppInner({
         <MiniAppActions isInMiniApp={isInMiniApp} added={added} />
 
         <div style={{ flex: 1, padding: '8px 16px 0' }}>
+          {tab === 'home' && (
+            <HomePage
+              ownerFid={miniAppUser?.fid}
+              totalOwned={owned.length}
+              onGoToPacks={() => setTab('pack')}
+              onGoToLeague={() => { setLeagueView('progress'); setTab('league'); }}
+              onGoToLeaderboard={() => { setLeagueView('leaderboard'); setTab('league'); }}
+              onGoToCards={() => setTab('collection')}
+              onGoToBrowse={() => setTab('browse')}
+            />
+          )}
           {tab === 'browse' && (
             browseLoading ? (
               <div style={{ textAlign: 'center', paddingTop: 60, color: '#7a6a90', fontSize: 11, letterSpacing: '0.2em' }}>Loading…</div>
@@ -392,7 +404,7 @@ function AppInner({
 
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64 + safeAreaInsets.bottom, background: 'rgba(9,4,15,0.94)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(138,99,210,0.18)', zIndex: 100 }}>
         <div className="page-inner" style={{ height: '100%', paddingBottom: safeAreaInsets.bottom, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around' }}>
-          {(['browse', 'pack', 'collection', 'league', 'profile'] as Tab[]).map(t => (
+          {(['home', 'pack', 'collection', 'league', 'profile'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ flex: 1, height: 64, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', color: tab === t ? '#8a63d2' : '#7a6a90', transition: 'color 0.15s', minHeight: 44 }}>
               <span style={{ fontSize: 20 }}>{TAB_ICONS[t]}</span>
               <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>

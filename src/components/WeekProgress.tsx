@@ -510,7 +510,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
         </button>
       ) : (
         <button onClick={onGoToTeam} style={{ width: '100%', padding: '10px', borderRadius: 10, border: '1px solid rgba(138,99,210,0.15)', background: 'transparent', color: '#5a4a70', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-          Edit Team
+          Draft Next Week
         </button>
       )}
     </div>

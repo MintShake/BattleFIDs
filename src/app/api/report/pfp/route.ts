@@ -21,6 +21,13 @@ export async function POST(req: NextRequest) {
       VALUES (${fid}, ${imageUrl}, ${reason ?? null}, ${reporterFid ?? null})
     `;
 
+    // Auto-suspend: hide image from all cards while under review
+    await sql`
+      INSERT INTO pfp_blocklist (fid, image_url, reason)
+      VALUES (${fid}, ${imageUrl}, 'suspended')
+      ON CONFLICT (fid, image_url) DO NOTHING
+    `;
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

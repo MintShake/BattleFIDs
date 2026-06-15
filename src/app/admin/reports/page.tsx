@@ -75,7 +75,7 @@ export default function AdminReportsPage() {
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error ?? 'Failed');
-      setMsg(action === 'block' ? `✓ Blocked — image suppressed from all cards` : `✓ Dismissed`);
+      setMsg(action === 'block' ? `⊘ Blocked — image permanently removed from all cards` : `✓ Reinstated — suspension lifted, image visible again`);
       loadReports();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error');
@@ -210,14 +210,19 @@ export default function AdminReportsPage() {
                     <span style={{ fontSize: 9, fontWeight: 700, color: '#8a63d2', padding: '2px 7px', borderRadius: 99, background: 'rgba(138,99,210,0.1)', border: '1px solid rgba(138,99,210,0.3)' }}>
                       FID #{report.fid}
                     </span>
+                    {!report.resolved && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#C9A84C', padding: '2px 7px', borderRadius: 99, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)' }}>
+                        ⚑ Suspended
+                      </span>
+                    )}
                     {report.reason && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#e86a6a', padding: '2px 7px', borderRadius: 99, background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.3)' }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#e86a6a', padding: '2px 7px', borderRadius: 99, background: 'rgba(230,57,70,0.08)', border: '1px solid rgba(230,57,70,0.3)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {report.reason}
                       </span>
                     )}
                     {report.resolved && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: report.resolution === 'block' ? '#22c55e' : '#6b5a80', padding: '2px 7px', borderRadius: 99, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(138,99,210,0.15)' }}>
-                        {report.resolution === 'block' ? '✓ Blocked' : 'Dismissed'}
+                      <span style={{ fontSize: 9, fontWeight: 700, color: report.resolution === 'block' ? '#e86a6a' : '#6b5a80', padding: '2px 7px', borderRadius: 99, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(138,99,210,0.15)' }}>
+                        {report.resolution === 'block' ? '⊘ Blocked' : '✓ Reinstated'}
                       </span>
                     )}
                   </div>
@@ -255,12 +260,12 @@ export default function AdminReportsPage() {
                     style={{
                       flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 10, fontWeight: 900,
                       letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-                      border: '1px solid rgba(138,99,210,0.2)',
-                      background: 'transparent', color: '#7a6a90',
+                      border: '1px solid rgba(34,197,94,0.25)',
+                      background: 'rgba(34,197,94,0.06)', color: '#22c55e',
                       opacity: acting === report.id ? 0.5 : 1,
                     }}
                   >
-                    Dismiss
+                    {acting === report.id ? 'Working…' : '✓ Reinstate'}
                   </button>
                 </div>
               )}

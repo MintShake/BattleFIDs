@@ -93,6 +93,12 @@ export async function POST(req: NextRequest) {
     const weekId = (targetWeekId && validWeeks.includes(targetWeekId)) ? targetWeekId : currentWeekId();
     const { start, end } = weekBounds(weekId);
 
+    // Check if team already exists for this week (to avoid double-awarding team_lock)
+    const existingTeam = fid
+      ? await sql`SELECT id FROM weekly_teams WHERE week_id = ${weekId} AND owner_fid = ${fid}`
+      : await sql`SELECT id FROM weekly_teams WHERE week_id = ${weekId} AND owner_device_id = ${device}`;
+    const isNewTeam = existingTeam.length === 0;
+
     await sql`
       INSERT INTO weeks (id, starts_at, ends_at)
       VALUES (${weekId}, ${start.toISOString()}, ${end.toISOString()})
@@ -183,8 +189,10 @@ export async function POST(req: NextRequest) {
       `;
     }
 
-    // Award team_lock points
-    await awardPoints(fid, device, 'team_lock');
+    // Award team_lock points only on first submission (not re-saves)
+    if (isNewTeam) {
+      await awardPoints(fid, device, 'team_lock');
+    }
 
     return NextResponse.json({ ok: true, weekId, chosenTier: effectiveTier });
   } catch (err) {

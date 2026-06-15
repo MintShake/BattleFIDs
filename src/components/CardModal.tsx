@@ -304,25 +304,37 @@ function ProfileBack({
   copied: boolean;
   onShare: () => void;
 }) {
-  const [reportingUrl, setReportingUrl] = useState<string | null>(null);
-  const [reportedUrls, setReportedUrls] = useState<Set<string>>(new Set());
-  const [submitting, setSubmitting]     = useState(false);
+  const [reportingUrl, setReportingUrl]         = useState<string | null>(null);
+  const [reportedUrls, setReportedUrls]         = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting]             = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [reportText, setReportText]             = useState('');
 
-  async function submitReport(url: string, reason: string) {
-    if (submitting) return;
+  function clearReportForm() {
+    setReportingUrl(null);
+    setSelectedCategory('');
+    setReportText('');
+  }
+
+  async function submitReport(url: string) {
+    if (submitting || !selectedCategory || reportText.trim().length < 5) return;
     setSubmitting(true);
     try {
       await fetch('/api/report/pfp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fid: card.fid, imageUrl: url, reason }),
+        body: JSON.stringify({
+          fid: card.fid,
+          imageUrl: url,
+          reason: `${selectedCategory}: ${reportText.trim()}`,
+        }),
       });
       setReportedUrls(prev => new Set([...prev, url]));
     } catch {
       // best-effort
     } finally {
       setSubmitting(false);
-      setReportingUrl(null);
+      clearReportForm();
     }
   }
 
@@ -507,34 +519,85 @@ function ProfileBack({
                 </div>
 
                 {reportedUrls.has(url) ? (
-                  <div style={{ fontSize: 9, color: '#22c55e', fontWeight: 700 }}>✓ Reported — we'll review</div>
+                  <div style={{ fontSize: 9, color: '#C9A84C', fontWeight: 700, letterSpacing: '0.05em' }}>
+                    ⚑ Suspended · Under review
+                  </div>
                 ) : reportingUrl === url ? (
                   <div>
-                    <div style={{ fontSize: 8, color: '#a08cc0', marginBottom: 5 }}>Reason:</div>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {/* Category pills */}
+                    <div style={{ fontSize: 8, color: '#a08cc0', marginBottom: 5, fontWeight: 700 }}>
+                      Category (required):
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
                       {REPORT_REASONS.map(r => (
                         <button
                           key={r.key}
-                          onClick={() => submitReport(url, r.key)}
-                          disabled={submitting}
+                          onClick={() => setSelectedCategory(r.key)}
                           style={{
                             padding: '3px 8px', borderRadius: 99, fontSize: 8, fontWeight: 700,
-                            border: '1px solid rgba(230,57,70,0.4)',
-                            background: 'rgba(230,57,70,0.08)',
-                            color: '#e86a6a',
-                            cursor: submitting ? 'default' : 'pointer',
-                            opacity: submitting ? 0.5 : 1,
+                            border: selectedCategory === r.key
+                              ? '1px solid #e86a6a'
+                              : '1px solid rgba(230,57,70,0.3)',
+                            background: selectedCategory === r.key
+                              ? 'rgba(230,57,70,0.18)'
+                              : 'rgba(230,57,70,0.05)',
+                            color: '#e86a6a', cursor: 'pointer',
                           }}
                         >
                           {r.label}
                         </button>
                       ))}
+                    </div>
+
+                    {/* Required description */}
+                    <textarea
+                      placeholder="Describe the issue (required)…"
+                      value={reportText}
+                      onChange={e => setReportText(e.target.value)}
+                      rows={2}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        background: 'rgba(138,99,210,0.06)',
+                        border: `1px solid ${reportText.trim().length >= 5 ? 'rgba(230,57,70,0.35)' : 'rgba(138,99,210,0.2)'}`,
+                        borderRadius: 8, padding: '6px 8px',
+                        color: '#e0d4f0', fontSize: 9,
+                        resize: 'none', outline: 'none', lineHeight: 1.5, marginBottom: 6,
+                      }}
+                    />
+
+                    {/* Hint */}
+                    {!selectedCategory && (
+                      <div style={{ fontSize: 7, color: '#5a4a70', marginBottom: 5 }}>Select a category above</div>
+                    )}
+                    {selectedCategory && reportText.length > 0 && reportText.trim().length < 5 && (
+                      <div style={{ fontSize: 7, color: '#5a4a70', marginBottom: 5 }}>Please add more detail</div>
+                    )}
+
+                    {/* Submit + Cancel */}
+                    <div style={{ display: 'flex', gap: 6 }}>
                       <button
-                        onClick={() => setReportingUrl(null)}
+                        onClick={() => submitReport(url)}
+                        disabled={!selectedCategory || reportText.trim().length < 5 || submitting}
                         style={{
-                          padding: '3px 8px', borderRadius: 99, fontSize: 8, fontWeight: 700,
-                          border: '1px solid rgba(138,99,210,0.2)',
-                          background: 'transparent', color: '#6b5a80', cursor: 'pointer',
+                          flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 8, fontWeight: 900,
+                          letterSpacing: '0.1em', textTransform: 'uppercase',
+                          border: '1px solid rgba(230,57,70,0.4)',
+                          background: (!selectedCategory || reportText.trim().length < 5)
+                            ? 'rgba(230,57,70,0.04)'
+                            : 'rgba(230,57,70,0.14)',
+                          color: '#e86a6a',
+                          cursor: (selectedCategory && reportText.trim().length >= 5 && !submitting) ? 'pointer' : 'default',
+                          opacity: (!selectedCategory || reportText.trim().length < 5 || submitting) ? 0.45 : 1,
+                        }}
+                      >
+                        {submitting ? 'Submitting…' : 'Submit Report'}
+                      </button>
+                      <button
+                        onClick={clearReportForm}
+                        style={{
+                          padding: '6px 10px', borderRadius: 8, fontSize: 8, fontWeight: 700,
+                          border: '1px solid rgba(138,99,210,0.2)', background: 'transparent',
+                          color: '#6b5a80', cursor: 'pointer',
                         }}
                       >
                         Cancel
@@ -543,7 +606,7 @@ function ProfileBack({
                   </div>
                 ) : (
                   <button
-                    onClick={() => setReportingUrl(url)}
+                    onClick={() => { setReportingUrl(url); setSelectedCategory(''); setReportText(''); }}
                     style={{
                       padding: '3px 9px', borderRadius: 99, fontSize: 8, fontWeight: 700,
                       border: '1px solid rgba(230,57,70,0.25)',
@@ -559,7 +622,7 @@ function ProfileBack({
           ))}
         </div>
         <div style={{ marginTop: 8, fontSize: 8, color: '#504060', lineHeight: 1.5 }}>
-          Reports are reviewed by the admin. Images found to infringe copyright or privacy will be removed.
+          Reported images are suspended immediately and hidden from all cards while under review. The admin will block or reinstate based on your report.
         </div>
       </div>
 

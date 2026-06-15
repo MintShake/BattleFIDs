@@ -224,7 +224,7 @@ export default function Leaderboard({ ownerFid }: Props) {
       )}
 
       <p style={{ fontSize: 9, color: '#5a4a70', textAlign: 'center', marginTop: 14, lineHeight: 1.6 }}>
-        {entries.length} of {totalTeams} · 1 point per opponent beaten per slot · updated end of week
+        {entries.length} of {totalTeams} · Pts: 1/beat per slot · +50 overall win · +25 rare card (FID ≤100) · +20 entry · updated end of week
       </p>
     </div>
   );

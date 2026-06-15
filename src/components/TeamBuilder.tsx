@@ -124,7 +124,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         const t = data.team;
 
         if (t) {
-          const isLocked = !!(t.assigned_group || t.slot_points > 0);
+          const isLocked = true; // any saved team = locked for the current week
 
           if (isLocked) {
             // Current week is locked — switch to next-week builder
@@ -546,6 +546,9 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
           {chosenTier === 'confident' && (
             <div style={{ fontSize: 9, color: '#a08cc0', marginTop: 4 }}>Your bracket (Beginner or Pro) will be revealed at lock deadline.</div>
           )}
+          <div style={{ fontSize: 8, color: '#6b5a80', marginTop: 4, lineHeight: 1.5 }}>
+            Check "My Week" to track live progress. Come back here to draft next week&apos;s team.
+          </div>
         </div>
       )}
 

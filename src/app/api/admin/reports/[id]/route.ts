@@ -33,10 +33,17 @@ export async function PATCH(
   }
 
   if (action === 'block') {
+    // Upgrade from suspended to permanently blocked
     await sql`
       INSERT INTO pfp_blocklist (fid, image_url, reason)
-      VALUES (${report.fid}, ${report.image_url}, ${body.reason ?? null})
-      ON CONFLICT (fid, image_url) DO NOTHING
+      VALUES (${report.fid}, ${report.image_url}, 'admin_block')
+      ON CONFLICT (fid, image_url) DO UPDATE SET reason = 'admin_block'
+    `;
+  } else if (action === 'dismiss') {
+    // Remove suspension — image becomes visible again
+    await sql`
+      DELETE FROM pfp_blocklist
+      WHERE fid = ${report.fid} AND image_url = ${report.image_url} AND reason = 'suspended'
     `;
   }
 

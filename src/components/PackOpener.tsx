@@ -1,12 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { BattleFIDCard, OwnedCard } from '@/types/card';
 import { openPackRemote } from '@/lib/collection';
 import { PackTier, PACK_DEFS } from '@/lib/packTiers';
 import { estimateValue } from '@/lib/valuation';
 import BattleCard from './BattleCard';
 import PackSelect from './PackSelect';
+
+function timeAgo(iso: string): string {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60)    return 'just now';
+  if (secs < 3600)  return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+const RARITY_COLORS: Record<string, string> = {
+  Genesis:  '#C9A84C',
+  Rare:     '#a78bfa',
+  Uncommon: '#3a9bdc',
+  Common:   '#7a6a90',
+};
+
+interface RecentPull {
+  fid:          number;
+  handle:       string;
+  thumbUrl:     string;
+  rarity:       string;
+  ownerHandle:  string;
+  openedAt:     string;
+  isEdition1of1: boolean;
+}
 
 type Phase = 'select' | 'payment' | 'opening' | 'revealing' | 'done';
 
@@ -25,6 +51,26 @@ export default function PackOpener({
   const [revealed, setRevealed]   = useState<Set<number>>(new Set());
   const [error, setError]         = useState<string | null>(null);
   const [revealAll, setRevealAll] = useState(false);
+  const [recentPulls, setRecentPulls] = useState<RecentPull[]>([]);
+
+  useEffect(() => {
+    fetch('/api/browse?page=1&limit=20')
+      .then(r => r.json())
+      .then(data => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pulls: RecentPull[] = (data.cards ?? []).map((gc: any) => ({
+          fid:           gc.ownedCard.card.fid,
+          handle:        gc.ownedCard.card.handle,
+          thumbUrl:      gc.ownedCard.card.thumbUrl,
+          rarity:        gc.ownedCard.card.rarity,
+          ownerHandle:   gc.ownerHandle ?? 'anon',
+          openedAt:      gc.ownedCard.openedAt,
+          isEdition1of1: gc.ownedCard.isEdition1of1 ?? false,
+        }));
+        setRecentPulls(pulls);
+      })
+      .catch(() => {});
+  }, []);
 
   const cards: BattleFIDCard[] = owned.map((o) => o.card);
   const packDef = PACK_DEFS.find(p => p.id === chosenTier) ?? PACK_DEFS[0];
@@ -119,6 +165,71 @@ export default function PackOpener({
           <p style={{ color: '#ef4444', textAlign: 'center', marginTop: 16, fontSize: 11 }}>
             {error}
           </p>
+        )}
+
+        {/* Global pull history */}
+        {recentPulls.length > 0 && (
+          <div style={{ marginTop: 28 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+            }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(138,99,210,0.12)' }} />
+              <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#6b5a80', textTransform: 'uppercase' }}>
+                ◆ Recent Pulls
+              </div>
+              <div style={{ flex: 1, height: 1, background: 'rgba(138,99,210,0.12)' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {recentPulls.map((pull, i) => {
+                const rarityColor = RARITY_COLORS[pull.rarity] ?? '#7a6a90';
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 10px', borderRadius: 10,
+                    background: pull.isEdition1of1
+                      ? 'rgba(201,168,76,0.05)'
+                      : 'rgba(138,99,210,0.04)',
+                    border: pull.isEdition1of1
+                      ? '1px solid rgba(201,168,76,0.2)'
+                      : '1px solid rgba(138,99,210,0.08)',
+                  }}>
+                    {/* Thumb */}
+                    <div style={{ position: 'relative', width: 32, height: 32, borderRadius: 7, overflow: 'hidden', flexShrink: 0, border: `1px solid ${rarityColor}30` }}>
+                      <Image src={pull.thumbUrl} alt={pull.handle} fill style={{ objectFit: 'cover' }} unoptimized />
+                    </div>
+
+                    {/* Card info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#e0d4f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          @{pull.handle}
+                        </span>
+                        {pull.isEdition1of1 && (
+                          <span style={{ fontSize: 7, fontWeight: 900, color: '#C9A84C', letterSpacing: '0.1em', flexShrink: 0 }}>✦ 1/1</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 8, color: '#5a4a70' }}>
+                        by {pull.ownerHandle === 'anon' ? 'anon' : `@${pull.ownerHandle}`} · {timeAgo(pull.openedAt)}
+                      </div>
+                    </div>
+
+                    {/* Rarity */}
+                    <div style={{
+                      fontSize: 7, fontWeight: 900, letterSpacing: '0.12em',
+                      padding: '2px 7px', borderRadius: 99, flexShrink: 0,
+                      background: `${rarityColor}12`,
+                      border: `1px solid ${rarityColor}30`,
+                      color: rarityColor,
+                      textTransform: 'uppercase',
+                    }}>
+                      {pull.rarity}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </>
     );
