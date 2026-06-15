@@ -213,20 +213,31 @@ export default function HomePage({
           <button
             onClick={onGoToPacks}
             style={{
-              flex: 1, borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: `linear-gradient(135deg, ${purple} 0%, ${accent} 100%)`,
-              color: '#fff', display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: 5,
-              boxShadow: `0 6px 24px ${accent}30`,
-              minHeight: 90,
+              borderRadius: 10, border: `1px solid ${accent}42`, cursor: 'pointer',
+              background: `linear-gradient(135deg, ${accent}16, rgba(138,99,210,0.08))`,
+              color: '#fff', display: 'flex', alignItems: 'center', gap: 10,
+              boxShadow: `0 4px 18px ${accent}18`,
+              minHeight: 62,
+              padding: '10px 12px',
+              textAlign: 'left',
             }}
           >
-            <span style={{ fontSize: 24 }}>◆</span>
-            <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-              Open Packs
+            <span style={{
+              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+              display: 'grid', placeItems: 'center',
+              background: `linear-gradient(135deg, ${purple}, ${accent})`,
+              color: '#fff', fontSize: 18,
+              boxShadow: `0 0 16px ${accent}28`,
+            }}>
+              ◆
             </span>
-            <span style={{ fontSize: 8, opacity: 0.75, letterSpacing: '0.1em' }}>
-              Collect identity cards
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 900, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#f0eaf8' }}>
+                Open Packs
+              </span>
+              <span style={{ display: 'block', fontSize: 8, color: '#a997c4', letterSpacing: '0.08em', marginTop: 3, lineHeight: 1.35 }}>
+                10 cards · simulated flow
+              </span>
             </span>
           </button>
 

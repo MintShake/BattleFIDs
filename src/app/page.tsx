@@ -15,6 +15,7 @@ import EditionSelect from '@/components/EditionSelect';
 import ProfileTab from '@/components/ProfileTab';
 import HomePage from '@/components/HomePage';
 import DailySpinModal from '@/components/DailySpinModal';
+import WelcomeModal from '@/components/WelcomeModal';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
@@ -63,6 +64,17 @@ function AppInner({
   const [browseSearch, setBrowseSearch]   = useState('');
   const [browseSort, setBrowseSort]       = useState<BrowseSort>('recent');
   const [modalCard, setModalCard]   = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('protocol_welcome_seen_v2') !== 'true') {
+        setShowWelcome(true);
+      }
+    } catch {
+      setShowWelcome(true);
+    }
+  }, []);
 
   // Check admin status once FID is known
   useEffect(() => {
@@ -147,6 +159,11 @@ function AppInner({
   function handlePointsUpdated(protocolPoints: number) {
     setPlayerData(prev => prev ? { ...prev, protocolPoints } : prev);
     onPlayerLoaded(isPro, protocolPoints);
+  }
+
+  function closeWelcome() {
+    try { localStorage.setItem('protocol_welcome_seen_v2', 'true'); } catch { /* noop */ }
+    setShowWelcome(false);
   }
 
   const filteredBrowse = useMemo(() => {
@@ -416,6 +433,14 @@ function AppInner({
       )}
 
       <DailySpinModal ownerFid={miniAppUser?.fid} onPointsUpdated={handlePointsUpdated} />
+
+      {showWelcome && (
+        <WelcomeModal
+          onClose={closeWelcome}
+          onGoToPacks={() => setTab('pack')}
+          onGoToLeague={() => { setLeagueView('team'); setTab('league'); }}
+        />
+      )}
 
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64 + safeAreaInsets.bottom, background: 'rgba(9,4,15,0.94)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(138,99,210,0.18)', zIndex: 100 }}>
         <div className="page-inner" style={{ height: '100%', paddingBottom: safeAreaInsets.bottom, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around' }}>
