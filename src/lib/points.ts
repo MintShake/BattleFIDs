@@ -3,13 +3,15 @@ import { PointsAction } from '@/types/league';
 import { nanoid } from 'nanoid';
 
 export const POINTS: Record<PointsAction, number> = {
-  app_add:     50,
-  pack_open:   10,
-  team_lock:   15,
-  week_played: 20,
-  share:       5,
-  invite_sent: 100,  // awarded when invited person joins
-  slot_beat:   1,    // × number of people beaten (applied in scoring run)
+  app_add:          50,
+  pack_open:        10,
+  team_lock:        15,
+  week_played:      20,
+  overall_win:      50,  // top-half finish in your group
+  rare_card_bonus:  25,  // using a FID 1–100 card in your team
+  share:            5,
+  invite_sent:      100, // awarded when invited person joins
+  slot_beat:        1,   // × number of people beaten (applied in scoring run)
 };
 
 // Upsert player row, creating referral code on first visit.

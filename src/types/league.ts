@@ -45,6 +45,8 @@ export type PointsAction =
   | 'pack_open'
   | 'team_lock'
   | 'week_played'
+  | 'overall_win'     // top-half finish in your group
+  | 'rare_card_bonus' // team contains a FID ≤100 card
   | 'share'
   | 'invite_sent'
   | 'slot_beat';  // meta: { beats: number }

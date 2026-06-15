@@ -1,28 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount, fetchBonusMetric } from '@/lib/neynar';
-import { currentWeekId, weekBounds } from '@/lib/weeklyScoring';
+import { prevWeekId, weekBounds } from '@/lib/weeklyScoring';
 import { awardPoints } from '@/lib/points';
 
 // GET /api/cron/score?weekId=2026-W23
-// Runs at end of week (Sunday 23:00 UTC).
-// For each team: fetches Neynar metrics per slot, ranks teams within their group
-// per slot, awards 1 protocol point per person beaten in each slot.
+// Runs Monday 00:00 UTC (Sunday midnight UK). Scores the week that just ended.
+// Idempotent — skips if computed_at is already set.
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret');
   if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const weekId = req.nextUrl.searchParams.get('weekId') ?? currentWeekId();
+  // Default to the week that just ended (one week ago from now)
+  const weekId = req.nextUrl.searchParams.get('weekId') ?? prevWeekId();
   const { start } = weekBounds(weekId);
+
+  // Idempotency guard — don't double-score
+  const weekRows = await sql`SELECT computed_at FROM weeks WHERE id = ${weekId}`;
+  if (weekRows[0]?.computed_at) {
+    return NextResponse.json({ ok: true, weekId, skipped: true, reason: 'already scored' });
+  }
 
   // Load all locked teams for the week
   const teams = await sql`
     SELECT
       id, owner_fid, owner_device_id, chosen_tier, assigned_group,
       casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
-      followers_baseline, score_baseline
+      followers_baseline, score_baseline, avg_team_score
     FROM weekly_teams
     WHERE week_id = ${weekId}
       AND casts_fid IS NOT NULL
@@ -30,10 +36,6 @@ export async function GET(req: NextRequest) {
 
   if (teams.length === 0) return NextResponse.json({ ok: true, weekId, teamsScored: 0 });
 
-  // Resolve each team's effective group
-  // Pro-locked players always land in 'pro'
-  // Confident players use assigned_group (already flipped by tier cron)
-  // Beginner players are in 'beginner'
   function resolveGroup(team: typeof teams[0]): 'beginner' | 'pro' {
     if (team.chosen_tier === 'pro') return 'pro';
     if (team.chosen_tier === 'confident') return (team.assigned_group ?? 'beginner') as 'beginner' | 'pro';
@@ -48,18 +50,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Fetch current Neynar data for all FIDs (follower_count, score)
   const neynarMap = await fetchNeynarUsersDirect([...allFids]);
 
-  // Fetch weekly cast/reply/likes stats for all FIDs
   type WeekStats = { casts: number; replies: number; likes: number };
   const statsMap = new Map<number, WeekStats>();
-
   for (const fid of allFids) {
     const s = await fetchWeeklyStats(fid, start);
-    // fetchWeeklyStats returns recastsReceived, likesReceived, repliesReceived, repliesSent
-    // We need: casts = (likesReceived proxy via casts count), replies sent, likes received
-    // Re-fetch cast count specifically
     statsMap.set(fid, {
       casts:   await fetchCastCount(fid, start),
       replies: s.repliesSent,
@@ -67,82 +63,84 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Build per-team metric values for each slot
   interface TeamMetrics {
-    teamId:      string;
-    ownerFid:    number | null;
-    deviceId:    string | null;
-    group:       'beginner' | 'pro';
-    casts:       number;
-    replies:     number;
-    followers:   number;  // delta from baseline
-    score_rise:  number;  // delta from baseline (×1000 for precision)
-    likes:       number;
+    teamId:       string;
+    ownerFid:     number | null;
+    deviceId:     string | null;
+    group:        'beginner' | 'pro';
+    casts:        number;
+    replies:      number;
+    followers:    number;
+    score_rise:   number;
+    likes:        number;
+    avgTeamScore: number;
+    slotFids:     number[];
   }
 
   const metrics: TeamMetrics[] = teams.map(t => {
     const group = resolveGroup(t);
-    const castsFid      = Number(t.casts_fid);
-    const repliesFid    = Number(t.replies_fid);
-    const followersFid  = Number(t.followers_fid);
-    const scoreRiseFid  = Number(t.score_rise_fid);
-    const likesFid      = Number(t.likes_fid);
+    const slotFids = [
+      Number(t.casts_fid), Number(t.replies_fid), Number(t.followers_fid),
+      Number(t.score_rise_fid), Number(t.likes_fid),
+    ];
 
-    const followersCurrent = neynarMap.get(followersFid)?.follower_count ?? 0;
+    const followersCurrent = neynarMap.get(Number(t.followers_fid))?.follower_count ?? 0;
     const followersGained  = Math.max(0, followersCurrent - (Number(t.followers_baseline) ?? 0));
 
-    const scoreCurrent = (neynarMap.get(scoreRiseFid)?.score ?? 0) * 1000;
+    const scoreCurrent = (neynarMap.get(Number(t.score_rise_fid))?.score ?? 0) * 1000;
     const scoreRise    = Math.max(0, scoreCurrent - (Number(t.score_baseline) ?? 0) * 1000);
 
     return {
-      teamId:     t.id,
-      ownerFid:   t.owner_fid ? Number(t.owner_fid) : null,
-      deviceId:   t.owner_device_id ?? null,
+      teamId:       t.id,
+      ownerFid:     t.owner_fid ? Number(t.owner_fid) : null,
+      deviceId:     t.owner_device_id ?? null,
       group,
-      casts:      statsMap.get(castsFid)?.casts   ?? 0,
-      replies:    statsMap.get(repliesFid)?.replies ?? 0,
-      followers:  followersGained,
-      score_rise: scoreRise,
-      likes:      statsMap.get(likesFid)?.likes    ?? 0,
+      casts:        statsMap.get(Number(t.casts_fid))?.casts   ?? 0,
+      replies:      statsMap.get(Number(t.replies_fid))?.replies ?? 0,
+      followers:    followersGained,
+      score_rise:   scoreRise,
+      likes:        statsMap.get(Number(t.likes_fid))?.likes    ?? 0,
+      avgTeamScore: Number(t.avg_team_score ?? 0),
+      slotFids,
     };
   });
 
-  // Score within each group per slot
   const slots = ['casts', 'replies', 'followers', 'score_rise', 'likes'] as const;
   const groups: Array<'beginner' | 'pro'> = ['beginner', 'pro'];
 
-  const slotPoints = new Map<string, number>(); // teamId → total slot points
+  const slotPoints = new Map<string, number>();
 
   for (const group of groups) {
     const groupTeams = metrics.filter(m => m.group === group);
     if (groupTeams.length < 2) continue;
 
     for (const slot of slots) {
-      // Sort descending by slot metric
       const ranked = [...groupTeams].sort((a, b) => b[slot] - a[slot]);
-
-      // For each team, count how many teams they beat in this slot
-      for (let i = 0; i < ranked.length; i++) {
-        const team = ranked[i];
+      for (const team of ranked) {
         const myValue = team[slot];
-        // Beat everyone below with a strictly lower value (ties don't count)
         const beaten = ranked.filter(r => r[slot] < myValue).length;
-        const prev = slotPoints.get(team.teamId) ?? 0;
-        slotPoints.set(team.teamId, prev + beaten);
+        slotPoints.set(team.teamId, (slotPoints.get(team.teamId) ?? 0) + beaten);
       }
     }
   }
 
-  // Persist slot_points, rank within group, award protocol points + week_played bonus
+  // Rank within each group, tiebreak by avg_team_score
   for (const group of groups) {
     const groupTeams = metrics.filter(m => m.group === group);
-    groupTeams.sort((a, b) => (slotPoints.get(b.teamId) ?? 0) - (slotPoints.get(a.teamId) ?? 0));
+    groupTeams.sort((a, b) => {
+      const pa = slotPoints.get(a.teamId) ?? 0;
+      const pb = slotPoints.get(b.teamId) ?? 0;
+      if (pb !== pa) return pb - pa;
+      return b.avgTeamScore - a.avgTeamScore;
+    });
+
+    const half = Math.ceil(groupTeams.length / 2);
 
     for (let i = 0; i < groupTeams.length; i++) {
-      const { teamId, ownerFid, deviceId } = groupTeams[i];
+      const { teamId, ownerFid, deviceId, slotFids } = groupTeams[i];
       const points = slotPoints.get(teamId) ?? 0;
       const rank   = i + 1;
-      const won    = rank <= Math.ceil(groupTeams.length / 2);
+      const won    = rank <= half;
 
       await sql`
         UPDATE weekly_teams
@@ -150,13 +148,25 @@ export async function GET(req: NextRequest) {
         WHERE id = ${teamId}
       `;
 
-      // Award protocol points: slot_beat (1 per person beaten) + week_played flat
+      // Entry bonus (week_played flat)
+      await awardPoints(ownerFid, deviceId, 'week_played');
+
+      // Points per person beaten per slot
       if (points > 0) {
         await awardPoints(ownerFid, deviceId, 'slot_beat', points, { weekId, group });
       }
-      await awardPoints(ownerFid, deviceId, 'week_played');
 
-      // Update W/L on player row
+      // Overall win bonus
+      if (won) {
+        await awardPoints(ownerFid, deviceId, 'overall_win', 1, { weekId, group, rank });
+      }
+
+      // Rare card bonus — any slot FID ≤ 100
+      const hasRareCard = slotFids.some(f => f <= 100);
+      if (hasRareCard) {
+        await awardPoints(ownerFid, deviceId, 'rare_card_bonus', 1, { weekId });
+      }
+
       if (ownerFid) {
         if (won) {
           await sql`UPDATE players SET total_wins = total_wins + 1 WHERE owner_fid = ${ownerFid}`;
@@ -169,8 +179,7 @@ export async function GET(req: NextRequest) {
 
   await sql`UPDATE weeks SET computed_at = NOW() WHERE id = ${weekId}`;
 
-  // ── Score edition bonus slots ─────────────────────────────────────────────
-  // Find all distinct (edition_id, slot_key) combos for this week with ≥2 picks
+  // ── Edition bonus slots ───────────────────────────────────────────────────────
   const editionGroups = await sql`
     SELECT edition_id, slot_key, COUNT(*) AS cnt
     FROM weekly_edition_picks
@@ -185,7 +194,6 @@ export async function GET(req: NextRequest) {
     const editionId = eg.edition_id as string;
     const slotKey   = eg.slot_key as string;
 
-    // Get metric_type for this slot
     const slotDef = await sql`
       SELECT metric_type FROM edition_bonus_slots
       WHERE edition_id = ${editionId} AND slot_key = ${slotKey}
@@ -193,26 +201,18 @@ export async function GET(req: NextRequest) {
     if (!slotDef[0]) continue;
     const metricType = slotDef[0].metric_type as string;
 
-    // Load all picks for this group
     const picks = await sql`
       SELECT id, owner_fid, owner_device_id, card_fid
       FROM weekly_edition_picks
       WHERE week_id = ${weekId} AND edition_id = ${editionId} AND slot_key = ${slotKey}
     `;
 
-    // Fetch live metric for each pick's card
     const values: { id: string; ownerFid: number | null; deviceId: string | null; value: number }[] = [];
     for (const p of picks) {
       const v = await fetchBonusMetric(Number(p.card_fid), metricType, start);
-      values.push({
-        id:       p.id as string,
-        ownerFid: p.owner_fid ? Number(p.owner_fid) : null,
-        deviceId: p.owner_device_id ?? null,
-        value:    v,
-      });
+      values.push({ id: p.id as string, ownerFid: p.owner_fid ? Number(p.owner_fid) : null, deviceId: p.owner_device_id ?? null, value: v });
     }
 
-    // Rank and award
     values.sort((a, b) => b.value - a.value);
     for (let i = 0; i < values.length; i++) {
       const { id, ownerFid, deviceId, value } = values[i];
@@ -234,4 +234,3 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ ok: true, weekId, teamsScored: teams.length, editionPicksScored });
 }
-

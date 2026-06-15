@@ -28,38 +28,65 @@ interface PlayerInfo {
   referralCode:   string;
 }
 
+interface CurrentWeekSummary {
+  weekId:        string;
+  slotPoints:    number;
+  rank:          number | null;
+  tier:          string;
+  assignedGroup: string | null;
+}
+
 interface Props {
   owned:     OwnedCard[];
   ownerFid?: number;
 }
 
+// Compute next ISO week ID client-side (no server import needed)
+function computeNextWeekId(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 7);
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
 export default function TeamBuilder({ owned, ownerFid }: Props) {
-  const [slots, setSlots]       = useState<TeamSlots>({ casts: null, replies: null, followers: null, score_rise: null, likes: null });
-  const [picking, setPicking]   = useState<SlotType | null>(null);
+  // Builder state (targets either current or next week)
+  const [slots, setSlots]           = useState<TeamSlots>({ casts: null, replies: null, followers: null, score_rise: null, likes: null });
+  const [picking, setPicking]       = useState<SlotType | null>(null);
   const [chosenTier, setChosenTier] = useState<PlayerTier>('beginner');
-  const [player, setPlayer]     = useState<PlayerInfo | null>(null);
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [locked, setLocked]     = useState(false);
-  const [error, setError]       = useState('');
-  const [weekId, setWeekId]     = useState('');
+  const [player, setPlayer]         = useState<PlayerInfo | null>(null);
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
+  const [error, setError]           = useState('');
+  const [weekId, setWeekId]         = useState('');  // current week ID (for display)
+
+  // Week mode
+  const [buildingForNextWeek, setBuildingForNextWeek]     = useState(false);
+  const [targetWeekId, setTargetWeekId]                   = useState('');
+  const [currentWeekSummary, setCurrentWeekSummary]       = useState<CurrentWeekSummary | null>(null);
+
+  // Draft preview (next-week mode only — compares vs current week's locked teams)
+  const [draftPreview, setDraftPreview]     = useState<Record<SlotType, { value: number; beating: number; compared: number }> | null>(null);
+  const [previewUpdating, setPreviewUpdating] = useState(false);
+  const [previewErr, setPreviewErr]         = useState('');
 
   // Edition bonus slots
-  const [editionSlots, setEditionSlots]       = useState<{ editionId: string; slots: EditionBonusSlotDef[] }[]>([]);
-  const [activeEdition, setActiveEdition]     = useState<string | null>(null);
-  const [activeEditionSlotKey, setActiveEditionSlotKey] = useState<string | null>(null);
-  const [editionCard, setEditionCard]         = useState<OwnedCard | null>(null);
-  const [editionPicking, setEditionPicking]   = useState(false);
-  const [editionSaving, setEditionSaving]     = useState(false);
-  const [editionSaved, setEditionSaved]       = useState(false);
-  const [editionError, setEditionError]       = useState('');
+  const [editionSlots, setEditionSlots]                             = useState<{ editionId: string; slots: EditionBonusSlotDef[] }[]>([]);
+  const [activeEdition, setActiveEdition]                           = useState<string | null>(null);
+  const [activeEditionSlotKey, setActiveEditionSlotKey]             = useState<string | null>(null);
+  const [editionCard, setEditionCard]                               = useState<OwnedCard | null>(null);
+  const [editionPicking, setEditionPicking]                         = useState(false);
+  const [editionSaving, setEditionSaving]                           = useState(false);
+  const [editionSaved, setEditionSaved]                             = useState(false);
+  const [editionError, setEditionError]                             = useState('');
 
-  // Load player + existing team
   useEffect(() => {
     if (!ownerFid) return;
     const param = `ownerFid=${ownerFid}`;
 
-    // Fetch player info
     fetch(`/api/players?${param}`)
       .then(r => r.json())
       .then(data => {
@@ -68,13 +95,11 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
       })
       .catch(() => {});
 
-    // Fetch edition bonus slots (always — shown only for Pro)
     fetch('/api/editions/slots')
       .then(r => r.json())
       .then(data => setEditionSlots(data.editions ?? []))
       .catch(() => {});
 
-    // Fetch existing edition pick
     fetch(`/api/week/edition-pick?${param}`)
       .then(r => r.json())
       .then(data => {
@@ -90,24 +115,66 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
       })
       .catch(() => {});
 
-    // Fetch existing team
+    // Load current week team to determine mode
     fetch(`/api/week/team?${param}`)
       .then(r => r.json())
       .then(data => {
-        setWeekId(data.weekId ?? '');
-        if (!data.team) return;
+        const cwId = data.weekId ?? '';
+        setWeekId(cwId);
         const t = data.team;
-        const byFid = new Map(owned.map(o => [o.card.fid, o]));
-        setSlots({
-          casts:      byFid.get(t.casts_fid)      ?? null,
-          replies:    byFid.get(t.replies_fid)     ?? null,
-          followers:  byFid.get(t.followers_fid)   ?? null,
-          score_rise: byFid.get(t.score_rise_fid)  ?? null,
-          likes:      byFid.get(t.likes_fid)        ?? null,
-        });
-        if (t.chosen_tier) setChosenTier(t.chosen_tier as PlayerTier);
-        // If team is locked (has assigned_group or week is in progress), lock UI
-        if (t.assigned_group || t.slot_points > 0) setLocked(true);
+
+        if (t) {
+          const isLocked = !!(t.assigned_group || t.slot_points > 0);
+
+          if (isLocked) {
+            // Current week is locked — switch to next-week builder
+            setCurrentWeekSummary({
+              weekId:        cwId,
+              slotPoints:    Number(t.slot_points ?? 0),
+              rank:          t.rank ? Number(t.rank) : null,
+              tier:          t.chosen_tier ?? 'beginner',
+              assignedGroup: t.assigned_group ?? null,
+            });
+            setBuildingForNextWeek(true);
+            const nwId = computeNextWeekId();
+            setTargetWeekId(nwId);
+
+            // Load next week's existing draft (if any)
+            fetch(`/api/week/team?${param}&weekId=${nwId}`)
+              .then(r => r.json())
+              .then(nwData => {
+                if (nwData.team) {
+                  const nwt = nwData.team;
+                  const byFid = new Map(owned.map(o => [o.card.fid, o]));
+                  setSlots({
+                    casts:      byFid.get(nwt.casts_fid)      ?? null,
+                    replies:    byFid.get(nwt.replies_fid)     ?? null,
+                    followers:  byFid.get(nwt.followers_fid)   ?? null,
+                    score_rise: byFid.get(nwt.score_rise_fid)  ?? null,
+                    likes:      byFid.get(nwt.likes_fid)       ?? null,
+                  });
+                  if (nwt.chosen_tier) setChosenTier(nwt.chosen_tier as PlayerTier);
+                  setSaved(true);
+                }
+              })
+              .catch(() => {});
+          } else {
+            // Current week team exists but isn't locked yet — show normal builder
+            setTargetWeekId(cwId);
+            const byFid = new Map(owned.map(o => [o.card.fid, o]));
+            setSlots({
+              casts:      byFid.get(t.casts_fid)      ?? null,
+              replies:    byFid.get(t.replies_fid)     ?? null,
+              followers:  byFid.get(t.followers_fid)   ?? null,
+              score_rise: byFid.get(t.score_rise_fid)  ?? null,
+              likes:      byFid.get(t.likes_fid)       ?? null,
+            });
+            if (t.chosen_tier) setChosenTier(t.chosen_tier as PlayerTier);
+          }
+        } else {
+          // No team yet — normal current-week builder
+          setTargetWeekId(cwId);
+        }
       })
       .catch(() => {});
   }, [ownerFid, owned]);
@@ -122,7 +189,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
   }
 
   async function saveTeam() {
-    if (!full || locked) return;
+    if (!full) return;
     setSaving(true);
     setError('');
     try {
@@ -131,6 +198,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerFid,
+          targetWeekId,
           castsFid:      slots.casts!.card.fid,
           repliesFid:    slots.replies!.card.fid,
           followersFid:  slots.followers!.card.fid,
@@ -141,10 +209,8 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to save');
-      setWeekId(data.weekId);
       setSaved(true);
-      setLocked(true);
-      // Refresh player points
+      // For current-week lock, switch to next-week mode on next load (don't switch immediately)
       if (ownerFid) fetch(`/api/players?ownerFid=${ownerFid}`).then(r => r.json()).then(setPlayer).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
@@ -153,17 +219,43 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
     }
   }
 
+  // Draft preview — compare next-week picks vs current week's live standings
+  async function checkDraftPreview() {
+    if (!full || !ownerFid) return;
+    setPreviewUpdating(true);
+    setPreviewErr('');
+    try {
+      const res = await fetch('/api/week/score/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerFid,
+          draftFids: {
+            castsFid:     slots.casts!.card.fid,
+            repliesFid:   slots.replies!.card.fid,
+            followersFid: slots.followers!.card.fid,
+            scoreRiseFid: slots.score_rise!.card.fid,
+            likesFid:     slots.likes!.card.fid,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Preview failed');
+      setDraftPreview(data.slots);
+    } catch (e) {
+      setPreviewErr(e instanceof Error ? e.message : 'Preview failed');
+    } finally {
+      setPreviewUpdating(false);
+    }
+  }
+
   const canChooseTier = !!(player && !player.lockedToPro);
 
-  // Active bonus slot definition
   const activeEditionGroup = editionSlots.find(e => e.editionId === activeEdition);
   const activeBonusSlot    = activeEditionGroup
     ? (activeEditionGroup.slots.find(s => s.slotKey === activeEditionSlotKey)
         ?? (activeEditionGroup.slots.length === 1 ? activeEditionGroup.slots[0] : null))
     : null;
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // (auto-revert for Pro-only removed — all editions now open)
 
   async function clearEditionPick() {
     if (activeEdition && activeBonusSlot && ownerFid) {
@@ -203,16 +295,60 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
     }
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
     <div>
+      {/* Current week locked summary — shown only when building for next week */}
+      {buildingForNextWeek && currentWeekSummary && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 12,
+          background: 'rgba(34,197,94,0.06)',
+          border: '1px solid rgba(34,197,94,0.2)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.25em', color: '#22c55e', textTransform: 'uppercase', marginBottom: 2 }}>
+                ✓ {currentWeekSummary.weekId} · Locked
+              </div>
+              <div style={{ fontSize: 8, color: '#6b5a80' }}>
+                {currentWeekSummary.slotPoints > 0
+                  ? `${currentWeekSummary.slotPoints} pts${currentWeekSummary.rank ? ` · #${currentWeekSummary.rank}` : ''}`
+                  : 'Competing — check progress tab'}
+              </div>
+            </div>
+            <div style={{
+              fontSize: 7, padding: '2px 8px', borderRadius: 99, fontWeight: 700,
+              background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e',
+              letterSpacing: '0.15em', textTransform: 'uppercase',
+            }}>
+              {currentWeekSummary.tier}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: '#a08cc0', textTransform: 'uppercase', marginBottom: 4 }}>
-          {weekId || 'Current Week'}
-        </div>
-        <div style={{ fontSize: 11, color: '#7a6a90' }}>
-          Pick one card per slot · your prediction for the week
-        </div>
+        {buildingForNextWeek ? (
+          <>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase', marginBottom: 4 }}>
+              Next Week · {targetWeekId || '…'}
+            </div>
+            <div style={{ fontSize: 11, color: '#7a6a90' }}>
+              Draft your team · locks in at Sunday midnight
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.3em', color: '#a08cc0', textTransform: 'uppercase', marginBottom: 4 }}>
+              {weekId || 'Current Week'}
+            </div>
+            <div style={{ fontSize: 11, color: '#7a6a90' }}>
+              Pick one card per slot · your prediction for the week
+            </div>
+          </>
+        )}
         {player && (
           <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
             <div style={{ fontSize: 9, color: '#C9A84C', fontWeight: 700 }}>
@@ -231,8 +367,8 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         )}
       </div>
 
-      {/* Tier choice — hidden if locked to Pro */}
-      {canChooseTier && !locked && (
+      {/* Tier choice */}
+      {canChooseTier && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.2em', color: '#a08cc0', textTransform: 'uppercase', marginBottom: 6 }}>
             Enter as
@@ -267,43 +403,36 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         </div>
       )}
 
-      {/* Pro locked notice */}
       {player?.lockedToPro && (
         <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 10, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)', fontSize: 8, color: '#C9A84C', lineHeight: 1.5 }}>
           ★ Your avg team score reached the Pro threshold — you compete in the Pro group.
         </div>
       )}
 
-      {/* 5 slots */}
+      {/* 5 slot rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {SLOT_TYPES.map(slot => {
           const card    = slots[slot];
           const color   = SLOT_COLORS[slot];
           const eligible = eligibleFor(slot).length;
+          const dp = draftPreview?.[slot] ?? null;
 
           return (
             <div key={slot}>
               <div
-                onClick={() => { if (!locked) setPicking(picking === slot ? null : slot); }}
+                onClick={() => setPicking(picking === slot ? null : slot)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '10px 12px', borderRadius: 14,
                   background: picking === slot ? `${color}18` : 'rgba(138,99,210,0.05)',
                   border: `1px solid ${picking === slot ? color : `${color}30`}`,
-                  cursor: locked ? 'default' : 'pointer', transition: 'all 0.15s',
+                  cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
-                {/* Slot emoji */}
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  background: `${color}18`, border: `1px solid ${color}35`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 15, flexShrink: 0,
-                }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${color}18`, border: `1px solid ${color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>
                   {SLOT_EMOJI[slot]}
                 </div>
 
-                {/* Slot info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.12em', color, textTransform: 'uppercase' }}>
                     {SLOT_LABELS[slot]}
@@ -319,18 +448,21 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
                   )}
                 </div>
 
-                {card ? (
-                  <div style={{ position: 'relative', width: 36, height: 36, borderRadius: 8, overflow: 'hidden', border: `1px solid ${color}40`, flexShrink: 0 }}>
-                    <Image src={card.card.thumbUrl} alt={card.card.handle} fill style={{ objectFit: 'cover' }} unoptimized />
-                  </div>
-                ) : (
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 8,
-                    border: `1px dashed ${color}40`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16, color: `${color}50`, flexShrink: 0,
-                  }}>+</div>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+                  {card ? (
+                    <div style={{ position: 'relative', width: 36, height: 36, borderRadius: 8, overflow: 'hidden', border: `1px solid ${color}40` }}>
+                      <Image src={card.card.thumbUrl} alt={card.card.handle} fill style={{ objectFit: 'cover' }} unoptimized />
+                    </div>
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: 8, border: `1px dashed ${color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: `${color}50` }}>+</div>
+                  )}
+                  {/* Draft preview indicator */}
+                  {dp && (
+                    <div style={{ fontSize: 7, fontWeight: 700, color: dp.beating >= dp.compared / 2 ? '#22c55e' : '#7a6a90', letterSpacing: '0.08em' }}>
+                      {dp.value} · {dp.compared > 0 ? `beat ${dp.beating}/${dp.compared}` : 'no data'}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Inline card picker */}
@@ -345,13 +477,13 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
                       {eligibleFor(slot).map(o => (
                         <div
                           key={o.card.fid}
-                          onClick={e => { e.stopPropagation(); setSlots(s => ({ ...s, [slot]: o })); setPicking(null); }}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            padding: '7px 10px', borderRadius: 10,
-                            background: 'rgba(138,99,210,0.06)', border: '1px solid rgba(138,99,210,0.15)',
-                            cursor: 'pointer',
+                          onClick={e => {
+                            e.stopPropagation();
+                            setSlots(s => ({ ...s, [slot]: o }));
+                            setPicking(null);
+                            setDraftPreview(null);
                           }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 10, background: 'rgba(138,99,210,0.06)', border: '1px solid rgba(138,99,210,0.15)', cursor: 'pointer' }}
                         >
                           <div style={{ position: 'relative', width: 30, height: 30, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
                             <Image src={o.card.thumbUrl} alt={o.card.handle} fill style={{ objectFit: 'cover' }} unoptimized />
@@ -378,34 +510,73 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         <div style={{ fontSize: 10, color: '#e63946', textAlign: 'center', marginBottom: 8 }}>{error}</div>
       )}
 
-      {/* Locked state */}
-      {locked && saved && (
-        <div style={{ padding: '12px', borderRadius: 12, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', textAlign: 'center', marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: '#22c55e', letterSpacing: '0.1em' }}>✓ TEAM LOCKED IN</div>
+      {/* Save / Lock button */}
+      <button
+        onClick={saveTeam}
+        disabled={!full || saving}
+        style={{
+          width: '100%', padding: '14px', borderRadius: 12,
+          background: full ? (buildingForNextWeek ? 'linear-gradient(135deg, #C9A84C, #8a63d2)' : 'linear-gradient(135deg, #8a63d2, #C9A84C)') : 'rgba(138,99,210,0.1)',
+          border: 'none', color: full ? '#fff' : '#7a6a90',
+          fontSize: 12, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase',
+          cursor: full ? 'pointer' : 'default', transition: 'all 0.2s',
+          marginBottom: 8,
+        }}
+      >
+        {saving
+          ? (buildingForNextWeek ? 'Saving draft…' : 'Locking…')
+          : !full
+            ? `${SLOT_TYPES.filter(s => !slots[s]).length} Slots Empty`
+            : buildingForNextWeek
+              ? (saved ? `✓ Update Next Week · ${TIER_LABELS[chosenTier]}` : `Save for Next Week · ${TIER_LABELS[chosenTier]}`)
+              : `Lock In · ${TIER_LABELS[chosenTier]}`}
+      </button>
+
+      {/* Confirmation messages */}
+      {saved && buildingForNextWeek && (
+        <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', textAlign: 'center', marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 900, color: '#C9A84C', letterSpacing: '0.1em' }}>✓ DRAFT SAVED · {targetWeekId}</div>
+          <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 3 }}>Locks in at Sunday midnight. Edit any time before then.</div>
+        </div>
+      )}
+
+      {saved && !buildingForNextWeek && (
+        <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', textAlign: 'center', marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 900, color: '#22c55e', letterSpacing: '0.1em' }}>✓ TEAM LOCKED IN</div>
           {chosenTier === 'confident' && (
             <div style={{ fontSize: 9, color: '#a08cc0', marginTop: 4 }}>Your bracket (Beginner or Pro) will be revealed at lock deadline.</div>
           )}
         </div>
       )}
 
-      {!locked && (
-        <button
-          onClick={saveTeam}
-          disabled={!full || saving}
-          style={{
-            width: '100%', padding: '14px', borderRadius: 12,
-            background: full ? 'linear-gradient(135deg, #8a63d2, #C9A84C)' : 'rgba(138,99,210,0.1)',
-            border: 'none', color: full ? '#fff' : '#7a6a90',
-            fontSize: 12, fontWeight: 900, letterSpacing: '0.15em', textTransform: 'uppercase',
-            cursor: full ? 'pointer' : 'default', transition: 'all 0.2s',
-          }}
-        >
-          {saving ? 'Locking…' : full ? `Lock In · ${TIER_LABELS[chosenTier]}` : `${SLOT_TYPES.filter(s => !slots[s]).length} Slots Empty`}
-        </button>
+      {/* Draft preview — next-week mode only */}
+      {buildingForNextWeek && (
+        <div style={{ marginBottom: 10 }}>
+          <button
+            onClick={checkDraftPreview}
+            disabled={!full || previewUpdating}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 10,
+              border: `1px solid ${full ? 'rgba(138,99,210,0.35)' : 'rgba(138,99,210,0.1)'}`,
+              background: full ? 'rgba(138,99,210,0.08)' : 'transparent',
+              color: full ? '#a08cc0' : '#3a2a50',
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase',
+              cursor: full ? 'pointer' : 'default', transition: 'all 0.15s',
+            }}
+          >
+            {previewUpdating ? 'Checking…' : '↻  Preview vs This Week\'s Leaders'}
+          </button>
+          {previewErr && <div style={{ fontSize: 9, color: '#e63946', textAlign: 'center', marginTop: 4 }}>{previewErr}</div>}
+          {draftPreview && !previewUpdating && (
+            <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 10, background: 'rgba(138,99,210,0.05)', border: '1px solid rgba(138,99,210,0.15)', fontSize: 8, color: '#7a6a90', lineHeight: 1.7 }}>
+              Comparing your draft picks against this week&apos;s live standings. Values reset Monday when the new week starts.
+            </div>
+          )}
+        </div>
       )}
 
-      {/* ── Edition ── */}
-      {editionSlots.length > 0 && (
+      {/* ── Edition bonus slots (current week only) ── */}
+      {!buildingForNextWeek && editionSlots.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.12)' }} />
@@ -413,9 +584,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
             <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.12)' }} />
           </div>
 
-          {/* Edition pills */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-            {/* Standard (base) pill */}
             <button
               onClick={clearEditionPick}
               style={{
@@ -450,8 +619,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
                     border: active ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
                     background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
                     color: active ? '#C9A84C' : '#7a6a90',
-                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                    cursor: 'pointer',
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
                   }}
                 >
                   {label}
@@ -460,7 +628,6 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
             })}
           </div>
 
-          {/* Slot sub-selector (editions with multiple slots) */}
           {activeEdition && activeEditionGroup && activeEditionGroup.slots.length > 1 && (
             <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
               {activeEditionGroup.slots.map(slot => (
@@ -481,7 +648,6 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
             </div>
           )}
 
-          {/* Edition bonus slot card */}
           {activeBonusSlot && (
             <div>
               <div

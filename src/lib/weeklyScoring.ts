@@ -9,6 +9,18 @@ export function currentWeekId(): string {
   return weekIdFromDate(new Date());
 }
 
+export function nextWeekId(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 7);
+  return weekIdFromDate(d);
+}
+
+export function prevWeekId(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 7);
+  return weekIdFromDate(d);
+}
+
 export function weekIdFromDate(date: Date): string {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = d.getUTCDay() || 7;

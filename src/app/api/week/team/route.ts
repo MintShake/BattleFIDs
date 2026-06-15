@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect } from '@/lib/neynar';
-import { currentWeekId, weekBounds } from '@/lib/weeklyScoring';
+import { currentWeekId, nextWeekId, weekBounds } from '@/lib/weeklyScoring';
 import { awardPoints, upsertPlayer } from '@/lib/points';
-import { PlayerTier, SLOT_TYPES } from '@/types/league';
+import { PlayerTier } from '@/types/league';
 
 // GET /api/week/team?ownerFid=123  OR  ?ownerDeviceId=abc
 export async function GET(req: NextRequest) {
@@ -47,11 +47,9 @@ export async function GET(req: NextRequest) {
       : await sql`SELECT protocol_points, tier, locked_to_pro, referral_code FROM players WHERE owner_device_id = ${device}`;
     const player = playerRows[0] ?? null;
 
-    const { end } = weekBounds(weekId);
-    // Scoring fires at Sunday 23:00 UTC — end is the scoring deadline
-    const endsAt = new Date(
-      Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 0, 0)
-    ).toISOString();
+    const { start, end } = weekBounds(weekId);
+    // Scoring fires at Monday 00:00 UTC (Sunday midnight UK time in winter)
+    const endsAt = new Date(start.getTime() + 7 * 86400000).toISOString();
 
     return NextResponse.json({ team, weekId, endsAt, player });
   } catch {
@@ -60,7 +58,7 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/week/team
-// Body: { ownerFid?, ownerDeviceId?, castsFid, repliesFid, followersFid, scoreRiseFid, likesFid, chosenTier? }
+// Body: { ownerFid?, ownerDeviceId?, castsFid, repliesFid, followersFid, scoreRiseFid, likesFid, chosenTier?, targetWeekId? }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -68,6 +66,7 @@ export async function POST(req: NextRequest) {
       ownerFid, ownerDeviceId,
       castsFid, repliesFid, followersFid, scoreRiseFid, likesFid,
       chosenTier = 'beginner',
+      targetWeekId,
     } = body;
 
     if (!ownerFid && !ownerDeviceId) return NextResponse.json({ error: 'owner required' }, { status: 400 });
@@ -89,7 +88,9 @@ export async function POST(req: NextRequest) {
     const player = playerRows[0];
     const effectiveTier: PlayerTier = player?.locked_to_pro ? 'pro' : (chosenTier as PlayerTier);
 
-    const weekId = currentWeekId();
+    // Allow submitting for current or next week only
+    const validWeeks = [currentWeekId(), nextWeekId()];
+    const weekId = (targetWeekId && validWeeks.includes(targetWeekId)) ? targetWeekId : currentWeekId();
     const { start, end } = weekBounds(weekId);
 
     await sql`
