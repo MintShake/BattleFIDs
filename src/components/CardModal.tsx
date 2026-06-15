@@ -284,6 +284,13 @@ function CardFace({ card, serialNumber, ownerHandle, badges }: {
 
 // ── Profile back ───────────────────────────────────────────────────────────
 
+const REPORT_REASONS = [
+  { key: 'copyright',     label: 'Copyright' },
+  { key: 'privacy',       label: 'Privacy' },
+  { key: 'inappropriate', label: 'Inappropriate' },
+  { key: 'other',         label: 'Other' },
+];
+
 function ProfileBack({
   card, serialNumber, profile, badges, activeInfo, setActiveInfo,
   copied, onShare,
@@ -297,6 +304,28 @@ function ProfileBack({
   copied: boolean;
   onShare: () => void;
 }) {
+  const [reportingUrl, setReportingUrl] = useState<string | null>(null);
+  const [reportedUrls, setReportedUrls] = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting]     = useState(false);
+
+  async function submitReport(url: string, reason: string) {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await fetch('/api/report/pfp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fid: card.fid, imageUrl: url, reason }),
+      });
+      setReportedUrls(prev => new Set([...prev, url]));
+    } catch {
+      // best-effort
+    } finally {
+      setSubmitting(false);
+      setReportingUrl(null);
+    }
+  }
+
   const bio = profile?.neynarUser?.profile?.bio?.text;
   const followers = profile?.neynarUser?.follower_count ?? 0;
   const following = profile?.neynarUser?.following_count ?? 0;
@@ -441,37 +470,98 @@ function ProfileBack({
         </div>
       </div>
 
-      {/* PFP History */}
-      {pfpHistory.length > 1 && (
-        <div style={{ marginBottom: 16 }}>
-          {section(`PFP History · ${pfpHistory.length} discovered`)}
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-            {pfpHistory.map((url, i) => (
-              <div key={i} style={{ flexShrink: 0, position: 'relative' }}>
+      {/* PFP History + report */}
+      <div style={{ marginBottom: 16 }}>
+        {section(`PFP History · ${pfpHistory.length} discovered`)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {pfpHistory.map((url, i) => (
+            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+
+              {/* Thumbnail */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div style={{
-                  width: 60, height: 60, borderRadius: 10, overflow: 'hidden',
+                  width: 54, height: 54, borderRadius: 10, overflow: 'hidden',
                   border: i === 0 ? `2px solid ${accent}` : '2px solid rgba(138,99,210,0.2)',
                 }}>
-                  <Image src={url} alt={`pfp-${i}`} width={60} height={60}
+                  <Image src={url} alt={`pfp-${i}`} width={54} height={54}
                     style={{ objectFit: 'cover', width: '100%', height: '100%' }} unoptimized />
                 </div>
                 {i === 0 && (
                   <div style={{ position: 'absolute', bottom: -2, right: -2,
-                    fontSize: 8, background: accent, color: '#000', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
+                    fontSize: 7, background: accent, color: '#000', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
                     NOW
                   </div>
                 )}
                 {i === pfpHistory.length - 1 && pfpHistory.length > 1 && (
                   <div style={{ position: 'absolute', bottom: -2, left: -2,
-                    fontSize: 8, background: '#6b5a80', color: '#8a63d2', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
+                    fontSize: 7, background: '#6b5a80', color: '#8a63d2', borderRadius: 4, padding: '1px 3px', fontWeight: 700 }}>
                     OG
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+
+              {/* Label + report controls */}
+              <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                <div style={{ fontSize: 9, color: '#7a6a90', marginBottom: 6 }}>
+                  {i === 0 ? 'Current profile photo' : `Photo ${pfpHistory.length - i} of ${pfpHistory.length}`}
+                </div>
+
+                {reportedUrls.has(url) ? (
+                  <div style={{ fontSize: 9, color: '#22c55e', fontWeight: 700 }}>✓ Reported — we'll review</div>
+                ) : reportingUrl === url ? (
+                  <div>
+                    <div style={{ fontSize: 8, color: '#a08cc0', marginBottom: 5 }}>Reason:</div>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {REPORT_REASONS.map(r => (
+                        <button
+                          key={r.key}
+                          onClick={() => submitReport(url, r.key)}
+                          disabled={submitting}
+                          style={{
+                            padding: '3px 8px', borderRadius: 99, fontSize: 8, fontWeight: 700,
+                            border: '1px solid rgba(230,57,70,0.4)',
+                            background: 'rgba(230,57,70,0.08)',
+                            color: '#e86a6a',
+                            cursor: submitting ? 'default' : 'pointer',
+                            opacity: submitting ? 0.5 : 1,
+                          }}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setReportingUrl(null)}
+                        style={{
+                          padding: '3px 8px', borderRadius: 99, fontSize: 8, fontWeight: 700,
+                          border: '1px solid rgba(138,99,210,0.2)',
+                          background: 'transparent', color: '#6b5a80', cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setReportingUrl(url)}
+                    style={{
+                      padding: '3px 9px', borderRadius: 99, fontSize: 8, fontWeight: 700,
+                      border: '1px solid rgba(230,57,70,0.25)',
+                      background: 'rgba(230,57,70,0.05)',
+                      color: '#c46060', cursor: 'pointer',
+                    }}
+                  >
+                    ⚑ Report
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      )}
+        <div style={{ marginTop: 8, fontSize: 8, color: '#504060', lineHeight: 1.5 }}>
+          Reports are reviewed by the admin. Images found to infringe copyright or privacy will be removed.
+        </div>
+      </div>
 
       {/* Stats with info */}
       <div style={{ marginBottom: 16 }}>

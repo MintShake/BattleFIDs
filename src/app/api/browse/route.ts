@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect } from '@/lib/neynar';
 import { CardType, OwnedCard } from '@/types/card';
+import { loadBlocklist, applyBlocklist } from '@/lib/moderation';
 
 interface GlobalCard {
   ownedCard: OwnedCard;
@@ -18,7 +19,8 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(48, parseInt(searchParams.get('limit') ?? String(PAGE_SIZE)));
   const offset = (page - 1) * limit;
 
-  const [rows, [{ total }]] = await Promise.all([
+  const [blocked, rows, [{ total }]] = await Promise.all([
+    loadBlocklist(),
     sql`
       SELECT
         oc.serial_number,
@@ -48,6 +50,7 @@ export async function GET(req: NextRequest) {
     const fid: number | null = row.owner_fid ?? null;
     const neynar = fid ? neynarMap.get(fid) : undefined;
     const ownerHandle = neynar?.username ?? (fid ? `fid${fid}` : 'anon');
+    const { pfpUrl, pfpUrls } = applyBlocklist(row.pfp_url, row.pfp_urls ?? [], blocked);
 
     return {
       ownedCard: {
@@ -57,9 +60,9 @@ export async function GET(req: NextRequest) {
         edition1of1Id: row.edition_id ?? undefined,
         card: {
           fid:          row.fid,
-          pfpUrl:       row.pfp_url,
-          pfpUrls:      row.pfp_urls ?? [],
-          pfpCount:     (row.pfp_urls ?? []).length,
+          pfpUrl,
+          pfpUrls,
+          pfpCount:     pfpUrls.length,
           thumbUrl:     row.thumb_url,
           handle:       row.handle,
           displayName:  row.display_name,

@@ -7,6 +7,7 @@ import { BattleFIDCard, CardType, OwnedCard } from '@/types/card';
 import { FidTimeline } from '@/types/faces';
 import { PACK_DEFS, PackTier } from '@/lib/packTiers';
 import { upsertPlayer, awardPoints } from '@/lib/points';
+import { loadBlocklist, applyBlocklist } from '@/lib/moderation';
 
 const PACK_SIZE = 10;
 const EDITION_1OF1_CHANCE = 0.015;
@@ -254,6 +255,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json([], { status: 400 });
   }
 
+  const blocked = await loadBlocklist();
   let rows;
   if (ownerFid) {
     rows = await sql`
@@ -297,16 +299,18 @@ export async function GET(req: NextRequest) {
         `;
   }
 
-  const owned: OwnedCard[] = rows.map((row) => ({
+  const owned: OwnedCard[] = rows.map((row) => {
+    const { pfpUrl, pfpUrls } = applyBlocklist(row.pfp_url, row.pfp_urls ?? [], blocked);
+    return {
     serialNumber: row.serial_number,
     openedAt: row.opened_at,
     isEdition1of1: row.is_edition_1of1 ?? false,
     edition1of1Id: row.edition_id ?? undefined,
     card: {
       fid:          row.fid,
-      pfpUrl:       row.pfp_url,
-      pfpUrls:      row.pfp_urls ?? [],
-      pfpCount:     (row.pfp_urls ?? []).length,
+      pfpUrl,
+      pfpUrls,
+      pfpCount:     pfpUrls.length,
       thumbUrl:     row.thumb_url,
       handle:       row.handle,
       displayName:  row.display_name,
@@ -323,7 +327,8 @@ export async function GET(req: NextRequest) {
       isEdition1of1: row.is_edition_1of1 ?? false,
       edition1of1Id: row.edition_id ?? undefined,
     },
-  }));
+  };
+  });
 
   return NextResponse.json(owned);
 }
