@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount } from '@/lib/neynar';
-import { boundsForGameId, gameWeekIdForDisplay } from '@/lib/gameSchedule';
+import { boundsForGameId, fastRoundsEnabled, gameWeekIdForDisplay } from '@/lib/gameSchedule';
 
 // POST /api/week/score/preview
 // Normal mode:  { ownerFid?, ownerDeviceId? }
@@ -81,13 +81,15 @@ export async function POST(req: NextRequest) {
     const rows = fid
       ? await sql`
           SELECT casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
-                 chosen_tier, assigned_group, followers_baseline, score_baseline
+                 chosen_tier, assigned_group, followers_baseline, score_baseline,
+                 preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes, preview_updated_at
           FROM weekly_teams
           WHERE week_id = ${weekId} AND owner_fid = ${fid}
         `
       : await sql`
           SELECT casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
-                 chosen_tier, assigned_group, followers_baseline, score_baseline
+                 chosen_tier, assigned_group, followers_baseline, score_baseline,
+                 preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes, preview_updated_at
           FROM weekly_teams
           WHERE week_id = ${weekId} AND owner_device_id = ${device}
         `;
@@ -112,13 +114,26 @@ export async function POST(req: NextRequest) {
     const followersNow = neynarMap.get(followersFid)?.follower_count ?? 0;
     const scoreNow     = neynarMap.get(scoreRiseFid)?.score ?? 0;
 
-    const myValues = {
+    let myValues = {
       preview_casts:      castsCount,
       preview_replies:    repliesStats.repliesSent,
       preview_followers:  Math.max(0, followersNow - Number(team.followers_baseline ?? 0)),
       preview_score_rise: Math.max(0, Math.round((scoreNow - Number(team.score_baseline ?? 0)) * 1000)),
       preview_likes:      likesStats.likesReceived,
     };
+
+    const liveAllZero = Object.values(myValues).every(v => Number(v) === 0);
+    const storedPreview = {
+      preview_casts:      Number(team.preview_casts ?? 0),
+      preview_replies:    Number(team.preview_replies ?? 0),
+      preview_followers:  Number(team.preview_followers ?? 0),
+      preview_score_rise: Number(team.preview_score_rise ?? 0),
+      preview_likes:      Number(team.preview_likes ?? 0),
+    };
+    const storedHasSignal = Object.values(storedPreview).some(v => v > 0);
+    if (fastRoundsEnabled() && liveAllZero && team.preview_updated_at && storedHasSignal) {
+      myValues = storedPreview;
+    }
 
     if (fid) {
       await sql`
