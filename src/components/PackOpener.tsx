@@ -213,6 +213,13 @@ export default function PackOpener({
         >
           Open {packDef.name}
         </button>
+
+        <p style={{
+          fontSize: 8, color: '#4a3a5a', textAlign: 'center',
+          marginTop: 12, lineHeight: 1.65, margin: '12px 0 0',
+        }}>
+          Cards display the live Farcaster profile photo for each FID. Images are sourced from the Faces community app and may change at any time. The Protocol is not affiliated with any depicted individual. To report an image, open any card and tap ⚑ Report. FID holders may opt out their photos via their Profile tab.
+        </p>
       </div>
     );
   }
