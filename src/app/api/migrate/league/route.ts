@@ -51,11 +51,28 @@ export async function GET() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS daily_spins (
+      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_fid       INTEGER,
+      owner_device_id TEXT,
+      spin_day        TEXT NOT NULL,
+      points_awarded  INTEGER NOT NULL DEFAULT 0,
+      outcome_label   TEXT NOT NULL,
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(owner_fid, spin_day),
+      UNIQUE(owner_device_id, spin_day)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_daily_spins_fid_day ON daily_spins(owner_fid, spin_day)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_daily_spins_device_day ON daily_spins(owner_device_id, spin_day)`;
+
   // ── Alter weeks ────────────────────────────────────────────────────────────
   await sql`ALTER TABLE weeks ADD COLUMN IF NOT EXISTS pro_threshold NUMERIC`;
   await sql`ALTER TABLE weeks ADD COLUMN IF NOT EXISTS lock_at TIMESTAMPTZ`;
 
   // ── Alter weekly_teams — new slot columns ──────────────────────────────────
+  await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS edition_id TEXT NOT NULL DEFAULT 'base'`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS casts_fid      INTEGER REFERENCES cards(fid)`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS replies_fid    INTEGER REFERENCES cards(fid)`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS followers_fid  INTEGER REFERENCES cards(fid)`;

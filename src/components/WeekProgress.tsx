@@ -399,7 +399,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
         })}
       </div>
 
-      {/* ── Edition bonus slots (Pro only) ── */}
+      {/* ── Edition bonus slots ── */}
       {editionPicks.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>

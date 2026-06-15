@@ -237,7 +237,7 @@ export default function ProfileTab({ ownerFid, handle, playerData }: Props) {
             </button>
           </div>
           <div style={{ fontSize: 8, color: '#6b5a80', marginTop: 6 }}>
-            Share to earn 100 Protocol Points when someone joins
+            Earn 100 Protocol Points when a referred player opens their first pack
           </div>
         </div>
       )}

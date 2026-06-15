@@ -49,6 +49,7 @@ export type PointsAction =
   | 'rare_card_bonus' // team contains a FID ≤100 card
   | 'share'
   | 'invite_sent'
+  | 'daily_spin'
   | 'slot_beat';  // meta: { beats: number }
 
 export interface ProtocolPointsLog {

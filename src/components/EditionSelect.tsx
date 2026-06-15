@@ -2,15 +2,17 @@
 
 import Image from 'next/image';
 import { Edition } from '@/editions/types';
+import { canUnlockEdition, pointsRequiredForEdition } from '@/lib/editionUnlocks';
 
 interface Props {
   editions: Edition[];
   onSelect: (editionId: string) => void;
   onClose:  () => void;
   currentId?: string;
+  protocolPoints?: number;
 }
 
-export default function EditionSelect({ editions, onSelect, onClose, currentId }: Props) {
+export default function EditionSelect({ editions, onSelect, onClose, currentId, protocolPoints = 0 }: Props) {
   const list = editions.length > 0 ? editions : [];
 
   return (
@@ -66,16 +68,19 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId }
           const tagLabel  = ed.ui?.tagLabel  ?? 'LIVE';
           const tagColor  = ed.ui?.tagColor  ?? ed.theme.accentPrimary;
           const desc      = ed.ui?.description ?? ed.league.rules;
+          const required  = pointsRequiredForEdition(ed.id);
+          const locked    = !canUnlockEdition(ed.id, protocolPoints);
 
           return (
             <button
               key={ed.id}
-              onClick={() => onSelect(ed.id)}
+              onClick={() => { if (!locked) onSelect(ed.id); }}
               style={{
                 position: 'relative',
                 width: '100%', border: 'none', padding: 0,
                 borderRadius: 20, overflow: 'hidden',
-                cursor: 'pointer',
+                cursor: locked ? 'default' : 'pointer',
+                opacity: locked ? 0.58 : 1,
                 boxShadow: isActive
                   ? `0 0 0 2px ${ed.theme.accentPrimary}, 0 0 30px ${ed.theme.accentPrimary}40`
                   : '0 4px 24px rgba(0,0,0,0.5)',
@@ -119,6 +124,19 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId }
                       color: ed.theme.accentPrimary,
                     }}>
                       ACTIVE
+                    </div>
+                  )}
+
+                  {locked && (
+                    <div style={{
+                      position: 'absolute', top: 14, right: 18,
+                      fontSize: 8, fontWeight: 900, letterSpacing: '0.2em',
+                      padding: '3px 10px', borderRadius: 99,
+                      background: 'rgba(7,2,14,0.72)',
+                      border: '1px solid rgba(201,168,76,0.45)',
+                      color: '#C9A84C',
+                    }}>
+                      {required.toLocaleString()} PTS
                     </div>
                   )}
 
@@ -172,7 +190,7 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId }
                   {ed.league.seasonLabel}
                 </span>
                 <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', color: ed.theme.accentPrimary }}>
-                  {isActive ? '◈ PLAYING' : 'ENTER →'}
+                  {locked ? `${Math.max(0, required - protocolPoints).toLocaleString()} PTS TO UNLOCK` : isActive ? '◈ PLAYING' : 'ENTER →'}
                 </span>
               </div>
             </button>

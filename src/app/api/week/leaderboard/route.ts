@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { currentWeekId } from '@/lib/weeklyScoring';
+import { gameWeekIdForDisplay } from '@/lib/gameSchedule';
 
 // GET /api/week/leaderboard?weekId=2026-W23&group=beginner|pro&limit=50
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const weekId = searchParams.get('weekId') ?? currentWeekId();
+  const weekId = searchParams.get('weekId') ?? await gameWeekIdForDisplay();
   const group  = searchParams.get('group'); // 'beginner' | 'pro' | null (all)
   const limit  = Math.min(50, parseInt(searchParams.get('limit') ?? '20'));
   const page   = Math.max(1, parseInt(searchParams.get('page') ?? '1'));

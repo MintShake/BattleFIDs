@@ -32,20 +32,61 @@ const RANK_BADGE: Record<number, { color: string; label: string }> = {
 
 interface Props {
   ownerFid?: number;
+  editionId?: string;
+  editionName?: string;
 }
 
 const PAGE_SIZE = 20;
 
-export default function Leaderboard({ ownerFid }: Props) {
+interface EditionLeaderboardEntry {
+  rank:       number;
+  ownerFid:   number | null;
+  cardFid:    number;
+  handle:     string | null;
+  thumb:      string | null;
+  rarity:     string | null;
+  value:      number | null;
+  slotPoints: number;
+}
+
+interface EditionSlotInfo {
+  slotKey:     string;
+  label:       string;
+  emoji:       string;
+  description: string;
+}
+
+interface NextDraftTeam {
+  weekId:     string;
+  chosenTier: string;
+  slots: Record<SlotType, SlotCard>;
+}
+
+function computeNextWeekId(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 7);
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+export default function Leaderboard({ ownerFid, editionId = 'base', editionName = 'Base' }: Props) {
   const [group, setGroup]       = useState<Group>('beginner');
   const [entries, setEntries]   = useState<LeaderboardEntry[]>([]);
+  const [editionEntries, setEditionEntries] = useState<EditionLeaderboardEntry[]>([]);
+  const [editionSlot, setEditionSlot] = useState<EditionSlotInfo | null>(null);
+  const [nextDraft, setNextDraft] = useState<NextDraftTeam | null>(null);
   const [totalTeams, setTotal]  = useState(0);
   const [weekId, setWeekId]     = useState('');
   const [loading, setLoading]   = useState(true);
   const [page, setPage]         = useState(1);
   const [hasMore, setHasMore]   = useState(false);
+  const isEditionBoard = editionId !== 'base';
 
   useEffect(() => {
+    if (isEditionBoard) return;
     setLoading(true);
     setPage(1);
     fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=1`)
@@ -58,7 +99,53 @@ export default function Leaderboard({ ownerFid }: Props) {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [group]);
+  }, [group, isEditionBoard]);
+
+  useEffect(() => {
+    if (isEditionBoard || !ownerFid) {
+      setNextDraft(null);
+      return;
+    }
+
+    const draftWeekId = computeNextWeekId();
+    fetch(`/api/week/team?ownerFid=${ownerFid}&weekId=${draftWeekId}`)
+      .then(r => r.json())
+      .then(data => {
+        const t = data.team;
+        if (!t) {
+          setNextDraft(null);
+          return;
+        }
+        setNextDraft({
+          weekId: data.weekId ?? draftWeekId,
+          chosenTier: t.chosen_tier ?? 'beginner',
+          slots: {
+            casts:      { fid: t.casts_fid,      handle: t.casts_handle,      thumb: t.casts_thumb,      rarity: t.casts_rarity },
+            replies:    { fid: t.replies_fid,    handle: t.replies_handle,    thumb: t.replies_thumb,    rarity: t.replies_rarity },
+            followers:  { fid: t.followers_fid,  handle: t.followers_handle,  thumb: t.followers_thumb,  rarity: t.followers_rarity },
+            score_rise: { fid: t.score_rise_fid, handle: t.score_rise_handle, thumb: t.score_rise_thumb, rarity: t.score_rise_rarity },
+            likes:      { fid: t.likes_fid,      handle: t.likes_handle,      thumb: t.likes_thumb,      rarity: t.likes_rarity },
+          },
+        });
+      })
+      .catch(() => setNextDraft(null));
+  }, [ownerFid, isEditionBoard]);
+
+  useEffect(() => {
+    if (!isEditionBoard) return;
+    setLoading(true);
+    fetch(`/api/week/edition-pick?editionId=${encodeURIComponent(editionId)}`)
+      .then(r => r.json())
+      .then(data => {
+        setEditionEntries(data.leaderboard ?? []);
+        setEditionSlot(data.slot ?? null);
+        setTotal(data.totalPicks ?? 0);
+        setWeekId(data.weekId ?? '');
+        setHasMore(false);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [editionId, isEditionBoard]);
 
   function loadMore() {
     const next = page + 1;
@@ -73,6 +160,96 @@ export default function Leaderboard({ ownerFid }: Props) {
   }
 
   const maxPoints = entries[0]?.slotPoints ?? 1;
+
+  if (isEditionBoard) {
+    const maxValue = Math.max(1, ...editionEntries.map(e => e.value ?? e.slotPoints ?? 0));
+    return (
+      <div>
+        <div style={{
+          borderRadius: 14, padding: '10px 14px', marginBottom: 14,
+          background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)',
+        }}>
+          <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.25em', color: '#C9A84C', textTransform: 'uppercase', marginBottom: 4 }}>
+            {editionName}
+          </div>
+          <div style={{ fontSize: 12, color: '#e0d4f0', fontWeight: 800 }}>
+            {editionSlot ? `${editionSlot.emoji} ${editionSlot.label}` : 'Edition Bonus'}
+          </div>
+          <div style={{ fontSize: 9, color: '#7a6a90', marginTop: 3, lineHeight: 1.5 }}>
+            {weekId || '…'} · {totalTeams} pick{totalTeams !== 1 ? 's' : ''}
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', paddingTop: 40, color: '#7a6a90', fontSize: 11, letterSpacing: '0.2em' }}>
+            Loading…
+          </div>
+        ) : editionEntries.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 60 }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>★</div>
+            <p style={{ fontSize: 12, color: '#a08cc0', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+              No edition picks yet
+            </p>
+            <p style={{ fontSize: 10, color: '#7a6a90', marginTop: 6 }}>
+              Unlocked players can add this edition slot from My Team
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {editionEntries.map((entry, i) => {
+              const badge = RANK_BADGE[entry.rank];
+              const isYou = ownerFid != null && entry.ownerFid === ownerFid;
+              const value = entry.value ?? entry.slotPoints;
+              const pct = Math.min(100, value / maxValue * 100);
+
+              return (
+                <div key={`${entry.ownerFid ?? 'anon'}-${entry.cardFid}-${i}`} style={{
+                  borderRadius: 12, padding: '10px 12px',
+                  background: isYou ? 'rgba(201,168,76,0.12)' : 'rgba(201,168,76,0.04)',
+                  border: isYou ? '1px solid rgba(201,168,76,0.35)' : badge ? `1px solid ${badge.color}40` : '1px solid rgba(201,168,76,0.12)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <div style={{ width: 28, textAlign: 'center', flexShrink: 0, fontSize: badge ? 13 : 10, fontWeight: 900, color: badge?.color ?? '#7a6a90' }}>
+                      {badge?.label ?? `#${entry.rank}`}
+                    </div>
+                    {entry.thumb ? (
+                      <div style={{ position: 'relative', width: 32, height: 32, borderRadius: 7, overflow: 'hidden', flexShrink: 0 }}>
+                        <Image src={entry.thumb} alt={entry.handle ?? 'card'} fill style={{ objectFit: 'cover' }} unoptimized />
+                      </div>
+                    ) : (
+                      <div style={{ width: 32, height: 32, borderRadius: 7, background: 'rgba(201,168,76,0.08)', flexShrink: 0 }} />
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#e0d4f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {entry.handle ? `@${entry.handle}` : `FID ${entry.cardFid}`}
+                      </div>
+                      <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 2 }}>
+                        FID {entry.cardFid}{entry.rarity ? ` · ${entry.rarity}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: badge?.color ?? '#C9A84C' }}>
+                        {value}
+                      </div>
+                      <div style={{ fontSize: 8, color: '#7a6a90' }}>metric</div>
+                    </div>
+                  </div>
+                  <div style={{ height: 3, background: 'rgba(201,168,76,0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: badge ? `linear-gradient(90deg, ${badge.color}, #C9A84C)` : '#C9A84C', borderRadius: 99 }} />
+                  </div>
+                  {isYou && (
+                    <div style={{ fontSize: 8, color: '#C9A84C', fontWeight: 700, letterSpacing: '0.15em', marginTop: 4 }}>
+                      YOUR EDITION SLOT
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -115,6 +292,58 @@ export default function Leaderboard({ ownerFid }: Props) {
           {totalTeams} team{totalTeams !== 1 ? 's' : ''} · {group}
         </div>
       </div>
+
+      {nextDraft && (
+        <div style={{
+          borderRadius: 14, padding: '10px 12px', marginBottom: 14,
+          background: 'rgba(201,168,76,0.07)',
+          border: '1px solid rgba(201,168,76,0.22)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <div>
+              <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.22em', color: '#C9A84C', textTransform: 'uppercase' }}>
+                Your Next Draft
+              </div>
+              <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 2 }}>
+                {nextDraft.weekId} · waiting to lock
+              </div>
+            </div>
+            <div style={{
+              flexShrink: 0,
+              fontSize: 7,
+              padding: '3px 8px',
+              borderRadius: 99,
+              color: '#C9A84C',
+              border: '1px solid rgba(201,168,76,0.3)',
+              background: 'rgba(201,168,76,0.1)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              fontWeight: 800,
+            }}>
+              {nextDraft.chosenTier}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
+            {SLOT_TYPES.map(slot => {
+              const card = nextDraft.slots[slot];
+              return (
+                <div key={slot} title={`${SLOT_LABELS[slot]}${card?.handle ? `: @${card.handle}` : ''}`} style={{ minWidth: 0 }}>
+                  {card?.thumb ? (
+                    <div style={{ position: 'relative', aspectRatio: '1', borderRadius: 7, overflow: 'hidden', border: '1px solid rgba(201,168,76,0.25)' }}>
+                      <Image src={card.thumb} alt={card.handle ?? slot} fill style={{ objectFit: 'cover' }} unoptimized />
+                    </div>
+                  ) : (
+                    <div style={{ aspectRatio: '1', borderRadius: 7, background: 'rgba(201,168,76,0.08)' }} />
+                  )}
+                  <div style={{ fontSize: 8, color: '#C9A84C', textAlign: 'center', marginTop: 3 }}>
+                    {SLOT_EMOJI[slot]}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', paddingTop: 40, color: '#7a6a90', fontSize: 11, letterSpacing: '0.2em' }}>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount } from '@/lib/neynar';
-import { currentWeekId, weekBounds } from '@/lib/weeklyScoring';
+import { boundsForGameId, gameWeekIdForDisplay } from '@/lib/gameSchedule';
 
 // POST /api/week/score/preview
 // Normal mode:  { ownerFid?, ownerDeviceId? }
@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
     const fid    = ownerFid    ? parseInt(ownerFid)    : null;
     const device = ownerDeviceId ?? null;
 
-    const weekId = currentWeekId();
-    const { start: weekStart } = weekBounds(weekId);
+    const weekId = await gameWeekIdForDisplay(fid, device);
+    const { start: weekStart } = boundsForGameId(weekId);
 
     // ── Draft preview mode ──────────────────────────────────────────────────
     if (draftFids) {

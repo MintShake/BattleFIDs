@@ -23,9 +23,13 @@ const btnBase: React.CSSProperties = {
 export default function MiniAppActions({
   isInMiniApp,
   added: addedProp,
+  ownerFid,
+  onPointsUpdated,
 }: {
   isInMiniApp: boolean;
   added: boolean;
+  ownerFid?: number;
+  onPointsUpdated?: (protocolPoints: number) => void;
 }) {
   // Track added locally so we can update it when the SDK fires the event
   const [added, setAdded] = useState(addedProp);
@@ -78,9 +82,20 @@ export default function MiniAppActions({
       const sdk = sdkRef.current;
       if (!sdk) throw new Error('SDK not loaded');
       await sdk.actions.composeCast({
-        text: '⚔ The Protocol 2026 — collect Farcaster identity cards, battle for supremacy. Rome Plays.',
+        text: '⚔ The Protocol 2026 — collect Farcaster identity cards, battle for supremacy. Sharing can earn me Protocol Points.',
         embeds: [APP_URL],
       });
+      if (ownerFid) {
+        const res = await fetch('/api/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ownerFid }),
+        });
+        if (res.ok) {
+          const data: { protocolPoints?: number } = await res.json();
+          if (typeof data.protocolPoints === 'number') onPointsUpdated?.(data.protocolPoints);
+        }
+      }
     } catch {
       // dismissed
     } finally {

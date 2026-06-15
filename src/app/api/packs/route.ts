@@ -10,7 +10,6 @@ import { upsertPlayer, awardPoints } from '@/lib/points';
 import { loadBlocklist, applyBlocklist } from '@/lib/moderation';
 
 const PACK_SIZE = 10;
-const EDITION_1OF1_CHANCE = 0.015;
 const POOL_PER_FETCH = 65;
 
 function randInt(min: number, max: number): number {
@@ -163,79 +162,43 @@ export async function POST(req: NextRequest) {
       owned.push({ card, serialNumber, openedAt });
     }
 
-    // ── Edition 1/1 chance ───────────────────────────────────────────────────
-    // Small flat chance per pack to pull a special edition 1/1 as a bonus card
-    if (Math.random() < EDITION_1OF1_CHANCE) {
-      try {
-        // Find the active edition
-        const editionRows = await sql`SELECT id FROM editions WHERE is_default = TRUE AND is_active = TRUE LIMIT 1`;
-        const activeEditionId: string = editionRows[0]?.id ?? 'base';
+    // Ensure player exists and award pack_open points
+    const player = await upsertPlayer(ownerFid, ownerDeviceId);
+    await awardPoints(ownerFid, ownerDeviceId, 'pack_open');
 
-        // Find a random card that doesn't yet have a claimed 1/1 for this edition
-        const candidates = await sql`
-          SELECT c.fid FROM cards c
-          WHERE NOT EXISTS (
-            SELECT 1 FROM edition_1of1s e
-            WHERE e.fid = c.fid AND e.edition_id = ${activeEditionId}
-          )
-          ORDER BY RANDOM()
-          LIMIT 1
-        `;
+    const referredBy = typeof player?.referred_by === 'string' ? player.referred_by : null;
+    if (referredBy) {
+      const buyerFid = ownerFid ? String(ownerFid) : null;
+      const buyerDevice = ownerDeviceId ?? null;
+      const priorBonus = buyerFid
+        ? await sql`
+            SELECT 1 FROM protocol_points_log
+            WHERE action = 'invite_sent'
+              AND meta->>'trigger' = 'referred_pack_open'
+              AND meta->>'buyerFid' = ${buyerFid}
+            LIMIT 1
+          `
+        : await sql`
+            SELECT 1 FROM protocol_points_log
+            WHERE action = 'invite_sent'
+              AND meta->>'trigger' = 'referred_pack_open'
+              AND meta->>'buyerDeviceId' = ${buyerDevice}
+            LIMIT 1
+          `;
 
-        if (candidates.length > 0) {
-          const candidateFid: number = candidates[0].fid;
-
-          // Fetch that card's current data
-          const [cardRow] = await sql`SELECT * FROM cards WHERE fid = ${candidateFid}`;
-          if (cardRow) {
-            const edition1of1Card: BattleFIDCard = {
-              fid:          cardRow.fid,
-              pfpUrl:       cardRow.pfp_url,
-              pfpUrls:      cardRow.pfp_urls ?? [],
-              pfpCount:     (cardRow.pfp_urls ?? []).length,
-              thumbUrl:     cardRow.thumb_url,
-              handle:       cardRow.handle,
-              displayName:  cardRow.display_name,
-              maxSupply:    cardRow.max_supply,
-              rarity:       cardRow.rarity as BattleFIDCard['rarity'],
-              stats:        cardRow.stats,
-              battleScore:  cardRow.battle_score,
-              cardType:     (cardRow.card_type ?? 'NETWORKER') as CardType,
-              wins:         cardRow.wins ?? 0,
-              losses:       cardRow.losses ?? 0,
-              storedAt:     cardRow.stored_at,
-              likeCount:    cardRow.like_count ?? 0,
-              hasBadge:     cardRow.has_badge ?? false,
-              isEdition1of1: true,
-              edition1of1Id: activeEditionId,
-            };
-
-            // Mark as claimed
-            await sql`
-              INSERT INTO edition_1of1s (fid, edition_id, claimed, pack_id, owner_fid, owner_device_id)
-              VALUES (${candidateFid}, ${activeEditionId}, TRUE, ${pack.id}, ${ownerFid}, ${ownerDeviceId})
-              ON CONFLICT (fid, edition_id) DO NOTHING
-            `;
-
-            // Add to owned_cards as a 1/1 (serial 1)
-            const openedAt = new Date().toISOString();
-            await sql`
-              INSERT INTO owned_cards (pack_id, fid, owner_fid, owner_device_id, serial_number, is_edition_1of1, edition_id, opened_at)
-              VALUES (${pack.id}, ${candidateFid}, ${ownerFid}, ${ownerDeviceId}, 1, TRUE, ${activeEditionId}, ${openedAt})
-            `;
-
-            owned.push({ card: edition1of1Card, serialNumber: 1, openedAt, isEdition1of1: true, edition1of1Id: activeEditionId });
-          }
+      if (priorBonus.length === 0) {
+        const refs = await sql`SELECT * FROM referrals WHERE code = ${referredBy} LIMIT 1`;
+        const ref = refs[0];
+        if (ref && !(ownerFid && ref.owner_fid === ownerFid) && !(ownerDeviceId && ref.owner_device_id === ownerDeviceId)) {
+          await awardPoints(ref.owner_fid, ref.owner_device_id, 'invite_sent', 1, {
+            via: referredBy,
+            trigger: 'referred_pack_open',
+            buyerFid,
+            buyerDeviceId: buyerDevice,
+          });
         }
-      } catch (e) {
-        // Don't fail the whole pack if the 1/1 logic errors
-        console.error('[packs] edition 1/1 error:', e);
       }
     }
-
-    // Ensure player exists and award pack_open points
-    await upsertPlayer(ownerFid, ownerDeviceId);
-    await awardPoints(ownerFid, ownerDeviceId, 'pack_open');
 
     return NextResponse.json(owned);
   } catch (err) {

@@ -2,6 +2,40 @@ import { NeynarUser, NeynarBulkUsersResponse, CastEngagement } from '@/types/ney
 
 const NEYNAR_BASE = 'https://api.neynar.com/v2';
 
+function useMockNeynar() {
+  return !process.env.NEYNAR_API_KEY
+    && process.env.NODE_ENV === 'development'
+    && (process.env.DATABASE_URL ?? '').includes('localhost');
+}
+
+function mockScore(fid: number, salt: number, max: number) {
+  const n = Math.abs(Math.sin(fid * 12.9898 + salt * 78.233) * 43758.5453);
+  return Math.floor((n - Math.floor(n)) * max);
+}
+
+function mockUser(fid: number): NeynarUser {
+  return {
+    fid,
+    username: `fid${fid}`,
+    display_name: `fid${fid}`,
+    pfp_url: '',
+    follower_count: 100 + mockScore(fid, 1, 25000),
+    following_count: 10 + mockScore(fid, 2, 2000),
+    power_badge: mockScore(fid, 3, 10) > 7,
+    score: mockScore(fid, 4, 1000) / 1000,
+    verifications: [],
+  };
+}
+
+function mockWeeklyStats(fid: number) {
+  return {
+    recastsReceived: mockScore(fid, 5, 80),
+    likesReceived:   mockScore(fid, 6, 240),
+    repliesReceived: mockScore(fid, 7, 60),
+    repliesSent:     mockScore(fid, 8, 120),
+  };
+}
+
 function apiHeaders() {
   return {
     'x-api-key': process.env.NEYNAR_API_KEY ?? '',
@@ -12,6 +46,7 @@ function apiHeaders() {
 // Server-side: bulk user profiles — handles any number of FIDs via batching
 export async function fetchNeynarUsersDirect(fids: number[]): Promise<Map<number, NeynarUser>> {
   if (fids.length === 0) return new Map();
+  if (useMockNeynar()) return new Map(fids.map(fid => [fid, mockUser(fid)]));
   if (!process.env.NEYNAR_API_KEY) return new Map();
 
   const BATCH = 100;
@@ -36,6 +71,7 @@ export async function fetchNeynarUsersDirect(fids: number[]): Promise<Map<number
 
 // Server-side: fetch cast engagement (reply interactivity) for one FID
 export async function fetchCastEngagement(fid: number): Promise<CastEngagement> {
+  if (useMockNeynar()) return { replyCount: mockScore(fid, 9, 40), castCount30d: mockScore(fid, 10, 90) };
   if (!process.env.NEYNAR_API_KEY) return { replyCount: 0, castCount30d: 0 };
 
   try {
@@ -68,6 +104,7 @@ export async function fetchWeeklyStats(fid: number, since: Date): Promise<{
   repliesReceived: number;
   repliesSent:     number;
 }> {
+  if (useMockNeynar()) return mockWeeklyStats(fid);
   if (!process.env.NEYNAR_API_KEY) return { recastsReceived: 0, likesReceived: 0, repliesReceived: 0, repliesSent: 0 };
 
   const sinceMs = since.getTime();
@@ -110,6 +147,7 @@ export async function fetchWeeklyStats(fid: number, since: Date): Promise<{
 
 // Count non-reply casts published by a FID since a given date
 export async function fetchCastCount(fid: number, since: Date): Promise<number> {
+  if (useMockNeynar()) return mockScore(fid, 11, 95);
   if (!process.env.NEYNAR_API_KEY) return 0;
   try {
     const res = await fetch(
@@ -149,6 +187,7 @@ export async function fetchBonusMetric(fid: number, metricType: string, since: D
 
 // Count casts that have at least one URL/frame embed (proxy for mini-app posts)
 async function fetchEmbedCastCount(fid: number, since: Date): Promise<number> {
+  if (useMockNeynar()) return mockScore(fid, 12, 35);
   if (!process.env.NEYNAR_API_KEY) return 0;
   try {
     const res = await fetch(

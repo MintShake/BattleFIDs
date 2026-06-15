@@ -10,9 +10,25 @@ export const POINTS: Record<PointsAction, number> = {
   overall_win:      50,  // top-half finish in your group
   rare_card_bonus:  25,  // using a FID 1–100 card in your team
   share:            5,
-  invite_sent:      100, // awarded when invited person joins
+  invite_sent:      100, // awarded when invited player opens their first pack
+  daily_spin:       1,   // variable award uses multiplier = points won
   slot_beat:        1,   // × number of people beaten (applied in scoring run)
 };
+
+async function ensureReferralRow(player: Record<string, unknown> | null, ownerFid: number | null, deviceId: string | null) {
+  const code = typeof player?.referral_code === 'string' ? player.referral_code : null;
+  if (!code) return;
+
+  try {
+    await sql`
+      INSERT INTO referrals (code, owner_fid, owner_device_id)
+      VALUES (${code}, ${ownerFid}, ${deviceId})
+      ON CONFLICT (code) DO NOTHING
+    `;
+  } catch {
+    // Some local/dev databases may not have run the league migration yet.
+  }
+}
 
 // Upsert player row, creating referral code on first visit.
 export async function upsertPlayer(ownerFid: number | null, deviceId: string | null) {
@@ -25,6 +41,7 @@ export async function upsertPlayer(ownerFid: number | null, deviceId: string | n
       ON CONFLICT (owner_fid) DO UPDATE SET updated_at = NOW()
       RETURNING *
     `;
+    await ensureReferralRow(rows[0], ownerFid, deviceId);
     return rows[0];
   }
 
@@ -35,6 +52,7 @@ export async function upsertPlayer(ownerFid: number | null, deviceId: string | n
       ON CONFLICT (owner_device_id) DO UPDATE SET updated_at = NOW()
       RETURNING *
     `;
+    await ensureReferralRow(rows[0], ownerFid, deviceId);
     return rows[0];
   }
 

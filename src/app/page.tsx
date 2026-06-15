@@ -14,6 +14,7 @@ import Leaderboard from '@/components/Leaderboard';
 import EditionSelect from '@/components/EditionSelect';
 import ProfileTab from '@/components/ProfileTab';
 import HomePage from '@/components/HomePage';
+import DailySpinModal from '@/components/DailySpinModal';
 import { EditionBackdrop } from '@/components/EditionBackdrop';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { useMiniApp } from '@/hooks/useMiniApp';
@@ -21,6 +22,7 @@ import { EditionProvider, readStoredEditionId, writeEditionId, STATIC_EDITIONS }
 import { useEdition } from '@/editions/context';
 import { EditionHeaderOverlay } from '@/editions/EditionHeaderOverlay';
 import { dbToEdition, type DbEditionRow } from '@/lib/editionDb';
+import { canUnlockEdition } from '@/lib/editionUnlocks';
 import type { Edition } from '@/editions/types';
 
 type Tab = 'home' | 'browse' | 'pack' | 'collection' | 'league' | 'profile';
@@ -42,7 +44,7 @@ function AppInner({
   onPlayerLoaded,
 }: {
   onChangeEdition: () => void;
-  onPlayerLoaded: (isPro: boolean) => void;
+  onPlayerLoaded: (isPro: boolean, protocolPoints: number) => void;
 }) {
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, checked, added } = useMiniApp();
@@ -85,18 +87,19 @@ function AppInner({
       .then(r => r.json())
       .then((data: { tier?: string; lockedToPro?: boolean; protocolPoints?: number; totalWins?: number; totalLosses?: number; referralCode?: string }) => {
         const pro = Boolean(data.lockedToPro) || data.tier === 'pro';
+        const points = data.protocolPoints ?? 0;
         setIsPro(pro);
         setPlayerData({
-          protocolPoints: data.protocolPoints ?? 0,
+          protocolPoints: points,
           tier:           data.tier ?? 'beginner',
           lockedToPro:    Boolean(data.lockedToPro),
           totalWins:      data.totalWins ?? 0,
           totalLosses:    data.totalLosses ?? 0,
           referralCode:   data.referralCode ?? '',
         });
-        onPlayerLoaded(pro);
+        onPlayerLoaded(pro, points);
       })
-      .catch(() => onPlayerLoaded(false));
+      .catch(() => onPlayerLoaded(false, 0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miniAppUser?.fid]);
 
@@ -139,6 +142,11 @@ function AppInner({
       setBrowsePage(1);
     }).catch(() => {});
     setTab('collection');
+  }
+
+  function handlePointsUpdated(protocolPoints: number) {
+    setPlayerData(prev => prev ? { ...prev, protocolPoints } : prev);
+    onPlayerLoaded(isPro, protocolPoints);
   }
 
   const filteredBrowse = useMemo(() => {
@@ -288,7 +296,12 @@ function AppInner({
           )}
         </div>
 
-        <MiniAppActions isInMiniApp={isInMiniApp} added={added} />
+        <MiniAppActions
+          isInMiniApp={isInMiniApp}
+          added={added}
+          ownerFid={miniAppUser?.fid}
+          onPointsUpdated={handlePointsUpdated}
+        />
 
         <div style={{ flex: 1, padding: '8px 16px 0' }}>
           {tab === 'home' && (
@@ -384,7 +397,7 @@ function AppInner({
               </div>
               {leagueView === 'progress'     && <WeekProgress ownerFid={miniAppUser?.fid} onGoToTeam={() => setLeagueView('team')} />}
               {leagueView === 'team'         && <TeamBuilder owned={owned} ownerFid={miniAppUser?.fid} />}
-              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} />}
+              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} editionId={edition.id} editionName={edition.name} />}
             </div>
           )}
 
@@ -401,6 +414,8 @@ function AppInner({
       {modalCard && (
         <CardModal card={modalCard.card} serialNumber={modalCard.serialNumber} ownerHandle={modalCard.ownerHandle} onClose={() => setModalCard(null)} />
       )}
+
+      <DailySpinModal ownerFid={miniAppUser?.fid} onPointsUpdated={handlePointsUpdated} />
 
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 64 + safeAreaInsets.bottom, background: 'rgba(9,4,15,0.94)', backdropFilter: 'blur(16px)', borderTop: '1px solid rgba(138,99,210,0.18)', zIndex: 100 }}>
         <div className="page-inner" style={{ height: '100%', paddingBottom: safeAreaInsets.bottom, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-around' }}>
@@ -425,6 +440,7 @@ export default function Home() {
   const [editionId, setEditionId]   = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [isPro, setIsPro]           = useState(false);
+  const [protocolPoints, setProtocolPoints] = useState(0);
 
   useEffect(() => {
     fetch('/api/editions')
@@ -444,11 +460,13 @@ export default function Home() {
       });
   }, []);
 
-  function handlePlayerLoaded(pro: boolean) {
+  function handlePlayerLoaded(pro: boolean, points: number) {
     setIsPro(pro);
+    setProtocolPoints(points);
   }
 
   function selectEdition(id: string) {
+    if (!canUnlockEdition(id, protocolPoints)) return;
     writeEditionId(id);
     setEditionId(id);
     setShowPicker(false);
@@ -458,9 +476,12 @@ export default function Home() {
   if (editionId === null) return null;
 
   const allEditions = dbEditions.length > 0 ? dbEditions : Object.values(STATIC_EDITIONS);
-  const resolvedEdition = allEditions.find(e => e.id === editionId)
+  const requestedEdition = allEditions.find(e => e.id === editionId)
     ?? STATIC_EDITIONS[editionId]
     ?? Object.values(STATIC_EDITIONS)[0];
+  const resolvedEdition = (!canUnlockEdition(requestedEdition.id, protocolPoints))
+    ? (allEditions.find(e => e.id === 'base') ?? STATIC_EDITIONS.base)
+    : requestedEdition;
 
   if (showPicker) {
     return (
@@ -468,7 +489,8 @@ export default function Home() {
         editions={allEditions}
         onSelect={selectEdition}
         onClose={() => setShowPicker(false)}
-        currentId={editionId}
+        currentId={resolvedEdition.id}
+        protocolPoints={protocolPoints}
       />
     );
   }

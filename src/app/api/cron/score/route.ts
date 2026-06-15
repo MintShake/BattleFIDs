@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount, fetchBonusMetric } from '@/lib/neynar';
-import { prevWeekId, weekBounds } from '@/lib/weeklyScoring';
+import { prevWeekId } from '@/lib/weeklyScoring';
+import { boundsForGameId, fastRoundsEnabled } from '@/lib/gameSchedule';
 import { awardPoints } from '@/lib/points';
 
 // GET /api/cron/score?weekId=2026-W23
@@ -13,9 +14,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  // Default to the week that just ended (one week ago from now)
-  const weekId = req.nextUrl.searchParams.get('weekId') ?? prevWeekId();
-  const { start } = weekBounds(weekId);
+  const requestedWeekId = req.nextUrl.searchParams.get('weekId');
+  let weekId = requestedWeekId ?? prevWeekId();
+
+  if (!requestedWeekId && fastRoundsEnabled()) {
+    const due = await sql`
+      SELECT id FROM weeks
+      WHERE id LIKE 'R-%'
+        AND lock_at IS NOT NULL
+        AND ends_at <= NOW()
+        AND computed_at IS NULL
+      ORDER BY ends_at ASC
+      LIMIT 1
+    `;
+    if (!due[0]?.id) return NextResponse.json({ ok: true, noDueRounds: true });
+    weekId = due[0].id as string;
+  }
+
+  const { start } = boundsForGameId(weekId);
 
   // Idempotency guard — don't double-score
   const weekRows = await sql`SELECT computed_at FROM weeks WHERE id = ${weekId}`;
@@ -149,7 +165,7 @@ export async function GET(req: NextRequest) {
       `;
 
       // Entry bonus (week_played flat)
-      await awardPoints(ownerFid, deviceId, 'week_played');
+      await awardPoints(ownerFid, deviceId, 'week_played', 1, { weekId });
 
       // Points per person beaten per slot
       if (points > 0) {

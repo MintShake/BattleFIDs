@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { OwnedCard } from '@/types/card';
 import { SlotType, SLOT_TYPES, SLOT_LABELS, SLOT_DESC, SLOT_EMOJI, PlayerTier, TIER_LABELS, TIER_DESC, type EditionBonusSlotDef } from '@/types/league';
+import { useEdition } from '@/editions/context';
+import { canUnlockEdition, pointsRequiredForEdition } from '@/lib/editionUnlocks';
 
 const SLOT_COLORS: Record<SlotType, string> = {
   casts:      '#8a63d2',
@@ -53,6 +55,7 @@ function computeNextWeekId(): string {
 }
 
 export default function TeamBuilder({ owned, ownerFid }: Props) {
+  const currentEdition = useEdition();
   // Builder state (targets either current or next week)
   const [slots, setSlots]           = useState<TeamSlots>({ casts: null, replies: null, followers: null, score_rise: null, likes: null });
   const [picking, setPicking]       = useState<SlotType | null>(null);
@@ -104,13 +107,18 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
       .then(r => r.json())
       .then(data => {
         const picks = data.picks ?? [];
-        if (picks.length > 0) {
-          const p = picks[0];
+        const p = picks.find((pick: { editionId: string }) => pick.editionId === currentEdition.id);
+        if (p) {
           setActiveEdition(p.editionId);
           setActiveEditionSlotKey(p.slotKey);
           const card = owned.find(o => o.card.fid === p.cardFid) ?? null;
           setEditionCard(card);
           if (card) setEditionSaved(true);
+        } else if (currentEdition.id !== 'base') {
+          setActiveEdition(currentEdition.id);
+          setActiveEditionSlotKey(null);
+          setEditionCard(null);
+          setEditionSaved(false);
         }
       })
       .catch(() => {});
@@ -177,7 +185,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         }
       })
       .catch(() => {});
-  }, [ownerFid, owned]);
+  }, [ownerFid, owned, currentEdition.id]);
 
   const full = SLOT_TYPES.every(s => slots[s] !== null);
 
@@ -256,6 +264,10 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
     ? (activeEditionGroup.slots.find(s => s.slotKey === activeEditionSlotKey)
         ?? (activeEditionGroup.slots.length === 1 ? activeEditionGroup.slots[0] : null))
     : null;
+  const editionRequiredPoints = pointsRequiredForEdition(currentEdition.id);
+  const editionUnlocked = canUnlockEdition(currentEdition.id, player?.protocolPoints ?? 0);
+  const mainTeamFids = new Set(SLOT_TYPES.map(s => slots[s]?.card.fid).filter((fid): fid is number => Boolean(fid)));
+  const eligibleEditionCards = owned.filter(o => !mainTeamFids.has(o.card.fid));
 
   async function clearEditionPick() {
     if (activeEdition && activeBonusSlot && ownerFid) {
@@ -578,60 +590,22 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
         </div>
       )}
 
-      {/* ── Edition bonus slots (current week only) ── */}
-      {!buildingForNextWeek && editionSlots.length > 0 && (
+      {/* ── Active edition bonus slot (current week only) ── */}
+      {!buildingForNextWeek && currentEdition.id !== 'base' && (
         <div style={{ marginTop: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.12)' }} />
-            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase' }}>★ Edition</div>
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.3em', color: '#C9A84C', textTransform: 'uppercase' }}>★ {currentEdition.name}</div>
             <div style={{ flex: 1, height: 1, background: 'rgba(201,168,76,0.12)' }} />
           </div>
 
-          <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-            <button
-              onClick={clearEditionPick}
-              style={{
-                padding: '6px 14px', borderRadius: 99,
-                border: !activeEdition ? '1px solid rgba(180,160,210,0.5)' : '1px solid rgba(180,160,210,0.15)',
-                background: !activeEdition ? 'rgba(180,160,210,0.1)' : 'transparent',
-                color: !activeEdition ? '#c0b0d0' : '#4a3a60',
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-              }}
-            >
-              Standard
-            </button>
+          {!editionUnlocked && (
+            <div style={{ padding: '10px 14px', borderRadius: 12, background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', color: '#C9A84C', fontSize: 9, lineHeight: 1.6, marginBottom: 10 }}>
+              Edition slots unlock at {editionRequiredPoints.toLocaleString()} Protocol Points. You have {(player?.protocolPoints ?? 0).toLocaleString()}.
+            </div>
+          )}
 
-            {editionSlots.map(eg => {
-              const active = activeEdition === eg.editionId;
-              const label  = eg.editionId === '2026-rome' ? '2026 Edition'
-                           : eg.editionId === 'builders'  ? 'Builders'
-                           : eg.editionId;
-              return (
-                <button
-                  key={eg.editionId}
-                  onClick={() => {
-                    setActiveEdition(eg.editionId);
-                    setActiveEditionSlotKey(eg.slots.length === 1 ? eg.slots[0].slotKey : null);
-                    setEditionCard(null);
-                    setEditionSaved(false);
-                    setEditionPicking(false);
-                    setEditionError('');
-                  }}
-                  style={{
-                    padding: '6px 14px', borderRadius: 99,
-                    border: active ? '1px solid #C9A84C' : '1px solid rgba(201,168,76,0.2)',
-                    background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
-                    color: active ? '#C9A84C' : '#7a6a90',
-                    fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {activeEdition && activeEditionGroup && activeEditionGroup.slots.length > 1 && (
+          {editionUnlocked && activeEdition && activeEditionGroup && activeEditionGroup.slots.length > 1 && (
             <div style={{ display: 'flex', gap: 5, marginBottom: 10, flexWrap: 'wrap' }}>
               {activeEditionGroup.slots.map(slot => (
                 <button
@@ -651,7 +625,7 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
             </div>
           )}
 
-          {activeBonusSlot && (
+          {editionUnlocked && activeBonusSlot && (
             <div>
               <div
                 onClick={() => setEditionPicking(p => !p)}
@@ -687,7 +661,12 @@ export default function TeamBuilder({ owned, ownerFid }: Props) {
               {editionPicking && (
                 <div style={{ marginTop: 6, paddingLeft: 8 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
-                    {owned.map(o => (
+                    {eligibleEditionCards.length === 0 && (
+                      <div style={{ fontSize: 9, color: '#7a6a90', padding: '8px 10px' }}>
+                        All owned cards are already in your main team. Open more packs to add an edition slot.
+                      </div>
+                    )}
+                    {eligibleEditionCards.map(o => (
                       <div
                         key={o.card.fid}
                         onClick={() => saveEditionPick(o)}

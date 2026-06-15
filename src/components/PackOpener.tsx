@@ -325,6 +325,18 @@ export default function PackOpener({
           Open {packDef.name}
         </button>
 
+        <div style={{
+          marginTop: 10, padding: '9px 12px', borderRadius: 10,
+          background: 'rgba(34,197,94,0.06)',
+          border: '1px solid rgba(34,197,94,0.2)',
+          color: '#22c55e',
+          fontSize: 8,
+          lineHeight: 1.55,
+          textAlign: 'center',
+        }}>
+          Simulation only: no wallet opens and no payment is taken. Opening a pack awards Protocol Points for this test flow.
+        </div>
+
         <p style={{
           fontSize: 8, color: '#4a3a5a', textAlign: 'center',
           marginTop: 12, lineHeight: 1.65, margin: '12px 0 0',
@@ -341,22 +353,91 @@ export default function PackOpener({
 
   if (phase === 'opening') {
     return (
-      <div style={{ textAlign: 'center', paddingTop: 80 }}>
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        display: 'grid',
+        placeItems: 'center',
+        padding: 18,
+        background: 'rgba(7, 4, 14, 0.72)',
+        backdropFilter: 'blur(10px)',
+      }}>
         <div style={{
-          width: 64, height: 64, borderRadius: '50%', margin: '0 auto 20px',
-          background: packDef.borderGradient,
-          animation: 'spin 1s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{
-          color: packDef.accentColor, fontSize: 11,
-          letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700,
+          width: 'min(92vw, 340px)',
+          borderRadius: 8,
+          padding: '28px 22px 24px',
+          textAlign: 'center',
+          background: 'linear-gradient(180deg, rgba(20,15,31,0.98), rgba(12,8,20,0.98))',
+          border: `1px solid ${packDef.accentColor}`,
+          boxShadow: `0 0 34px ${packDef.glow}`,
         }}>
-          Opening {packDef.name} Pack…
-        </p>
-        <p style={{ color: '#6b5a80', fontSize: 9, marginTop: 6, letterSpacing: '0.15em' }}>
-          {packDef.bands.length > 1 ? packDef.bands.map(b => `${b.count}× ${b.pctTo <= 25 ? `top ${b.pctTo}%` : b.pctFrom >= 50 ? 'random' : `${b.pctFrom}–${b.pctTo}%`}`).join(' · ') : '10 random · full registry'}
-        </p>
+          <div style={{
+            position: 'relative',
+            width: 112,
+            height: 150,
+            margin: '0 auto 22px',
+            transformStyle: 'preserve-3d',
+            animation: 'packShake 1.15s ease-in-out infinite',
+          }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 8,
+              background: packDef.borderGradient,
+              opacity: 0.95,
+              boxShadow: `0 0 24px ${packDef.glow}`,
+            }} />
+            <div style={{
+              position: 'absolute',
+              inset: 5,
+              borderRadius: 6,
+              background: '#0b0713',
+              border: '1px solid rgba(255,255,255,0.16)',
+              display: 'grid',
+              placeItems: 'center',
+              color: packDef.accentColor,
+              fontSize: 28,
+              fontWeight: 900,
+              letterSpacing: 0,
+            }}>
+              {packDef.id === 'scroll' ? 'S' : packDef.id === 'tablet' ? 'T' : 'C'}
+            </div>
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              width: 138,
+              height: 138,
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              border: `1px solid ${packDef.accentColor}`,
+              opacity: 0.42,
+              animation: 'packPulse 1.15s ease-out infinite',
+            }} />
+          </div>
+          <style>{`
+            @keyframes packShake {
+              0%, 100% { transform: rotate(-2deg) translateY(0); }
+              30% { transform: rotate(3deg) translateY(-5px); }
+              62% { transform: rotate(-1deg) translateY(3px); }
+            }
+            @keyframes packPulse {
+              0% { transform: translate(-50%, -50%) scale(0.76); opacity: 0.52; }
+              100% { transform: translate(-50%, -50%) scale(1.16); opacity: 0; }
+            }
+          `}</style>
+          <p style={{
+            color: packDef.accentColor, fontSize: 11,
+            letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 800,
+            margin: 0,
+          }}>
+            Opening {packDef.name} Pack
+          </p>
+          <p style={{ color: '#8f7ba8', fontSize: 9, margin: '8px 0 0', letterSpacing: '0.08em', lineHeight: 1.6 }}>
+            Drawing 10 cards · {packDef.bands.length > 1 ? packDef.bands.map(b => `${b.count}x ${b.pctTo <= 25 ? `top ${b.pctTo}%` : b.pctFrom >= 50 ? 'random' : `${b.pctFrom}-${b.pctTo}%`}`).join(' · ') : 'full registry'}
+          </p>
+        </div>
       </div>
     );
   }

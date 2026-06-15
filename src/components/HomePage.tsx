@@ -412,7 +412,7 @@ export default function HomePage({
                 ['+50', 'Top-half finish (overall win)'],
                 ['+25', 'Rare card used (FID ≤ 100)'],
                 ['+10', 'Pack opened'],
-                ['+100', 'Referral join'],
+                ['+100', 'Referred player opens first pack'],
               ].map(([pts, label]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 9, color: '#7a6a90' }}>{label}</span>

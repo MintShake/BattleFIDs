@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { awardPoints } from '@/lib/points';
+import { upsertPlayer } from '@/lib/points';
 
 // POST /api/referral
 // Body: { code, ownerFid?, ownerDeviceId? }
@@ -14,14 +14,18 @@ export async function POST(req: NextRequest) {
 
     const fid    = ownerFid    ? parseInt(ownerFid)    : null;
     const device = ownerDeviceId ?? null;
+    const normalizedCode = code.toUpperCase();
+
+    await upsertPlayer(fid, device);
 
     // Validate code exists
-    const refs = await sql`SELECT * FROM referrals WHERE code = ${code.toUpperCase()}`;
+    const refs = await sql`SELECT * FROM referrals WHERE code = ${normalizedCode}`;
     if (refs.length === 0) return NextResponse.json({ error: 'invalid code' }, { status: 404 });
     const ref = refs[0];
 
     // Don't let someone use their own code
     if (fid && ref.owner_fid === fid) return NextResponse.json({ error: 'cannot use own code' }, { status: 400 });
+    if (device && ref.owner_device_id === device) return NextResponse.json({ error: 'cannot use own code' }, { status: 400 });
 
     // Check joiner hasn't already used a code
     const joinerRows = fid
@@ -32,18 +36,15 @@ export async function POST(req: NextRequest) {
 
     // Record on joiner
     if (fid) {
-      await sql`UPDATE players SET referred_by = ${code.toUpperCase()} WHERE owner_fid = ${fid}`;
+      await sql`UPDATE players SET referred_by = ${normalizedCode} WHERE owner_fid = ${fid}`;
     } else {
-      await sql`UPDATE players SET referred_by = ${code.toUpperCase()} WHERE owner_device_id = ${device}`;
+      await sql`UPDATE players SET referred_by = ${normalizedCode} WHERE owner_device_id = ${device}`;
     }
 
     // Increment referral use count
-    await sql`UPDATE referrals SET uses = uses + 1 WHERE code = ${code.toUpperCase()}`;
+    await sql`UPDATE referrals SET uses = uses + 1 WHERE code = ${normalizedCode}`;
 
-    // Award points to the referrer
-    await awardPoints(ref.owner_fid, ref.owner_device_id, 'invite_sent', 1, { via: code });
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, bonusPending: 'first_pack_open' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });

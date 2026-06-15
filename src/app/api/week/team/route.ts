@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect } from '@/lib/neynar';
-import { currentWeekId, nextWeekId, weekBounds } from '@/lib/weeklyScoring';
+import { currentWeekId, nextWeekId } from '@/lib/weeklyScoring';
+import { boundsForGameId, fastRoundsEnabled, gameWeekIdForDisplay, gameWeekIdForNewTeam, maybeStartRound } from '@/lib/gameSchedule';
 import { awardPoints, upsertPlayer } from '@/lib/points';
 import { PlayerTier } from '@/types/league';
 
@@ -10,7 +11,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const ownerFid      = searchParams.get('ownerFid');
   const ownerDeviceId = searchParams.get('ownerDeviceId');
-  const weekId        = searchParams.get('weekId') ?? currentWeekId();
+  const fid = ownerFid ? parseInt(ownerFid) : null;
+  const device = ownerDeviceId ?? null;
+  const weekId = searchParams.get('weekId') ?? await gameWeekIdForDisplay(fid, device);
 
   try {
     const rows = ownerFid
@@ -40,18 +43,23 @@ export async function GET(req: NextRequest) {
     const team = rows[0] ?? null;
 
     // Also return current player info
-    const fid = ownerFid ? parseInt(ownerFid) : null;
-    const device = ownerDeviceId ?? null;
     const playerRows = fid
       ? await sql`SELECT protocol_points, tier, locked_to_pro, referral_code FROM players WHERE owner_fid = ${fid}`
       : await sql`SELECT protocol_points, tier, locked_to_pro, referral_code FROM players WHERE owner_device_id = ${device}`;
     const player = playerRows[0] ?? null;
 
-    const { start, end } = weekBounds(weekId);
-    // Scoring fires at Monday 00:00 UTC (Sunday midnight UK time in winter)
-    const endsAt = new Date(start.getTime() + 7 * 86400000).toISOString();
+    const { end } = boundsForGameId(weekId);
+    const weekRows = await sql`SELECT lock_at FROM weeks WHERE id = ${weekId}`;
+    const lockAt = weekRows[0]?.lock_at ?? null;
 
-    return NextResponse.json({ team, weekId, endsAt, player });
+    return NextResponse.json({
+      team,
+      weekId,
+      endsAt: end.toISOString(),
+      lockAt,
+      scheduleMode: fastRoundsEnabled() ? 'fast' : 'weekly',
+      player,
+    });
   } catch {
     return NextResponse.json({ team: null, weekId, endsAt: null, player: null });
   }
@@ -88,10 +96,11 @@ export async function POST(req: NextRequest) {
     const player = playerRows[0];
     const effectiveTier: PlayerTier = player?.locked_to_pro ? 'pro' : (chosenTier as PlayerTier);
 
-    // Allow submitting for current or next week only
+    // Weekly mode accepts current/next week. Fast local mode always uses the open waiting round.
     const validWeeks = [currentWeekId(), nextWeekId()];
-    const weekId = (targetWeekId && validWeeks.includes(targetWeekId)) ? targetWeekId : currentWeekId();
-    const { start, end } = weekBounds(weekId);
+    const requestedWeekId = (targetWeekId && validWeeks.includes(targetWeekId)) ? targetWeekId : currentWeekId();
+    const weekId = await gameWeekIdForNewTeam(requestedWeekId);
+    const { start, end } = boundsForGameId(weekId);
 
     // Check if team already exists for this week (to avoid double-awarding team_lock)
     const existingTeam = fid
@@ -114,6 +123,24 @@ export async function POST(req: NextRequest) {
     const missing = slotFids.filter(f => !ownedFids.has(f));
     if (missing.length > 0) return NextResponse.json({ error: 'you do not own all selected cards' }, { status: 403 });
 
+    // A card can only be used once across main team + edition bonus slots.
+    const bonusRows = fid
+      ? await sql`
+          SELECT card_fid FROM weekly_edition_picks
+          WHERE week_id = ${weekId} AND owner_fid = ${fid}
+        `
+      : await sql`
+          SELECT card_fid FROM weekly_edition_picks
+          WHERE week_id = ${weekId} AND owner_device_id = ${device}
+        `;
+    const usedElsewhere = new Set<number>();
+    for (const row of bonusRows) if (row.card_fid) usedElsewhere.add(Number(row.card_fid));
+
+    const reused = slotFids.filter(f => usedElsewhere.has(f));
+    if (reused.length > 0) {
+      return NextResponse.json({ error: `card already used in another edition: FID ${reused[0]}` }, { status: 409 });
+    }
+
     // Fetch Neynar baselines for followers slot and score_rise slot
     const baselineFids = [...new Set([followersFid, scoreRiseFid])] as number[];
     const neynarMap = await fetchNeynarUsersDirect(baselineFids);
@@ -127,11 +154,6 @@ export async function POST(req: NextRequest) {
     const avgTeamScore = cardRows.length > 0
       ? cardRows.reduce((s, r) => s + Number(r.battle_score), 0) / cardRows.length
       : 0;
-
-    const upsertValues = {
-      weekId, effectiveTier, castsFid, repliesFid, followersFid, scoreRiseFid, likesFid,
-      followersBaseline, scoreBaseline, avgTeamScore,
-    };
 
     if (fid) {
       await sql`
@@ -194,7 +216,17 @@ export async function POST(req: NextRequest) {
       await awardPoints(fid, device, 'team_lock');
     }
 
-    return NextResponse.json({ ok: true, weekId, chosenTier: effectiveTier });
+    await maybeStartRound(weekId);
+    const weekRows = await sql`SELECT lock_at, ends_at FROM weeks WHERE id = ${weekId}`;
+
+    return NextResponse.json({
+      ok: true,
+      weekId,
+      chosenTier: effectiveTier,
+      lockAt: weekRows[0]?.lock_at ?? null,
+      endsAt: weekRows[0]?.ends_at ?? end.toISOString(),
+      scheduleMode: fastRoundsEnabled() ? 'fast' : 'weekly',
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: msg }, { status: 500 });

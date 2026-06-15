@@ -7,6 +7,7 @@ import { EDITION_SEEDS } from '@/lib/editionDb';
 export async function GET() {
   // ── Drop data tables (clean reset) ────────────────────────────────────────
   await sql`DROP TABLE IF EXISTS weekly_card_scores CASCADE`;
+  await sql`DROP TABLE IF EXISTS daily_spins CASCADE`;
   await sql`DROP TABLE IF EXISTS weekly_teams CASCADE`;
   await sql`DROP TABLE IF EXISTS xplora_balances CASCADE`;
   await sql`DROP TABLE IF EXISTS weeks CASCADE`;
@@ -94,6 +95,7 @@ export async function GET() {
     CREATE TABLE weekly_teams (
       id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       week_id          TEXT NOT NULL REFERENCES weeks(id),
+      edition_id       TEXT NOT NULL DEFAULT 'base',
       owner_fid        INTEGER,
       owner_device_id  TEXT,
       captain_fid      INTEGER REFERENCES cards(fid),
@@ -133,6 +135,22 @@ export async function GET() {
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_wcs_week_fid ON weekly_card_scores(week_id, fid)`;
+
+  await sql`
+    CREATE TABLE daily_spins (
+      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_fid       INTEGER,
+      owner_device_id TEXT,
+      spin_day        TEXT NOT NULL,
+      points_awarded  INTEGER NOT NULL DEFAULT 0,
+      outcome_label   TEXT NOT NULL,
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(owner_fid, spin_day),
+      UNIQUE(owner_device_id, spin_day)
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_daily_spins_fid_day ON daily_spins(owner_fid, spin_day)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_daily_spins_device_day ON daily_spins(owner_device_id, spin_day)`;
 
   // ── Editions table ─────────────────────────────────────────────────────────
   await sql`

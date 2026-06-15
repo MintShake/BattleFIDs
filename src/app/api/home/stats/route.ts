@@ -4,6 +4,7 @@ import { currentWeekId } from '@/lib/weeklyScoring';
 import { fetchNeynarUsersDirect } from '@/lib/neynar';
 
 export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const cwId = currentWeekId();
