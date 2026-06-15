@@ -46,6 +46,7 @@ function AppInner({
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, checked, added } = useMiniApp();
   const [isPro, setIsPro]           = useState(false);
+  const [isAdmin, setIsAdmin]       = useState(false);
   const [playerData, setPlayerData] = useState<{ protocolPoints: number; tier: string; lockedToPro: boolean; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
   const [tab, setTab]               = useState<Tab>('browse');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
@@ -59,6 +60,21 @@ function AppInner({
   const [browseSearch, setBrowseSearch]   = useState('');
   const [browseSort, setBrowseSort]       = useState<BrowseSort>('recent');
   const [modalCard, setModalCard]   = useState<{ card: BattleFIDCard; serialNumber?: number; ownerHandle?: string } | null>(null);
+
+  // Check admin status once FID is known
+  useEffect(() => {
+    const fid = miniAppUser?.fid;
+    if (!fid) return;
+    fetch(`/api/admin/check?fid=${fid}`)
+      .then(r => r.json())
+      .then((d: { authorized: boolean }) => {
+        if (d.authorized) {
+          setIsAdmin(true);
+          try { sessionStorage.setItem('miniapp_fid', String(fid)); } catch { /* noop */ }
+        }
+      })
+      .catch(() => {});
+  }, [miniAppUser?.fid]);
 
   // Fetch player Pro status once identity is known — surface to parent for edition gate
   useEffect(() => {
@@ -200,6 +216,21 @@ function AppInner({
       >
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '16px 16px 4px', position: 'relative' }}>
+          {isAdmin && (
+            <a
+              href="/admin/reports"
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase',
+                padding: '4px 10px', borderRadius: 99, textDecoration: 'none',
+                background: 'rgba(230,57,70,0.1)',
+                border: '1px solid rgba(230,57,70,0.3)',
+                color: '#e86a6a',
+              }}
+            >
+              ADMIN
+            </a>
+          )}
           <div style={{
             position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
             width: 180, height: 28, borderRadius: '0 0 90px 90px',
