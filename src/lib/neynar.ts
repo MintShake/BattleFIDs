@@ -29,6 +29,7 @@ function mockUser(fid: number): NeynarUser {
 
 function mockWeeklyStats(fid: number) {
   return {
+    castsPublished:   mockScore(fid, 11, 95),
     recastsReceived: mockScore(fid, 5, 80),
     likesReceived:   mockScore(fid, 6, 240),
     repliesReceived: mockScore(fid, 7, 60),
@@ -99,13 +100,14 @@ export async function fetchCastEngagements(fids: number[]): Promise<Map<number, 
 
 // Server-side: fetch this week's cast activity for scoring
 export async function fetchWeeklyStats(fid: number, since: Date): Promise<{
+  castsPublished:   number;
   recastsReceived: number;
   likesReceived:   number;
   repliesReceived: number;
   repliesSent:     number;
 }> {
   if (useMockNeynar()) return mockWeeklyStats(fid);
-  if (!process.env.NEYNAR_API_KEY) return { recastsReceived: 0, likesReceived: 0, repliesReceived: 0, repliesSent: 0 };
+  if (!process.env.NEYNAR_API_KEY) return { castsPublished: 0, recastsReceived: 0, likesReceived: 0, repliesReceived: 0, repliesSent: 0 };
 
   const sinceMs = since.getTime();
 
@@ -114,12 +116,13 @@ export async function fetchWeeklyStats(fid: number, since: Date): Promise<{
       `${NEYNAR_BASE}/farcaster/feed/user/casts?fid=${fid}&limit=150&include_replies=false`,
       { headers: apiHeaders() },
     );
-    let recastsReceived = 0, likesReceived = 0, repliesReceived = 0;
+    let castsPublished = 0, recastsReceived = 0, likesReceived = 0, repliesReceived = 0;
 
     if (castsRes.ok) {
       const data = await castsRes.json();
       for (const cast of (data.casts ?? [])) {
         if (new Date(cast.timestamp).getTime() < sinceMs) break;
+        castsPublished++;
         recastsReceived += cast.reactions?.recasts_count ?? 0;
         likesReceived   += cast.reactions?.likes_count   ?? 0;
         repliesReceived += cast.replies?.count           ?? 0;
@@ -139,9 +142,9 @@ export async function fetchWeeklyStats(fid: number, since: Date): Promise<{
       }
     }
 
-    return { recastsReceived, likesReceived, repliesReceived, repliesSent };
+    return { castsPublished, recastsReceived, likesReceived, repliesReceived, repliesSent };
   } catch {
-    return { recastsReceived: 0, likesReceived: 0, repliesReceived: 0, repliesSent: 0 };
+    return { castsPublished: 0, recastsReceived: 0, likesReceived: 0, repliesReceived: 0, repliesSent: 0 };
   }
 }
 

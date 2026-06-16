@@ -6,12 +6,24 @@ import { triggerDueFastRoundScoring } from '@/lib/autoScore';
 
 type PreviewCol = 'preview_casts' | 'preview_replies' | 'preview_followers' | 'preview_score_rise' | 'preview_likes';
 const PREVIEW_COLS: PreviewCol[] = ['preview_casts', 'preview_replies', 'preview_followers', 'preview_score_rise', 'preview_likes'];
+const LIVE_REFRESH_MIN_MS = 25_000;
 
 async function refreshLivePreviews(weekId: string) {
+  const [fresh] = await sql`
+    SELECT MAX(preview_updated_at) AS updated_at
+    FROM weekly_teams
+    WHERE week_id = ${weekId}
+      AND casts_fid IS NOT NULL
+  `;
+  if (fresh?.updated_at && Date.now() - new Date(fresh.updated_at as string).getTime() < LIVE_REFRESH_MIN_MS) {
+    return;
+  }
+
   const { start } = boundsForGameId(weekId);
   const teams = await sql`
     SELECT id, casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
-           followers_baseline, score_baseline
+           followers_baseline, score_baseline,
+           preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes
     FROM weekly_teams
     WHERE week_id = ${weekId}
       AND casts_fid IS NOT NULL
@@ -43,14 +55,31 @@ async function refreshLivePreviews(weekId: string) {
 
     const followersNow = neynarMap.get(followersFid)?.follower_count ?? 0;
     const scoreNow = neynarMap.get(scoreRiseFid)?.score ?? 0;
+    const nextPreview = {
+      casts:      castsCount,
+      replies:    repliesStats.repliesSent,
+      followers:  Math.max(0, followersNow - Number(t.followers_baseline ?? 0)),
+      score_rise: Math.max(0, Math.round((scoreNow - Number(t.score_baseline ?? 0)) * 1000)),
+      likes:      likesStats.likesReceived,
+    };
+    const prevPreview = {
+      casts:      Number(t.preview_casts ?? 0),
+      replies:    Number(t.preview_replies ?? 0),
+      followers:  Number(t.preview_followers ?? 0),
+      score_rise: Number(t.preview_score_rise ?? 0),
+      likes:      Number(t.preview_likes ?? 0),
+    };
+    const liveAllZero = Object.values(nextPreview).every(v => v === 0);
+    const storedHasSignal = Object.values(prevPreview).some(v => v > 0);
+    const preview = liveAllZero && storedHasSignal ? prevPreview : nextPreview;
 
     await sql`
       UPDATE weekly_teams
-      SET preview_casts      = ${castsCount},
-          preview_replies    = ${repliesStats.repliesSent},
-          preview_followers  = ${Math.max(0, followersNow - Number(t.followers_baseline ?? 0))},
-          preview_score_rise = ${Math.max(0, Math.round((scoreNow - Number(t.score_baseline ?? 0)) * 1000))},
-          preview_likes      = ${likesStats.likesReceived},
+      SET preview_casts      = ${preview.casts},
+          preview_replies    = ${preview.replies},
+          preview_followers  = ${preview.followers},
+          preview_score_rise = ${preview.score_rise},
+          preview_likes      = ${preview.likes},
           preview_updated_at = NOW()
       WHERE id = ${t.id}
     `;

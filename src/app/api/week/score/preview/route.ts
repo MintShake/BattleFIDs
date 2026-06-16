@@ -4,6 +4,8 @@ import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount } from '@/lib/
 import { boundsForGameId, fastRoundsEnabled, gameWeekIdForDisplay } from '@/lib/gameSchedule';
 import { triggerDueFastRoundScoring } from '@/lib/autoScore';
 
+const PREVIEW_REFRESH_MIN_MS = 25_000;
+
 // POST /api/week/score/preview
 // Normal mode:  { ownerFid?, ownerDeviceId? }
 //   → loads team from DB, persists snapshot, compares vs your group
@@ -98,6 +100,53 @@ export async function POST(req: NextRequest) {
 
     if (rows.length === 0) return NextResponse.json({ error: 'no team this week' }, { status: 404 });
     const team = rows[0];
+    const storedPreview = {
+      preview_casts:      Number(team.preview_casts ?? 0),
+      preview_replies:    Number(team.preview_replies ?? 0),
+      preview_followers:  Number(team.preview_followers ?? 0),
+      preview_score_rise: Number(team.preview_score_rise ?? 0),
+      preview_likes:      Number(team.preview_likes ?? 0),
+    };
+
+    if (team.preview_updated_at && Date.now() - new Date(team.preview_updated_at as string).getTime() < PREVIEW_REFRESH_MIN_MS) {
+      const peers = await sql`
+        SELECT
+          preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes
+        FROM weekly_teams
+        WHERE week_id = ${weekId}
+          AND preview_updated_at IS NOT NULL
+      `;
+      const [{ count: totalInGroup }] = await sql`
+        SELECT COUNT(*) AS count FROM weekly_teams
+        WHERE week_id = ${weekId}
+      `;
+
+      type SlotKey = 'casts' | 'replies' | 'followers' | 'score_rise' | 'likes';
+      const slotMap: Record<SlotKey, string> = {
+        casts:      'preview_casts',
+        replies:    'preview_replies',
+        followers:  'preview_followers',
+        score_rise: 'preview_score_rise',
+        likes:      'preview_likes',
+      };
+      const slots: Record<SlotKey, { value: number; beating: number; compared: number }> = {} as never;
+      for (const [slot, col] of Object.entries(slotMap) as [SlotKey, string][]) {
+        const myVal = storedPreview[col as keyof typeof storedPreview];
+        slots[slot] = {
+          value: myVal,
+          beating: peers.filter(p => Number(p[col] ?? -1) < myVal).length,
+          compared: peers.length,
+        };
+      }
+
+      return NextResponse.json({
+        slots,
+        myGroup: 'league',
+        totalInGroup: Number(totalInGroup),
+        updatedAt: team.preview_updated_at,
+        throttled: true,
+      });
+    }
 
     const castsFid      = Number(team.casts_fid);
     const repliesFid    = Number(team.replies_fid);
@@ -125,13 +174,6 @@ export async function POST(req: NextRequest) {
     };
 
     const liveAllZero = Object.values(myValues).every(v => Number(v) === 0);
-    const storedPreview = {
-      preview_casts:      Number(team.preview_casts ?? 0),
-      preview_replies:    Number(team.preview_replies ?? 0),
-      preview_followers:  Number(team.preview_followers ?? 0),
-      preview_score_rise: Number(team.preview_score_rise ?? 0),
-      preview_likes:      Number(team.preview_likes ?? 0),
-    };
     const storedHasSignal = Object.values(storedPreview).some(v => v > 0);
     if (fastRoundsEnabled() && liveAllZero && team.preview_updated_at && storedHasSignal) {
       myValues = storedPreview;

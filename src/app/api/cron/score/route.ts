@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount, fetchBonusMetric } from '@/lib/neynar';
+import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchBonusMetric } from '@/lib/neynar';
 import { prevWeekId } from '@/lib/weeklyScoring';
 import { boundsForGameId, fastRoundsEnabled } from '@/lib/gameSchedule';
 import { awardPoints } from '@/lib/points';
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
   for (const fid of allFids) {
     const s = await fetchWeeklyStats(fid, start);
     statsMap.set(fid, {
-      casts:   await fetchCastCount(fid, start),
+      casts:   s.castsPublished,
       replies: s.repliesSent,
       likes:   s.likesReceived,
     });
