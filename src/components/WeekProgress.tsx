@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { SLOT_TYPES, SLOT_LABELS, SLOT_EMOJI, type SlotType, type EditionBonusSlotDef } from '@/types/league';
 
@@ -70,6 +70,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
   const [totalInLeague, setTotalInLeague] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const updatingRef = useRef(false);
   const [updateErr, setUpdateErr] = useState('');
   const [tick, setTick] = useState(0);
 
@@ -165,7 +166,8 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
   }, [ownerFid]);
 
   const handleUpdate = useCallback(async () => {
-    if (updating) return;
+    if (updatingRef.current) return;
+    updatingRef.current = true;
     setUpdating(true);
     setUpdateErr('');
     try {
@@ -192,9 +194,10 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
     } catch (e) {
       setUpdateErr(e instanceof Error ? e.message : 'Update failed');
     } finally {
+      updatingRef.current = false;
       setUpdating(false);
     }
-  }, [updating, ownerFid]);
+  }, [ownerFid]);
 
   useEffect(() => {
     if (!team || team.rank != null) return;
@@ -210,7 +213,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [team, handleUpdate]);
+  }, [team?.weekId, team?.rank, handleUpdate]);
 
   // ── loading / no team ─────────────────────────────────────────────────────
 
