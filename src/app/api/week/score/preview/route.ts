@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { fetchNeynarUsersDirect, fetchWeeklyStats, fetchCastCount } from '@/lib/neynar';
 import { boundsForGameId, fastRoundsEnabled, gameWeekIdForDisplay } from '@/lib/gameSchedule';
+import { triggerDueFastRoundScoring } from '@/lib/autoScore';
 
 // POST /api/week/score/preview
 // Normal mode:  { ownerFid?, ownerDeviceId? }
@@ -15,7 +16,8 @@ export async function POST(req: NextRequest) {
     const fid    = ownerFid    ? parseInt(ownerFid)    : null;
     const device = ownerDeviceId ?? null;
 
-    const weekId = await gameWeekIdForDisplay(fid, device);
+    const scoredWeekId = await triggerDueFastRoundScoring(req.nextUrl.origin);
+    const weekId = scoredWeekId ?? await gameWeekIdForDisplay(fid, device);
     const { start: weekStart } = boundsForGameId(weekId);
 
     // ── Draft preview mode ──────────────────────────────────────────────────

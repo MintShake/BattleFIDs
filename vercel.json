@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/score?secret=26b07f1012eaa3008b1a257c7ff270fd",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * 1"
     }
   ],
   "headers": [

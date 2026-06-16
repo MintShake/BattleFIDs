@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { boundsForGameId, gameWeekIdForDisplay } from '@/lib/gameSchedule';
 import { fetchCastCount, fetchNeynarUsersDirect, fetchWeeklyStats } from '@/lib/neynar';
+import { triggerDueFastRoundScoring } from '@/lib/autoScore';
 
 type PreviewCol = 'preview_casts' | 'preview_replies' | 'preview_followers' | 'preview_score_rise' | 'preview_likes';
 const PREVIEW_COLS: PreviewCol[] = ['preview_casts', 'preview_replies', 'preview_followers', 'preview_score_rise', 'preview_likes'];
@@ -59,7 +60,9 @@ async function refreshLivePreviews(weekId: string) {
 // GET /api/week/leaderboard?weekId=2026-W23&limit=50
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const weekId = searchParams.get('weekId') ?? await gameWeekIdForDisplay();
+  const requestedWeekId = searchParams.get('weekId');
+  const scoredWeekId = requestedWeekId ? null : await triggerDueFastRoundScoring(req.nextUrl.origin);
+  const weekId = requestedWeekId ?? scoredWeekId ?? await gameWeekIdForDisplay();
   const live = searchParams.get('live') === '1';
   const limit  = Math.min(50, parseInt(searchParams.get('limit') ?? '20'));
   const page   = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
