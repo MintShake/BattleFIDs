@@ -158,6 +158,10 @@ export async function GET(req: NextRequest) {
       await awardPoints(ownerFid, deviceId, 'overall_win', 1, { weekId, rank });
     }
 
+    if (rank <= 25) {
+      await awardPoints(ownerFid, deviceId, 'top_25', 1, { weekId, rank });
+    }
+
     const hasRareCard = slotFids.some(f => f <= 100);
     if (hasRareCard) {
       await awardPoints(ownerFid, deviceId, 'rare_card_bonus', 1, { weekId });

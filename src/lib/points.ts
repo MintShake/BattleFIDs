@@ -5,9 +5,10 @@ import { nanoid } from 'nanoid';
 export const POINTS: Record<PointsAction, number> = {
   app_add:          50,
   pack_open:        10,
-  team_lock:        15,
+  team_lock:        25,
   week_played:      20,
-  overall_win:      50,  // top-half finish in your group
+  overall_win:      50,  // top-half finish in the league
+  top_25:           75,  // top 25 finish on the leaderboard
   rare_card_bonus:  25,  // using a FID 1–100 card in your team
   share:            5,
   invite_sent:      100, // awarded when invited player opens their first pack

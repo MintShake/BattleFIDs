@@ -32,6 +32,7 @@ export type PointsAction =
   | 'team_lock'
   | 'week_played'
   | 'overall_win'     // top-half finish in the league
+  | 'top_25'          // top 25 finish on the leaderboard
   | 'rare_card_bonus' // team contains a FID ≤100 card
   | 'share'
   | 'invite_sent'

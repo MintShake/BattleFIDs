@@ -18,11 +18,23 @@ const cards = [
 ];
 
 const game = [
-  'Open packs to collect 10 Farcaster identity cards at a time. This test flow simulates pack prices; no wallet opens and no payment is taken.',
-  'Build a 5-slot team: Casts, Replies, Followers, Score Rise, and Likes. Each card can be used once across your main team and unlocked edition slots.',
-  'When scoring runs, the app checks live Farcaster/Neynar data from the round start: casts, replies sent, follower growth, Neynar score rise, and likes received.',
-  'Each slot gives 1 Protocol Point per opponent beaten in the league. Playing, finishing top half, using a rare FID 1-100 card, opening packs, sharing, referrals, and daily spins can also add points.',
-  'Editions unlock at Protocol Point thresholds. Each edition changes the theme and adds a bonus slot; unlocked slots stack, no matter which edition theme is active.',
+  'Open packs to collect Protocol cards and build your team. Any card can come from any pack, but Tablet and Codex packs are more likely to hold high scorers and rare cards.',
+  'Build your team by choosing who you think will perform best in each criterion. Your card in each slot competes against the cards other players place in that same slot.',
+  'Activity is monitored and displayed during the game. Final scoring is calculated at game end from Farcaster/Neynar activity tracked during the round.',
+  'Earn Protocol Points for playing, opening packs, beating opposing slots, climbing the leaderboard, sharing, referrals, rare FID picks, and daily spins.',
+];
+
+const pointRewards = [
+  ['Lock team', '+25'],
+  ['Game played', '+20'],
+  ['Open pack', '+10'],
+  ['Slot beaten', '+1'],
+  ['Top 25', '+75'],
+  ['Top half', '+50'],
+  ['FID 1-100', '+25'],
+  ['Share', '+5'],
+  ['Referral pack', '+100'],
+  ['Daily spin', '0-150'],
 ];
 
 const disclaimers = [
@@ -63,10 +75,10 @@ export default function WelcomeModal({ onClose, onGoToPacks, onGoToLeague }: Pro
             margin: 0, color: '#f4ecff', fontSize: 26, lineHeight: 1.05,
             fontWeight: 900, letterSpacing: 0,
           }}>
-            Collect identities. Read the signals. Beat the table.
+            Collect Protocol cards and build your team!
           </h2>
           <p style={{ margin: '10px 0 0', color: '#a997c4', fontSize: 11, lineHeight: 1.6 }}>
-            The Protocol turns public Farcaster identity data into battle cards. Your job is to spot which cards will move this round, build a smarter team, and climb into new editions.
+            The Protocol turns Farcaster Protocol data into a team-building and card-collection game. Improve your teams to score big, unlock new editions, and beat the leaderboard.
           </p>
         </div>
 
@@ -108,6 +120,32 @@ export default function WelcomeModal({ onClose, onGoToPacks, onGoToLeague }: Pro
                   <div style={{ color: '#d9cdee', fontSize: 10, lineHeight: 1.55 }}>{item}</div>
                 </div>
               ))}
+              <div style={{
+                borderRadius: 8,
+                background: 'rgba(201,168,76,0.06)',
+                border: '1px solid rgba(201,168,76,0.18)',
+                padding: '10px 11px',
+              }}>
+                <div style={{ color: '#C9A84C', fontSize: 8, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Points
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {pointRewards.map(([label, points]) => (
+                    <div key={label} style={{
+                      display: 'flex', justifyContent: 'space-between', gap: 8,
+                      borderRadius: 6, padding: '5px 7px',
+                      background: 'rgba(7,2,14,0.32)',
+                      border: '1px solid rgba(201,168,76,0.1)',
+                    }}>
+                      <span style={{ color: '#bbaed0', fontSize: 8 }}>{label}</span>
+                      <span style={{ color: '#C9A84C', fontSize: 8, fontWeight: 900 }}>{points}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ color: '#a997c4', fontSize: 9, lineHeight: 1.45, marginTop: 8 }}>
+                  Editions start unlocking at 1,000 Protocol Points. Each unlock changes the theme and adds a bonus slot that stacks onto your team.
+                </div>
+              </div>
             </div>
           )}
 

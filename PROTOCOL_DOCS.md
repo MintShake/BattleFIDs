@@ -328,6 +328,7 @@ Scores the week that just ended (`prevWeekId()`). Idempotent — skips if `compu
 - `week_played` (+20) — everyone who had a locked team
 - `slot_beat` (+1 × number beaten) — per slot performance
 - `overall_win` (+50) — top-half finish
+- `top_25` (+75) — top 25 leaderboard finish
 - `rare_card_bonus` (+25) — any slot FID ≤ 100
 
 ### Edition bonus slots
@@ -348,12 +349,14 @@ Accumulated cross-week in `players.protocol_points`. All events logged to `proto
 |---|---|---|
 | `app_add` | 50 | First time opening the mini-app (via client-ping on mount) |
 | `pack_open` | 10 | Each pack opened |
-| `team_lock` | 15 | First team submission per week (not re-saves) |
+| `team_lock` | 25 | First team submission per game/week (not re-saves) |
 | `week_played` | 20 | Having a locked team when scoring runs |
 | `overall_win` | 50 | Top-half finish in the league |
+| `top_25` | 75 | Top 25 finish on the leaderboard |
 | `rare_card_bonus` | 25 | Team contains a FID ≤ 100 card |
-| `share` | 5 | (Manual trigger — not yet wired to a share button) |
+| `share` | 5 | Sharing the app, capped server-side |
 | `invite_sent` | 100 | When a referred player joins via your code |
+| `daily_spin` | 0/5/15/50/150 | Daily spin outcome |
 | `slot_beat` | 1 × N | N = people beaten in each slot |
 
 ---
@@ -373,7 +376,7 @@ Three built-in editions with distinct visual themes, rarity names, and bonus slo
 - Rome: IMPERATOR / SENATOR / CENTURION / LEGIONARY / CITIZEN
 - Builders: ARCHITECT / ENGINEER / DEVELOPER / CONTRIBUTOR / BUILDER
 
-Edition unlocks are threshold-based through `src/lib/editionUnlocks.ts`. Selecting an edition changes the app theme; unlocking an edition adds its bonus slot to the team builder.
+Edition unlocks are threshold-based through `src/lib/editionUnlocks.ts`. The first edition unlock starts at 1,000 Protocol Points. Selecting an edition changes the app theme; unlocking an edition adds its bonus slot to the team builder.
 
 **`useEdition()` context** in React resolves the active edition and provides `accent`, `theme`, `rarity` config. All UI components should consume this for edition-aware theming.
 
