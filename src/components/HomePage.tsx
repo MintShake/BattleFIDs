@@ -21,7 +21,6 @@ interface HomeStats {
     handle:     string | null;
     slotPoints: number;
     weekId:     string;
-    tier:       string;
   }>;
   topPlayers: Array<{
     ownerFid:       number;
@@ -42,15 +41,15 @@ const STEPS = [
   },
   {
     n: '02', title: 'Build Your Team',
-    body: 'Pick 5 cards for the week — one per slot: Casts · Replies · Followers · Score Rise · Likes. Each slot competes head-to-head on that exact metric against every other player in your tier.',
+    body: 'Pick 5 cards for the main game: Casts · Replies · Followers · Score Rise · Likes. Each slot competes head-to-head on that exact metric against every other team.',
   },
   {
     n: '03', title: 'Earn Points',
-    body: '1 point per opponent beaten per slot. Finish in the top half of your group and earn a 50-point overall-win bonus. Use a rare FID ≤ 100 card and earn 25 more. Points stack across every week.',
+    body: '1 point per opponent beaten per slot. Finish in the top half of the league for a 50-point bonus. Packs, shares, referrals, spins, and smart weekly picks all build your Protocol Points.',
   },
   {
-    n: '04', title: 'Rise Through Tiers',
-    body: 'Enter as Beginner, or roll the dice with Confident — a 50/50 bracket reveal at lock time (Beginner or Pro). Reach the 90th percentile avg team score and you\'re locked into Pro permanently.',
+    n: '04', title: 'Unlock Editions',
+    body: 'Reach edition point thresholds to unlock new visual worlds. Each unlocked edition adds another playable slot, and those slots stack onto your team.',
   },
 ];
 
@@ -142,7 +141,7 @@ export default function HomePage({
                     {w.handle ? `@${w.handle}` : `FID #${w.ownerFid}`}
                   </div>
                   <div style={{ fontSize: 8, color: '#a08cc0', marginTop: 2 }}>
-                    {w.slotPoints} slot pts · {w.tier === 'pro' ? '★ Pro' : w.tier === 'confident' ? '⚡ Confident' : '◎ Beginner'}
+                    {w.slotPoints} slot pts · one league
                   </div>
                 </div>
                 <div style={{
@@ -152,7 +151,7 @@ export default function HomePage({
                   color: i === 0 ? '#C9A84C' : '#a08cc0', fontWeight: 700, letterSpacing: '0.1em',
                   textTransform: 'uppercase', flexShrink: 0,
                 }}>
-                  {w.tier === 'pro' ? 'PRO' : 'BEGINNER'} #1
+                  LEAGUE #1
                 </div>
               </div>
             ))}

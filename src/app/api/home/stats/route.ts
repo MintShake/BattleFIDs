@@ -19,7 +19,7 @@ export async function GET() {
         FROM cards ORDER BY battle_score DESC LIMIT 1
       `,
       sql`
-        SELECT wt.owner_fid, wt.slot_points, wt.rank, wt.chosen_tier, wt.week_id
+        SELECT wt.owner_fid, wt.slot_points, wt.rank, wt.week_id
         FROM weekly_teams wt
         JOIN weeks w ON w.id = wt.week_id
         WHERE wt.rank = 1 AND w.computed_at IS NOT NULL
@@ -47,7 +47,6 @@ export async function GET() {
     handle:     r.owner_fid ? (neynarMap.get(Number(r.owner_fid))?.username ?? `fid${r.owner_fid}`) : null,
     slotPoints: Number(r.slot_points ?? 0),
     weekId:     r.week_id as string,
-    tier:       r.chosen_tier as string,
   }));
 
   const topPlayers = topPlayersRes.map(r => ({

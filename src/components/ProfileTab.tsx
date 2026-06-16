@@ -5,8 +5,6 @@ import Image from 'next/image';
 
 interface PlayerData {
   protocolPoints: number;
-  tier: string;
-  lockedToPro: boolean;
   totalWins: number;
   totalLosses: number;
   referralCode: string;
@@ -124,9 +122,7 @@ function PfpOptOut({ fid }: { fid: number }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ProfileTab({ ownerFid, handle, playerData }: Props) {
-  const tier = playerData?.tier ?? 'beginner';
-  const tierColor = tier === 'pro' ? '#C9A84C' : tier === 'confident' ? '#8a63d2' : '#22c55e';
-  const tierLabel = tier === 'pro' ? '★ Pro' : tier === 'confident' ? '◈ Confident' : '◎ Beginner';
+  const points = playerData?.protocolPoints ?? 0;
 
   return (
     <div style={{ padding: '4px 0 40px' }}>
@@ -156,9 +152,9 @@ export default function ProfileTab({ ownerFid, handle, playerData }: Props) {
           </div>
           <div style={{
             marginLeft: 'auto', fontSize: 9, padding: '3px 10px', borderRadius: 99,
-            fontWeight: 700, color: tierColor,
-            background: `${tierColor}18`, border: `1px solid ${tierColor}40`,
-          }}>{tierLabel}</div>
+            fontWeight: 700, color: '#C9A84C',
+            background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.34)',
+          }}>⬡ {points.toLocaleString()}</div>
         </div>
       </div>
 

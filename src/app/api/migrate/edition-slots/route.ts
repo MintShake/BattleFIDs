@@ -20,7 +20,7 @@ export async function GET() {
       )
     `;
 
-    // Weekly picks by Pro players
+    // Weekly picks by players with enough Protocol Points for the edition
     await sql`
       CREATE TABLE IF NOT EXISTS weekly_edition_picks (
         id                  BIGSERIAL PRIMARY KEY,

@@ -21,8 +21,8 @@ const game = [
   'Open packs to collect 10 Farcaster identity cards at a time. This test flow simulates pack prices; no wallet opens and no payment is taken.',
   'Build a 5-slot team: Casts, Replies, Followers, Score Rise, and Likes. Each card can be used once across your main team and unlocked edition slots.',
   'When scoring runs, the app checks live Farcaster/Neynar data from the round start: casts, replies sent, follower growth, Neynar score rise, and likes received.',
-  'Each slot gives 1 Protocol Point per opponent beaten in your group. Playing, winning the top half, using a rare FID 1-100 card, opening packs, sharing, referrals, and daily spins can also add points.',
-  'Editions unlock at Protocol Point thresholds. Each edition changes the theme, has its own leaderboard, and adds a bonus slot with its own metric.',
+  'Each slot gives 1 Protocol Point per opponent beaten in the league. Playing, finishing top half, using a rare FID 1-100 card, opening packs, sharing, referrals, and daily spins can also add points.',
+  'Editions unlock at Protocol Point thresholds. Each edition changes the theme and adds a bonus slot; unlocked slots stack, no matter which edition theme is active.',
 ];
 
 const disclaimers = [

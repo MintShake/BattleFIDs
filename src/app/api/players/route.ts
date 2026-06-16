@@ -37,8 +37,6 @@ export async function GET(req: NextRequest) {
     const p = rows[0];
     return NextResponse.json({
       protocolPoints: p.protocol_points,
-      tier:           p.tier,
-      lockedToPro:    p.locked_to_pro,
       totalWins:      p.total_wins,
       totalLosses:    p.total_losses,
       referralCode:   p.referral_code,

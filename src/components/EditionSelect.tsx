@@ -55,7 +55,7 @@ export default function EditionSelect({ editions, onSelect, onClose, currentId, 
           CHOOSE<br />EDITION
         </h1>
         <p style={{ fontSize: 11, color: '#7a6a90', marginTop: 10, letterSpacing: '0.05em', lineHeight: 1.5 }}>
-          Each edition is a themed season with its own<br />card rankings, league rules, and visual world.
+          Editions change the visual world and unlock<br />stacking bonus slots for your league team.
         </p>
       </div>
 

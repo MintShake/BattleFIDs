@@ -17,16 +17,12 @@ interface LeaderboardEntry {
   finalSlotPoints?: number;
   protocolPoints: number;
   ownerFid:       number | null;
-  chosenTier:     string;
-  assignedGroup:  string | null;
   avgTeamScore:   number;
   isLive?:         boolean;
   previewUpdatedAt?: string | null;
   preview?:        Record<SlotType, number>;
   slots: Record<SlotType, SlotCard>;
 }
-
-type Group = 'beginner' | 'pro';
 
 const RANK_BADGE: Record<number, { color: string; label: string }> = {
   1: { color: '#C9A84C', label: '1st' },
@@ -62,7 +58,6 @@ interface EditionSlotInfo {
 
 interface NextDraftTeam {
   weekId:     string;
-  chosenTier: string;
   slots: Record<SlotType, SlotCard>;
 }
 
@@ -77,7 +72,6 @@ function computeNextWeekId(): string {
 }
 
 export default function Leaderboard({ ownerFid, editionId = 'base', editionName = 'Base' }: Props) {
-  const [group, setGroup]       = useState<Group>('beginner');
   const [entries, setEntries]   = useState<LeaderboardEntry[]>([]);
   const [editionEntries, setEditionEntries] = useState<EditionLeaderboardEntry[]>([]);
   const [editionSlot, setEditionSlot] = useState<EditionSlotInfo | null>(null);
@@ -97,7 +91,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
     async function load(showLoading: boolean) {
       if (showLoading) setLoading(true);
       try {
-        const res = await fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=1&live=1`);
+        const res = await fetch(`/api/week/leaderboard?limit=${PAGE_SIZE}&page=1&live=1`);
         const data = await res.json();
         if (cancelled) return;
         setEntries(data.leaderboard ?? []);
@@ -118,7 +112,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
       cancelled = true;
       clearInterval(iv);
     };
-  }, [group, isEditionBoard]);
+  }, [isEditionBoard]);
 
   useEffect(() => {
     if (isEditionBoard || !ownerFid) {
@@ -137,7 +131,6 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
         }
         setNextDraft({
           weekId: data.weekId ?? draftWeekId,
-          chosenTier: t.chosen_tier ?? 'beginner',
           slots: {
             casts:      { fid: t.casts_fid,      handle: t.casts_handle,      thumb: t.casts_thumb,      rarity: t.casts_rarity },
             replies:    { fid: t.replies_fid,    handle: t.replies_handle,    thumb: t.replies_thumb,    rarity: t.replies_rarity },
@@ -168,7 +161,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
 
   function loadMore() {
     const next = page + 1;
-    fetch(`/api/week/leaderboard?group=${group}&limit=${PAGE_SIZE}&page=${next}&live=1`)
+    fetch(`/api/week/leaderboard?limit=${PAGE_SIZE}&page=${next}&live=1`)
       .then(r => r.json())
       .then(data => {
         setEntries(prev => [...prev, ...(data.leaderboard ?? [])]);
@@ -272,32 +265,6 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
 
   return (
     <div>
-      {/* Group tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, justifyContent: 'center' }}>
-        {(['beginner', 'pro'] as Group[]).map(g => (
-          <button
-            key={g}
-            onClick={() => setGroup(g)}
-            style={{
-              padding: '6px 18px', borderRadius: 99,
-              border: group === g
-                ? `1px solid ${g === 'pro' ? '#C9A84C' : '#22c55e'}`
-                : '1px solid rgba(138,99,210,0.2)',
-              background: group === g
-                ? (g === 'pro' ? 'rgba(201,168,76,0.1)' : 'rgba(34,197,94,0.08)')
-                : 'transparent',
-              color: group === g
-                ? (g === 'pro' ? '#C9A84C' : '#22c55e')
-                : '#7a6a90',
-              fontSize: 9, fontWeight: 700, letterSpacing: '0.15em',
-              textTransform: 'uppercase', cursor: 'pointer',
-            }}
-          >
-            {g === 'pro' ? '★ Pro' : '◎ Beginner'}
-          </button>
-        ))}
-      </div>
-
       {/* Week header */}
       <div style={{
         borderRadius: 14, padding: '10px 14px', marginBottom: 14,
@@ -308,7 +275,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
           {weekId || '…'}
         </div>
         <div style={{ fontSize: 10, color: '#7a6a90' }}>
-          LIVE · {totalTeams} team{totalTeams !== 1 ? 's' : ''} · {group}
+          LIVE · {totalTeams} team{totalTeams !== 1 ? 's' : ''} · one league
         </div>
       </div>
 
@@ -326,20 +293,6 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
               <div style={{ fontSize: 8, color: '#7a6a90', marginTop: 2 }}>
                 {nextDraft.weekId} · waiting to lock
               </div>
-            </div>
-            <div style={{
-              flexShrink: 0,
-              fontSize: 7,
-              padding: '3px 8px',
-              borderRadius: 99,
-              color: '#C9A84C',
-              border: '1px solid rgba(201,168,76,0.3)',
-              background: 'rgba(201,168,76,0.1)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              fontWeight: 800,
-            }}>
-              {nextDraft.chosenTier}
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
@@ -372,7 +325,7 @@ export default function Leaderboard({ ownerFid, editionId = 'base', editionName 
         <div style={{ textAlign: 'center', paddingTop: 60 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🏆</div>
           <p style={{ fontSize: 12, color: '#a08cc0', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-            No teams in {group}
+            No teams yet
           </p>
           <p style={{ fontSize: 10, color: '#7a6a90', marginTop: 6 }}>
             Lock in a team to appear here

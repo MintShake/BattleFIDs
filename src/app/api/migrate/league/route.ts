@@ -4,7 +4,7 @@ import { sql } from '@/lib/db';
 // GET /api/migrate/league
 // Additive migration — safe to re-run, never drops data.
 // Adds: players, protocol_points_log, referrals tables.
-// Alters: weekly_teams (new slot columns, tier, baselines), weeks (pro_threshold).
+// Alters: weekly_teams (slot columns, legacy tier columns, baselines), weeks.
 export async function GET() {
   // ── New tables ─────────────────────────────────────────────────────────────
 
@@ -68,6 +68,7 @@ export async function GET() {
   await sql`CREATE INDEX IF NOT EXISTS idx_daily_spins_device_day ON daily_spins(owner_device_id, spin_day)`;
 
   // ── Alter weeks ────────────────────────────────────────────────────────────
+  // Legacy column retained for old deployments; not used by the current one-league game.
   await sql`ALTER TABLE weeks ADD COLUMN IF NOT EXISTS pro_threshold NUMERIC`;
   await sql`ALTER TABLE weeks ADD COLUMN IF NOT EXISTS lock_at TIMESTAMPTZ`;
 
@@ -78,6 +79,7 @@ export async function GET() {
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS followers_fid  INTEGER REFERENCES cards(fid)`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS score_rise_fid INTEGER REFERENCES cards(fid)`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS likes_fid      INTEGER REFERENCES cards(fid)`;
+  // Legacy columns retained for compatibility; active code writes chosen_tier = 'league'.
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS chosen_tier    TEXT NOT NULL DEFAULT 'beginner'`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS assigned_group TEXT`;
   await sql`ALTER TABLE weekly_teams ADD COLUMN IF NOT EXISTS avg_team_score NUMERIC NOT NULL DEFAULT 0`;

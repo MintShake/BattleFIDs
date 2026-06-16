@@ -51,8 +51,8 @@ src/
 │   │   ├── browse/route.ts         # GET — paginated card list with blocklist applied
 │   │   ├── client-ping/route.ts    # POST — upsert player row, award app_add points
 │   │   ├── cron/
-│   │   │   ├── tier/route.ts       # GET — daily tier assignment (6:00 UTC)
-│   │   │   └── score/route.ts      # GET — weekly scoring run (Monday 00:00 UTC)
+│   │   │   ├── tier/route.ts       # GET — legacy no-op; progression is point unlocks
+│   │   │   └── score/route.ts      # GET — scoring run
 │   │   ├── editions/
 │   │   │   ├── route.ts            # GET list / POST create edition
 │   │   │   ├── [id]/route.ts       # PATCH update edition
@@ -86,7 +86,7 @@ src/
 │   ├── HomePage.tsx                # Home tab: stats, winners, CTA, leaderboard, how-to
 │   ├── Leaderboard.tsx             # Weekly leaderboard list
 │   ├── PackOpener.tsx              # Pack opening UX + global recent pulls feed
-│   ├── ProfileView.tsx             # Player profile: points, tier, history
+│   ├── ProfileView.tsx             # Player profile: points, history, referrals
 │   ├── TeamBuilder.tsx             # Weekly team draft UI
 │   └── WeekProgress.tsx            # Live week score tracking
 ├── lib/
@@ -110,7 +110,7 @@ src/
 │   ├── badge.ts
 │   ├── card.ts                     # BattleFIDCard, RarityTier, CardType, CardStats
 │   ├── faces.ts                    # FidTimeline, FaceImage types
-│   ├── league.ts                   # SlotType, PlayerTier, PointsAction, Player, WeeklyTeamSlots
+│   ├── league.ts                   # SlotType, PointsAction, Player, WeeklyTeamSlots
 │   └── neynar.ts                   # NeynarUser, CastEngagement
 └── editions/
     ├── index.ts                    # Active edition export
@@ -159,7 +159,7 @@ id (TEXT PK, e.g. '2026-W25'), starts_at, ends_at, computed_at
 ```
 id (UUID PK), week_id, owner_fid, owner_device_id,
 captain_fid, broadcaster_fid, publisher_fid, agitator_fid, networker_fid,
-total_score, rank, slot_points, chosen_tier, assigned_group,
+total_score, rank, slot_points, chosen_tier (legacy, always league), assigned_group (legacy),
 followers_baseline, score_baseline, avg_team_score, updated_at
 UNIQUE(week_id, owner_fid), UNIQUE(week_id, owner_device_id)
 ```
@@ -180,7 +180,7 @@ owner_fid (PK), credits, updated_at
 **`players`** — one row per identity (FID or device).
 ```
 id (UUID PK), owner_fid (UNIQUE), owner_device_id (UNIQUE),
-protocol_points, tier (beginner|confident|pro), locked_to_pro,
+protocol_points, tier (legacy), locked_to_pro (legacy),
 total_wins, total_losses, referral_code, referred_by, updated_at
 ```
 
@@ -304,15 +304,12 @@ AGITATOR     — best card scored on replies received
 NETWORKER    — best card scored on replies sent
 ```
 
-Validation: must own the card. Once a team row exists in `weekly_teams`, it is **permanently locked** for that week — `isLocked = true` on any existing row (set at `TeamBuilder.tsx:127`).
+Validation: must own the card. A card can be used only once across the 5 base slots and all unlocked edition bonus slots. Once a team row exists in `weekly_teams`, it is locked for that game.
 
-Players choose a tier at lock-in:
-- `beginner` — safe, score-band protected group
-- `confident` — 50/50 random assignment to beginner or pro (revealed post-lock)
-- `pro` — open pool vs everyone
+There are no Beginner, Confident, or Pro leagues. Everyone plays in one league. Progression comes from Protocol Points unlocking editions.
 
-### Cron: tier assignment (`/api/cron/tier` — daily 06:00 UTC)
-Runs each day. Resolves `confident` players: assigns them `beginner` or `pro` group randomly (`assigned_group`). Also computes `avg_team_score` from players' owned cards (average battle_score) used as tiebreaker.
+### Legacy cron: tier assignment (`/api/cron/tier`)
+This route is kept as a no-op so old schedules do not fail. It returns `disabled: true`; tier assignment is no longer active.
 
 ### Cron: weekly scoring (`/api/cron/score` — Monday 00:00 UTC)
 Scores the week that just ended (`prevWeekId()`). Idempotent — skips if `computed_at` already set.
@@ -321,11 +318,11 @@ Scores the week that just ended (`prevWeekId()`). Idempotent — skips if `compu
 1. Load all locked teams (`casts_fid IS NOT NULL`).
 2. Collect all FIDs used across all slots.
 3. Batch-fetch Neynar weekly stats (recasts, likes, replies sent/received, cast count).
-4. Per group (beginner/pro), per slot, rank teams by that slot's metric.
+4. Per slot, rank every league team by that slot's metric.
 5. **Points per slot = number of teams beaten in that slot.**
 6. Sum slot points = team's `slot_points` / `total_score`.
-7. Rank within group by slot_points, tiebreak by avg_team_score.
-8. Top half of each group = "win."
+7. Rank the whole league by slot_points, tiebreak by avg_team_score.
+8. Top half of the league = "win."
 
 **Points awarded during scoring:**
 - `week_played` (+20) — everyone who had a locked team
@@ -334,10 +331,10 @@ Scores the week that just ended (`prevWeekId()`). Idempotent — skips if `compu
 - `rare_card_bonus` (+25) — any slot FID ≤ 100
 
 ### Edition bonus slots
-Optionally, editions can define extra competition slots (e.g. "Top Embedder") with different metric types (`neynar_embed_casts`, `neynar_total_reactions`, etc.). Players pick a card for each. Scored in the same cron run after the main scoring pass.
+Editions define extra competition slots (e.g. "Top Embedder") with different metric types (`neynar_embed_casts`, `neynar_total_reactions`, etc.). When a player reaches an edition's Protocol Point threshold, that edition unlocks and its bonus slot appears on the team page. Unlocked slots stack: a player can switch visual themes, but all unlocked edition slots remain playable.
 
 ### Leaderboard
-`/api/week/leaderboard` — returns current week's `weekly_teams` ordered by `slot_points DESC`. Shows rank, owner handle, slot points, group (Beginner/Pro).
+`/api/week/leaderboard` — returns current game's `weekly_teams` ordered by live or final slot points. Shows rank, owner handle, slot points, Protocol Points, and slot previews.
 
 Footer: `N of M · Pts: 1/beat per slot · +50 overall win · +25 rare card (FID ≤100) · +20 entry · updated end of week`
 
@@ -353,7 +350,7 @@ Accumulated cross-week in `players.protocol_points`. All events logged to `proto
 | `pack_open` | 10 | Each pack opened |
 | `team_lock` | 15 | First team submission per week (not re-saves) |
 | `week_played` | 20 | Having a locked team when scoring runs |
-| `overall_win` | 50 | Top-half finish in your tier group |
+| `overall_win` | 50 | Top-half finish in the league |
 | `rare_card_bonus` | 25 | Team contains a FID ≤ 100 card |
 | `share` | 5 | (Manual trigger — not yet wired to a share button) |
 | `invite_sent` | 100 | When a referred player joins via your code |
@@ -363,7 +360,7 @@ Accumulated cross-week in `players.protocol_points`. All events logged to `proto
 
 ## 9. Edition System
 
-Three built-in editions with distinct visual themes, rarity names, slot labels, and captain multipliers. Editions are stored in the `editions` DB table and seeded from `EDITION_SEEDS` in `src/lib/editionDb.ts`.
+Three built-in editions with distinct visual themes, rarity names, and bonus slot rules. Editions are stored in the `editions` DB table and seeded from `EDITION_SEEDS` in `src/lib/editionDb.ts`.
 
 | Edition ID | Name | Theme | Accent |
 |---|---|---|---|
@@ -376,7 +373,7 @@ Three built-in editions with distinct visual themes, rarity names, slot labels, 
 - Rome: IMPERATOR / SENATOR / CENTURION / LEGIONARY / CITIZEN
 - Builders: ARCHITECT / ENGINEER / DEVELOPER / CONTRIBUTOR / BUILDER
 
-**Captain multipliers** vary per edition — Rome has higher multipliers (e.g. Alpha 1.60× vs base 1.50×).
+Edition unlocks are threshold-based through `src/lib/editionUnlocks.ts`. Selecting an edition changes the app theme; unlocking an edition adds its bonus slot to the team builder.
 
 **`useEdition()` context** in React resolves the active edition and provides `accent`, `theme`, `rarity` config. All UI components should consume this for edition-aware theming.
 
@@ -421,7 +418,7 @@ home        ⌂  Home        — landing, stats, winners, CTAs, how-to-play
 pack        ◆  Packs       — open packs + global recent pulls feed
 collection  ⚔  Collection  — player's owned cards
 league      🏆  League      — team builder + week progress + leaderboard
-profile     ◉  Profile     — protocol points, tier, history
+profile     ◉  Profile     — protocol points, history, referrals
 ```
 
 Browse (`🃏`) is a hidden tab — not in the nav bar but still rendered. Accessible from Home ("Browse Cards" button) and via `setTab('browse')`.
@@ -476,8 +473,8 @@ Weekly stats fetch (`fetchWeeklyStats`) uses channel/cast search to aggregate ac
 
 | Schedule | Path | What it does |
 |---|---|---|
-| `0 6 * * *` (daily 06:00 UTC) | `/api/cron/tier` | Assign groups to `confident` players; compute avg_team_score; award daily bonuses |
-| `0 0 * * 1` (Monday 00:00 UTC) | `/api/cron/score` | Score the previous week; award all points; mark `weeks.computed_at` |
+| `0 6 * * *` (daily 06:00 UTC) | `/api/cron/tier` | Legacy no-op kept for scheduler compatibility |
+| `0 0 * * 1` (Monday 00:00 UTC) | `/api/cron/score` | Score the previous game/week; award all points; mark `weeks.computed_at` |
 
 Secret: `CRON_SECRET` env var, passed as query param `?secret=…` in `vercel.json`.
 

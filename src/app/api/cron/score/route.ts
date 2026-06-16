@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   // Load all locked teams for the week
   const teams = await sql`
     SELECT
-      id, owner_fid, owner_device_id, chosen_tier, assigned_group,
+      id, owner_fid, owner_device_id,
       casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
       followers_baseline, score_baseline, avg_team_score
     FROM weekly_teams
@@ -51,12 +51,6 @@ export async function GET(req: NextRequest) {
   `;
 
   if (teams.length === 0) return NextResponse.json({ ok: true, weekId, teamsScored: 0 });
-
-  function resolveGroup(team: typeof teams[0]): 'beginner' | 'pro' {
-    if (team.chosen_tier === 'pro') return 'pro';
-    if (team.chosen_tier === 'confident') return (team.assigned_group ?? 'beginner') as 'beginner' | 'pro';
-    return 'beginner';
-  }
 
   // Collect all unique FIDs across all slots
   const allFids = new Set<number>();
@@ -83,7 +77,6 @@ export async function GET(req: NextRequest) {
     teamId:       string;
     ownerFid:     number | null;
     deviceId:     string | null;
-    group:        'beginner' | 'pro';
     casts:        number;
     replies:      number;
     followers:    number;
@@ -94,7 +87,6 @@ export async function GET(req: NextRequest) {
   }
 
   const metrics: TeamMetrics[] = teams.map(t => {
-    const group = resolveGroup(t);
     const slotFids = [
       Number(t.casts_fid), Number(t.replies_fid), Number(t.followers_fid),
       Number(t.score_rise_fid), Number(t.likes_fid),
@@ -110,7 +102,6 @@ export async function GET(req: NextRequest) {
       teamId:       t.id,
       ownerFid:     t.owner_fid ? Number(t.owner_fid) : null,
       deviceId:     t.owner_device_id ?? null,
-      group,
       casts:        statsMap.get(Number(t.casts_fid))?.casts   ?? 0,
       replies:      statsMap.get(Number(t.replies_fid))?.replies ?? 0,
       followers:    followersGained,
@@ -122,16 +113,12 @@ export async function GET(req: NextRequest) {
   });
 
   const slots = ['casts', 'replies', 'followers', 'score_rise', 'likes'] as const;
-  const groups: Array<'beginner' | 'pro'> = ['beginner', 'pro'];
 
   const slotPoints = new Map<string, number>();
 
-  for (const group of groups) {
-    const groupTeams = metrics.filter(m => m.group === group);
-    if (groupTeams.length < 2) continue;
-
+  if (metrics.length >= 2) {
     for (const slot of slots) {
-      const ranked = [...groupTeams].sort((a, b) => b[slot] - a[slot]);
+      const ranked = [...metrics].sort((a, b) => b[slot] - a[slot]);
       for (const team of ranked) {
         const myValue = team[slot];
         const beaten = ranked.filter(r => r[slot] < myValue).length;
@@ -140,55 +127,47 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Rank within each group, tiebreak by avg_team_score
-  for (const group of groups) {
-    const groupTeams = metrics.filter(m => m.group === group);
-    groupTeams.sort((a, b) => {
-      const pa = slotPoints.get(a.teamId) ?? 0;
-      const pb = slotPoints.get(b.teamId) ?? 0;
-      if (pb !== pa) return pb - pa;
-      return b.avgTeamScore - a.avgTeamScore;
-    });
+  const rankedTeams = [...metrics].sort((a, b) => {
+    const pa = slotPoints.get(a.teamId) ?? 0;
+    const pb = slotPoints.get(b.teamId) ?? 0;
+    if (pb !== pa) return pb - pa;
+    return b.avgTeamScore - a.avgTeamScore;
+  });
 
-    const half = Math.ceil(groupTeams.length / 2);
+  const half = Math.ceil(rankedTeams.length / 2);
 
-    for (let i = 0; i < groupTeams.length; i++) {
-      const { teamId, ownerFid, deviceId, slotFids } = groupTeams[i];
-      const points = slotPoints.get(teamId) ?? 0;
-      const rank   = i + 1;
-      const won    = rank <= half;
+  for (let i = 0; i < rankedTeams.length; i++) {
+    const { teamId, ownerFid, deviceId, slotFids } = rankedTeams[i];
+    const points = slotPoints.get(teamId) ?? 0;
+    const rank   = i + 1;
+    const won    = rank <= half;
 
-      await sql`
-        UPDATE weekly_teams
-        SET slot_points = ${points}, rank = ${rank}, total_score = ${points}
-        WHERE id = ${teamId}
-      `;
+    await sql`
+      UPDATE weekly_teams
+      SET slot_points = ${points}, rank = ${rank}, total_score = ${points}
+      WHERE id = ${teamId}
+    `;
 
-      // Entry bonus (week_played flat)
-      await awardPoints(ownerFid, deviceId, 'week_played', 1, { weekId });
+    await awardPoints(ownerFid, deviceId, 'week_played', 1, { weekId });
 
-      // Points per person beaten per slot
-      if (points > 0) {
-        await awardPoints(ownerFid, deviceId, 'slot_beat', points, { weekId, group });
-      }
+    if (points > 0) {
+      await awardPoints(ownerFid, deviceId, 'slot_beat', points, { weekId, league: 'main' });
+    }
 
-      // Overall win bonus
+    if (won) {
+      await awardPoints(ownerFid, deviceId, 'overall_win', 1, { weekId, rank });
+    }
+
+    const hasRareCard = slotFids.some(f => f <= 100);
+    if (hasRareCard) {
+      await awardPoints(ownerFid, deviceId, 'rare_card_bonus', 1, { weekId });
+    }
+
+    if (ownerFid) {
       if (won) {
-        await awardPoints(ownerFid, deviceId, 'overall_win', 1, { weekId, group, rank });
-      }
-
-      // Rare card bonus — any slot FID ≤ 100
-      const hasRareCard = slotFids.some(f => f <= 100);
-      if (hasRareCard) {
-        await awardPoints(ownerFid, deviceId, 'rare_card_bonus', 1, { weekId });
-      }
-
-      if (ownerFid) {
-        if (won) {
-          await sql`UPDATE players SET total_wins = total_wins + 1 WHERE owner_fid = ${ownerFid}`;
-        } else {
-          await sql`UPDATE players SET total_losses = total_losses + 1 WHERE owner_fid = ${ownerFid}`;
-        }
+        await sql`UPDATE players SET total_wins = total_wins + 1 WHERE owner_fid = ${ownerFid}`;
+      } else {
+        await sql`UPDATE players SET total_losses = total_losses + 1 WHERE owner_fid = ${ownerFid}`;
       }
     }
   }

@@ -81,14 +81,14 @@ export async function POST(req: NextRequest) {
     const rows = fid
       ? await sql`
           SELECT casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
-                 chosen_tier, assigned_group, followers_baseline, score_baseline,
+                 followers_baseline, score_baseline,
                  preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes, preview_updated_at
           FROM weekly_teams
           WHERE week_id = ${weekId} AND owner_fid = ${fid}
         `
       : await sql`
           SELECT casts_fid, replies_fid, followers_fid, score_rise_fid, likes_fid,
-                 chosen_tier, assigned_group, followers_baseline, score_baseline,
+                 followers_baseline, score_baseline,
                  preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes, preview_updated_at
           FROM weekly_teams
           WHERE week_id = ${weekId} AND owner_device_id = ${device}
@@ -159,35 +159,17 @@ export async function POST(req: NextRequest) {
       `;
     }
 
-    const myTier  = team.chosen_tier as string;
-    const myGroup = myTier === 'pro'
-      ? 'pro'
-      : myTier === 'confident'
-        ? (team.assigned_group ?? 'beginner')
-        : 'beginner';
-
     const peers = await sql`
       SELECT
-        chosen_tier, assigned_group,
         preview_casts, preview_replies, preview_followers, preview_score_rise, preview_likes
       FROM weekly_teams
       WHERE week_id = ${weekId}
         AND preview_updated_at IS NOT NULL
-        AND (
-          (chosen_tier = 'pro'       AND ${myGroup} = 'pro')
-          OR (chosen_tier = 'beginner' AND ${myGroup} = 'beginner')
-          OR (chosen_tier = 'confident' AND assigned_group = ${myGroup})
-        )
     `;
 
     const [{ count: totalInGroup }] = await sql`
       SELECT COUNT(*) AS count FROM weekly_teams
       WHERE week_id = ${weekId}
-        AND (
-          (chosen_tier = 'pro'        AND ${myGroup} = 'pro')
-          OR (chosen_tier = 'beginner'  AND ${myGroup} = 'beginner')
-          OR (chosen_tier = 'confident' AND assigned_group = ${myGroup})
-        )
     `;
 
     type SlotKey = 'casts' | 'replies' | 'followers' | 'score_rise' | 'likes';
@@ -217,7 +199,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       slots,
-      myGroup,
+      myGroup: 'league',
       totalInGroup: Number(totalInGroup),
       updatedAt: new Date().toISOString(),
     });

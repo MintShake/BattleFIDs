@@ -45,13 +45,12 @@ function AppInner({
   onPlayerLoaded,
 }: {
   onChangeEdition: () => void;
-  onPlayerLoaded: (isPro: boolean, protocolPoints: number) => void;
+  onPlayerLoaded: (protocolPoints: number) => void;
 }) {
   const edition = useEdition();
   const { user: miniAppUser, safeAreaInsets, isInMiniApp, checked, added } = useMiniApp();
-  const [isPro, setIsPro]           = useState(false);
   const [isAdmin, setIsAdmin]       = useState(false);
-  const [playerData, setPlayerData] = useState<{ protocolPoints: number; tier: string; lockedToPro: boolean; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
+  const [playerData, setPlayerData] = useState<{ protocolPoints: number; totalWins: number; totalLosses: number; referralCode: string } | null>(null);
   const [tab, setTab]               = useState<Tab>('home');
   const [leagueView, setLeagueView] = useState<LeagueView>('progress');
   const [owned, setOwned]           = useState<OwnedCard[]>([]);
@@ -91,27 +90,23 @@ function AppInner({
       .catch(() => {});
   }, [miniAppUser?.fid]);
 
-  // Fetch player Pro status once identity is known — surface to parent for edition gate
+  // Fetch player points once identity is known; points unlock visual editions and stacked bonus slots.
   useEffect(() => {
     const fid = miniAppUser?.fid;
     if (!fid) return;
     fetch(`/api/players?ownerFid=${fid}`)
       .then(r => r.json())
-      .then((data: { tier?: string; lockedToPro?: boolean; protocolPoints?: number; totalWins?: number; totalLosses?: number; referralCode?: string }) => {
-        const pro = Boolean(data.lockedToPro) || data.tier === 'pro';
+      .then((data: { protocolPoints?: number; totalWins?: number; totalLosses?: number; referralCode?: string }) => {
         const points = data.protocolPoints ?? 0;
-        setIsPro(pro);
         setPlayerData({
           protocolPoints: points,
-          tier:           data.tier ?? 'beginner',
-          lockedToPro:    Boolean(data.lockedToPro),
           totalWins:      data.totalWins ?? 0,
           totalLosses:    data.totalLosses ?? 0,
           referralCode:   data.referralCode ?? '',
         });
-        onPlayerLoaded(pro, points);
+        onPlayerLoaded(points);
       })
-      .catch(() => onPlayerLoaded(false, 0));
+      .catch(() => onPlayerLoaded(0));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miniAppUser?.fid]);
 
@@ -158,7 +153,7 @@ function AppInner({
 
   function handlePointsUpdated(protocolPoints: number) {
     setPlayerData(prev => prev ? { ...prev, protocolPoints } : prev);
-    onPlayerLoaded(isPro, protocolPoints);
+    onPlayerLoaded(protocolPoints);
   }
 
   function closeWelcome() {
@@ -414,7 +409,7 @@ function AppInner({
               </div>
               {leagueView === 'progress'     && <WeekProgress ownerFid={miniAppUser?.fid} onGoToTeam={() => setLeagueView('team')} />}
               {leagueView === 'team'         && <TeamBuilder owned={owned} ownerFid={miniAppUser?.fid} />}
-              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} editionId={edition.id} editionName={edition.name} />}
+              {leagueView === 'leaderboard'  && <Leaderboard ownerFid={miniAppUser?.fid} />}
             </div>
           )}
 
@@ -464,7 +459,6 @@ export default function Home() {
   const [dbEditions, setDbEditions] = useState<Edition[]>([]);
   const [editionId, setEditionId]   = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const [isPro, setIsPro]           = useState(false);
   const [protocolPoints, setProtocolPoints] = useState(0);
 
   useEffect(() => {
@@ -485,8 +479,7 @@ export default function Home() {
       });
   }, []);
 
-  function handlePlayerLoaded(pro: boolean, points: number) {
-    setIsPro(pro);
+  function handlePlayerLoaded(points: number) {
     setProtocolPoints(points);
   }
 

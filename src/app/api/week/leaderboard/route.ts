@@ -56,11 +56,10 @@ async function refreshLivePreviews(weekId: string) {
   }
 }
 
-// GET /api/week/leaderboard?weekId=2026-W23&group=beginner|pro&limit=50
+// GET /api/week/leaderboard?weekId=2026-W23&limit=50
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const weekId = searchParams.get('weekId') ?? await gameWeekIdForDisplay();
-  const group  = searchParams.get('group'); // 'beginner' | 'pro' | null (all)
   const live = searchParams.get('live') === '1';
   const limit  = Math.min(50, parseInt(searchParams.get('limit') ?? '20'));
   const page   = Math.max(1, parseInt(searchParams.get('page') ?? '1'));
@@ -69,36 +68,9 @@ export async function GET(req: NextRequest) {
   try {
     if (live) await refreshLivePreviews(weekId);
 
-    const rows = group
-      ? await sql`
+    const rows = await sql`
           SELECT
-            wt.rank, wt.slot_points, wt.owner_fid, wt.chosen_tier, wt.assigned_group, wt.avg_team_score,
-            wt.preview_casts, wt.preview_replies, wt.preview_followers, wt.preview_score_rise, wt.preview_likes,
-            wt.preview_updated_at,
-            p.protocol_points,
-            ca.fid AS ca_fid, ca.handle AS ca_handle, ca.thumb_url AS ca_thumb, ca.rarity AS ca_rarity,
-            re.fid AS re_fid, re.handle AS re_handle, re.thumb_url AS re_thumb,
-            fo.fid AS fo_fid, fo.handle AS fo_handle, fo.thumb_url AS fo_thumb,
-            sr.fid AS sr_fid, sr.handle AS sr_handle, sr.thumb_url AS sr_thumb,
-            li.fid AS li_fid, li.handle AS li_handle, li.thumb_url AS li_thumb
-          FROM weekly_teams wt
-          LEFT JOIN players p  ON (p.owner_fid = wt.owner_fid OR p.owner_device_id = wt.owner_device_id)
-          LEFT JOIN cards ca ON ca.fid = wt.casts_fid
-          LEFT JOIN cards re ON re.fid = wt.replies_fid
-          LEFT JOIN cards fo ON fo.fid = wt.followers_fid
-          LEFT JOIN cards sr ON sr.fid = wt.score_rise_fid
-          LEFT JOIN cards li ON li.fid = wt.likes_fid
-          WHERE wt.week_id = ${weekId}
-            AND (
-              (wt.chosen_tier != 'confident' AND wt.chosen_tier = ${group})
-              OR (wt.chosen_tier = 'confident' AND wt.assigned_group = ${group})
-            )
-          ORDER BY wt.slot_points DESC, wt.avg_team_score DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `
-      : await sql`
-          SELECT
-            wt.rank, wt.slot_points, wt.owner_fid, wt.chosen_tier, wt.assigned_group, wt.avg_team_score,
+            wt.rank, wt.slot_points, wt.owner_fid, wt.avg_team_score,
             wt.preview_casts, wt.preview_replies, wt.preview_followers, wt.preview_score_rise, wt.preview_likes,
             wt.preview_updated_at,
             p.protocol_points,
@@ -116,7 +88,6 @@ export async function GET(req: NextRequest) {
           LEFT JOIN cards li ON li.fid = wt.likes_fid
           WHERE wt.week_id = ${weekId}
           ORDER BY wt.slot_points DESC, wt.avg_team_score DESC
-          LIMIT ${limit} OFFSET ${offset}
         `;
 
     const livePoints = new Map<unknown, number>();
@@ -135,15 +106,13 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const pageRows = live ? rows.slice(offset, offset + limit) : rows;
+    const pageRows = rows.slice(offset, offset + limit);
     const leaderboard = pageRows.map((r, i) => ({
       rank:           live ? offset + i + 1 : r.rank ?? offset + i + 1,
       slotPoints:     live ? livePoints.get(r) ?? 0 : Number(r.slot_points ?? 0),
       finalSlotPoints: Number(r.slot_points ?? 0),
       protocolPoints: Number(r.protocol_points ?? 0),
       ownerFid:       r.owner_fid,
-      chosenTier:     r.chosen_tier,
-      assignedGroup:  r.assigned_group,
       avgTeamScore:   Number(r.avg_team_score ?? 0),
       isLive:          live,
       previewUpdatedAt: r.preview_updated_at ?? null,
@@ -167,7 +136,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       weekId,
-      group:      group ?? 'all',
+      group:      'league',
       leaderboard,
       totalTeams: Number(count),
       page,
@@ -176,6 +145,6 @@ export async function GET(req: NextRequest) {
       hasMore:    offset + limit < Number(count),
     });
   } catch {
-    return NextResponse.json({ weekId, group: group ?? 'all', leaderboard: [], totalTeams: 0 });
+    return NextResponse.json({ weekId, group: 'league', leaderboard: [], totalTeams: 0 });
   }
 }

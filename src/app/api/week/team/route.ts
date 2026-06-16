@@ -4,7 +4,6 @@ import { fetchNeynarUsersDirect } from '@/lib/neynar';
 import { currentWeekId, nextWeekId } from '@/lib/weeklyScoring';
 import { boundsForGameId, fastRoundsEnabled, gameWeekIdForDisplay, gameWeekIdForNewTeam, maybeStartRound } from '@/lib/gameSchedule';
 import { awardPoints, upsertPlayer } from '@/lib/points';
-import { PlayerTier } from '@/types/league';
 
 // GET /api/week/team?ownerFid=123  OR  ?ownerDeviceId=abc
 export async function GET(req: NextRequest) {
@@ -44,8 +43,8 @@ export async function GET(req: NextRequest) {
 
     // Also return current player info
     const playerRows = fid
-      ? await sql`SELECT protocol_points, tier, locked_to_pro, referral_code FROM players WHERE owner_fid = ${fid}`
-      : await sql`SELECT protocol_points, tier, locked_to_pro, referral_code FROM players WHERE owner_device_id = ${device}`;
+      ? await sql`SELECT protocol_points, referral_code FROM players WHERE owner_fid = ${fid}`
+      : await sql`SELECT protocol_points, referral_code FROM players WHERE owner_device_id = ${device}`;
     const player = playerRows[0] ?? null;
 
     const { end } = boundsForGameId(weekId);
@@ -66,14 +65,13 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/week/team
-// Body: { ownerFid?, ownerDeviceId?, castsFid, repliesFid, followersFid, scoreRiseFid, likesFid, chosenTier?, targetWeekId? }
+// Body: { ownerFid?, ownerDeviceId?, castsFid, repliesFid, followersFid, scoreRiseFid, likesFid, targetWeekId? }
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
       ownerFid, ownerDeviceId,
       castsFid, repliesFid, followersFid, scoreRiseFid, likesFid,
-      chosenTier = 'beginner',
       targetWeekId,
     } = body;
 
@@ -87,14 +85,6 @@ export async function POST(req: NextRequest) {
 
     // Ensure player row exists
     await upsertPlayer(fid, device);
-
-    // Validate tier choice against player's locked status
-    const playerRows = fid
-      ? await sql`SELECT tier, locked_to_pro FROM players WHERE owner_fid = ${fid}`
-      : await sql`SELECT tier, locked_to_pro FROM players WHERE owner_device_id = ${device}`;
-
-    const player = playerRows[0];
-    const effectiveTier: PlayerTier = player?.locked_to_pro ? 'pro' : (chosenTier as PlayerTier);
 
     // Weekly mode accepts current/next week. Fast local mode always uses the open waiting round.
     const validWeeks = [currentWeekId(), nextWeekId()];
@@ -147,7 +137,7 @@ export async function POST(req: NextRequest) {
     const followersBaseline = neynarMap.get(followersFid)?.follower_count ?? 0;
     const scoreBaseline     = neynarMap.get(scoreRiseFid)?.score          ?? 0;
 
-    // Avg team battle score (for tier ranking)
+    // Avg team battle score (used as a tiebreaker)
     const cardRows = await sql`
       SELECT fid, battle_score FROM cards WHERE fid = ANY(${slotFids}::int[])
     `;
@@ -166,7 +156,7 @@ export async function POST(req: NextRequest) {
         ) VALUES (
           ${weekId}, ${fid},
           ${castsFid}, ${repliesFid}, ${followersFid}, ${scoreRiseFid}, ${likesFid},
-          ${effectiveTier}, ${avgTeamScore},
+          ${'league'}, ${avgTeamScore},
           ${followersBaseline}, ${scoreBaseline},
           NOW()
         )
@@ -176,7 +166,7 @@ export async function POST(req: NextRequest) {
           followers_fid      = EXCLUDED.followers_fid,
           score_rise_fid     = EXCLUDED.score_rise_fid,
           likes_fid          = EXCLUDED.likes_fid,
-          chosen_tier        = EXCLUDED.chosen_tier,
+          chosen_tier        = 'league',
           avg_team_score     = EXCLUDED.avg_team_score,
           followers_baseline = EXCLUDED.followers_baseline,
           score_baseline     = EXCLUDED.score_baseline,
@@ -193,7 +183,7 @@ export async function POST(req: NextRequest) {
         ) VALUES (
           ${weekId}, ${device},
           ${castsFid}, ${repliesFid}, ${followersFid}, ${scoreRiseFid}, ${likesFid},
-          ${effectiveTier}, ${avgTeamScore},
+          ${'league'}, ${avgTeamScore},
           ${followersBaseline}, ${scoreBaseline},
           NOW()
         )
@@ -203,7 +193,7 @@ export async function POST(req: NextRequest) {
           followers_fid      = EXCLUDED.followers_fid,
           score_rise_fid     = EXCLUDED.score_rise_fid,
           likes_fid          = EXCLUDED.likes_fid,
-          chosen_tier        = EXCLUDED.chosen_tier,
+          chosen_tier        = 'league',
           avg_team_score     = EXCLUDED.avg_team_score,
           followers_baseline = EXCLUDED.followers_baseline,
           score_baseline     = EXCLUDED.score_baseline,
@@ -222,7 +212,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       weekId,
-      chosenTier: effectiveTier,
       lockAt: weekRows[0]?.lock_at ?? null,
       endsAt: weekRows[0]?.ends_at ?? end.toISOString(),
       scheduleMode: fastRoundsEnabled() ? 'fast' : 'weekly',

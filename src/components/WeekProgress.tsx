@@ -23,8 +23,6 @@ interface SlotPreview {
 interface TeamState {
   weekId:        string;
   endsAt:        string | null;
-  chosenTier:    string;
-  assignedGroup: string | null;
   slotPoints:    number;
   rank:          number | null;
   slots:         Record<SlotType, SlotCard>;
@@ -35,8 +33,6 @@ interface TeamState {
 
 interface PlayerState {
   protocolPoints: number;
-  tier:           string;
-  lockedToPro:    boolean;
 }
 
 interface Props {
@@ -71,8 +67,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
   const [player, setPlayer]   = useState<PlayerState | null>(null);
   const [loading, setLoading] = useState(true);
   const [preview, setPreview] = useState<Record<SlotType, SlotPreview> | null>(null);
-  const [totalInGroup, setTotalInGroup] = useState(0);
-  const [myGroup, setMyGroup] = useState<string | null>(null);
+  const [totalInLeague, setTotalInLeague] = useState(0);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateErr, setUpdateErr] = useState('');
@@ -110,8 +105,6 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
           setTeam({
             weekId:        res.weekId ?? '',
             endsAt:        res.endsAt ?? null,
-            chosenTier:    t.chosen_tier ?? 'beginner',
-            assignedGroup: t.assigned_group ?? null,
             slotPoints:    Number(t.slot_points ?? 0),
             rank:          t.rank ? Number(t.rank) : null,
             slots: {
@@ -144,8 +137,6 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
         if (res.player) {
           setPlayer({
             protocolPoints: Number(res.player.protocol_points ?? 0),
-            tier:           res.player.tier ?? 'beginner',
-            lockedToPro:    Boolean(res.player.locked_to_pro),
           });
         }
         setLoading(false);
@@ -188,8 +179,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
       const edData = await edRes.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed');
       setPreview(data.slots);
-      setMyGroup(data.myGroup);
-      setTotalInGroup(data.totalInGroup);
+      setTotalInLeague(data.totalInGroup);
       setUpdatedAt(data.updatedAt);
       // Edition previews keyed by '{editionId}:{slotKey}'
       if (edData.previews) {
@@ -234,12 +224,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
   const scored      = team.slotPoints > 0 || team.rank != null;
   const hasPreview  = preview != null;
 
-  const effectiveGroup = team.chosenTier === 'pro'
-    ? 'pro'
-    : team.chosenTier === 'confident' ? (team.assignedGroup ?? null) : 'beginner';
-
-  let groupLabel = effectiveGroup === 'pro' ? '★ PRO' : effectiveGroup === 'beginner' ? '◎ BEGINNER' : '⚡ PENDING';
-  let groupColor = effectiveGroup === 'pro' ? '#C9A84C' : effectiveGroup === 'beginner' ? '#22c55e' : '#a78bfa';
+  const leagueColor = '#8a63d2';
 
   const slotWins = hasPreview
     ? SLOT_TYPES.filter(s => {
@@ -262,8 +247,8 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
             {team.weekId}
           </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', padding: '3px 10px', borderRadius: 99, background: `${groupColor}15`, border: `1px solid ${groupColor}40`, color: groupColor, textTransform: 'uppercase' }}>
-              {groupLabel}
+            <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: '0.2em', padding: '3px 10px', borderRadius: 99, background: `${leagueColor}15`, border: `1px solid ${leagueColor}40`, color: '#c4a4ff', textTransform: 'uppercase' }}>
+              ONE LEAGUE
             </div>
             {countdown_ && (
               <div style={{ fontSize: 8, color: '#5a4a70', letterSpacing: '0.1em' }}>{countdown_}</div>
@@ -498,7 +483,7 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
 
           <div style={{ fontSize: 8, color: '#4a3a60', textAlign: 'center', marginBottom: 12, lineHeight: 1.6 }}>
             {updatedAt ? `Checked ${timeAgo(updatedAt)}` : 'Hit update to check your live standings'}
-            {totalInGroup > 0 && ` · ${totalInGroup} teams in ${myGroup ?? effectiveGroup ?? 'your group'}`}
+            {totalInLeague > 0 && ` · ${totalInLeague} teams in the league`}
           </div>
         </>
       )}

@@ -3,7 +3,7 @@ import { sql } from '@/lib/db';
 
 // GET /api/editions/slots
 // Returns all active bonus slots grouped by edition — accessible to all,
-// UI restricts display to Pro players.
+// UI/API restrict play to players who have reached that edition's points threshold.
 export async function GET() {
   try {
     const rows = await sql`

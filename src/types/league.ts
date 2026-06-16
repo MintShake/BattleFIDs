@@ -26,26 +26,12 @@ export const SLOT_EMOJI: Record<SlotType, string> = {
   likes:      '❤️',
 };
 
-export type PlayerTier = 'beginner' | 'confident' | 'pro';
-
-export const TIER_LABELS: Record<PlayerTier, string> = {
-  beginner:  'Beginner',
-  confident: 'Confident',
-  pro:       'Pro',
-};
-
-export const TIER_DESC: Record<PlayerTier, string> = {
-  beginner:  'Play within your score band — safe, protected competition',
-  confident: '50/50 chance of landing in Beginner or Pro — revealed after lock-in',
-  pro:       'Open pool — compete against everyone',
-};
-
 export type PointsAction =
   | 'app_add'
   | 'pack_open'
   | 'team_lock'
   | 'week_played'
-  | 'overall_win'     // top-half finish in your group
+  | 'overall_win'     // top-half finish in the league
   | 'rare_card_bonus' // team contains a FID ≤100 card
   | 'share'
   | 'invite_sent'
@@ -67,8 +53,6 @@ export interface Player {
   ownerFid:       number | null;
   ownerDeviceId:  string | null;
   protocolPoints: number;
-  tier:           PlayerTier;
-  lockedToPro:    boolean;
   totalWins:      number;
   totalLosses:    number;
   referralCode:   string;

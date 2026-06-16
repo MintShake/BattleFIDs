@@ -5,7 +5,7 @@ import { currentWeekId, weekBounds } from '@/lib/weeklyScoring';
 
 // POST /api/week/edition-pick/preview
 // Fetches live metric for the player's edition bonus slot pick, stores it,
-// and returns value + comparison among other Pro players on the same slot.
+// and returns value + comparison among other players on the same slot.
 export async function POST(req: NextRequest) {
   try {
     const { ownerFid, ownerDeviceId } = await req.json();
