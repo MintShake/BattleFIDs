@@ -196,6 +196,22 @@ export default function WeekProgress({ ownerFid, onGoToTeam }: Props) {
     }
   }, [updating, ownerFid]);
 
+  useEffect(() => {
+    if (!team || team.rank != null) return;
+
+    const timeout = setTimeout(() => {
+      void handleUpdate();
+    }, 1000);
+    const interval = setInterval(() => {
+      void handleUpdate();
+    }, 30000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [team, handleUpdate]);
+
   // ── loading / no team ─────────────────────────────────────────────────────
 
   if (loading) return (
