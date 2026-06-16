@@ -9,12 +9,18 @@ interface Props {
 }
 
 const cards = [
-  ['Supply', 'Lower FIDs score higher. The score uses a log curve, so early identities feel scarce without making newer FIDs useless.'],
-  ['Followers', 'Follower count is log-scaled against a 1,000,000 follower ceiling. Big accounts matter, but every jump gets harder.'],
-  ['Neynar', 'Neynar score is converted to a 0-100 force stat and reflects current Farcaster reputation signals.'],
-  ['Activity', 'Recent reply engagement is sampled from cast data and capped at 100. Active cards can punch above their rarity.'],
-  ['Badge', 'Power badge, Neynar score, verifications, and following count combine into a social-proof score.'],
-  ['Freshness', 'Profile image freshness fades across roughly a year from the captured image date.'],
+  ['FID rarity', 'Earlier FIDs are scarcer, so low-number identities get a stronger base card score.'],
+  ['Audience', 'Follower count helps show reach. Bigger audiences usually have more chances to gain likes, replies, and followers.'],
+  ['Reputation', 'Neynar score and power-badge style signals help estimate how trusted or active an account is across Farcaster.'],
+  ['Momentum', 'Recent activity helps spot cards that may be moving now, not just accounts that were strong in the past.'],
+  ['Proof', 'Verifications and social signals add confidence that the card represents a real, established identity.'],
+  ['Freshness', 'Newer profile data is trusted more than stale data, because cards should reflect the current account.'],
+];
+
+const cardTips = [
+  ['High score', 'Usually a safer card with stronger overall signals.'],
+  ['Rare FID', 'FID 1-100 gives a bonus if you play it in your team.'],
+  ['Slot fit', 'A great card still needs to match the slot: casts, replies, followers, score rise, or likes.'],
 ];
 
 const game = [
@@ -151,9 +157,40 @@ export default function WelcomeModal({ onClose, onGoToPacks, onGoToLeague }: Pro
 
           {section === 'cards' && (
             <div>
-              <p style={{ margin: '0 0 10px', color: '#a997c4', fontSize: 10, lineHeight: 1.55 }}>
-                Protocol Score is a weighted card strength rating: Supply 25%, Followers 20%, Neynar 20%, Activity 10%, Badge 10%, Freshness 15%.
-              </p>
+              <div style={{
+                borderRadius: 8,
+                padding: '10px 11px',
+                background: 'rgba(201,168,76,0.06)',
+                border: '1px solid rgba(201,168,76,0.18)',
+                marginBottom: 10,
+              }}>
+                <div style={{ color: '#C9A84C', fontSize: 8, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 5 }}>
+                  Protocol Score
+                </div>
+                <p style={{ margin: 0, color: '#d9cdee', fontSize: 10, lineHeight: 1.55 }}>
+                  Every card gets a score from public Farcaster signals. It is a quick read on card strength, but it does not guarantee that card will win a specific slot.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6, marginBottom: 10 }}>
+                {cardTips.map(([title, body]) => (
+                  <div key={title} style={{
+                    display: 'flex', gap: 8, alignItems: 'flex-start',
+                    borderRadius: 7, padding: '7px 9px',
+                    background: 'rgba(138,99,210,0.045)',
+                    border: '1px solid rgba(138,99,210,0.11)',
+                  }}>
+                    <div style={{ minWidth: 70, color: '#C9A84C', fontSize: 8, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      {title}
+                    </div>
+                    <div style={{ color: '#cdbfe0', fontSize: 9, lineHeight: 1.45 }}>{body}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ color: '#8f7ba8', fontSize: 8, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 7 }}>
+                What feeds the score
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {cards.map(([title, body]) => (
                   <div key={title} style={{
